@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3307/mp?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3307/mp?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: 123
@@ -18,7 +18,30 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true # 是否开启下划线和驼峰的映射
     cache-enabled: false # 是否开启二级缓存
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
   global-config:
     db-config:
       id-type: auto # 全局id类型为自增长
       update-strategy: not_null # 更新策略，只更新非空字段
+      logic-delete-field: deleted # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
+      logic-delete-value: 1 # 逻辑已删除值(默认为 1)
+      logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
+
+# springdoc-openapi 项目配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html # 指定 Swagger UI 的访问路径，现在设置的是默认路径，它会自动映射导 Knife4j 的默认访问路径 /doc.html
+    tags-sorter: alpha # 接口文档页面中，标签（tags）排序方式，alpha 表示按字母顺序排序
+    operations-sorter: alpha # 操作（接口方法）排序方式，也用字母序
+  api-docs:
+    path: /v3/api-docs # 这是 OpenAPI 生成的接口文档 JSON 文件路径，默认 /v3/api-docs，前端页面会根据它请求数据
+  group-configs: # 支持多个接口分组配置，方便大型项目拆分不同模块接口文档
+    - group: 'user' # 分组名，设置默认分组 default，
+      paths-to-match: '/**' # 该分组扫描的接口路径，这里匹配所有接口 /**
+      packages-to-scan: com.itheima.mp.controller # 扫描的包路径，这里只扫描 com.sky 这个包里的 Controller，扫描出来的文档就放到当前设置的分组；如果后面还设置了分组，那么就让每个分组扫描不同的包，达到清晰定位的效果
+
+# knife4j 的增强配置，不需要增强可以不配
+knife4j:
+  enable: true # 是否启用 Knife4j 增强功能，true 表示启用
+  setting:
+    language: zh_cn # 界面语言，这里设置为简体中文（zh_cn）
