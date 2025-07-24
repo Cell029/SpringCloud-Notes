@@ -1088,6 +1088,737 @@ return PageDTO.of(records, user -> {
 这里就是将 userName 的最后两个字符变为 **。
 
 ****
+# 二、Docker
+
+> Docker 的安装参考 Redis 笔记
+
+## 1. 部署 MySQL
+
+传统方式部署 MySQL，大概的步骤有：
+
+- 搜索并下载 MySQL 安装包
+- 上传至 Linux 环境
+- 编译和配置环境
+- 安装
+
+而使用 Docker 安装，只需要一步，在命令行输入下面的命令：
+
+```shell
+docker run -d \
+  --name mysql \
+  -p 3306:3306 \
+  -e TZ=Asia/Shanghai \
+  -e MYSQL_ROOT_PASSWORD=123 \
+  mysql
+```
+
+- docker run -d ：创建并运行一个容器，-d 则是让容器以后台进程运行
+- --name mysql  : 给容器起个名字叫 mysql
+- -p 3306:3306 : 设置端口映射
+    - 容器是隔离环境，外界不可访问，但是可以将宿主机（即 Docker 所在的 Linux 系统）端口映射到容器内端口，当访问宿主机指定端口时，就是在访问容器内的端口。
+    - 容器内端口往往是由容器内的进程决定，例如 MySQL 进程默认端口是 3306，因此容器内端口就是 3306；而宿主机端口则可以任意指定，一般与容器内保持一致。
+    - 格式： -p 宿主机端口:容器内端口，该命令就是将宿主机的 3306 映射到容器内的 3306 端口
+- -e TZ=Asia/Shanghai : 配置容器内进程运行时的一些参数
+    - 格式：-e KEY=VALUE，KEY 和 VALUE 都由容器内进程决定
+    - 案例中，TZ=Asia/Shanghai 是设置时区；MYSQL_ROOT_PASSWORD=123 是设置 MySQL 的默认密码
+- mysql : 设置镜像名称，Docker 会根据这个名字搜索并下载镜像
+    - 格式：REPOSITORY:TAG，例如 mysql:8.0，其中 REPOSITORY 可以理解为镜像名，TAG 是版本号
+    - 在未指定 TAG 的情况下，默认是最新版本，也就是 mysql:latest
+
+执行命令后，Docker 就会自动搜索并下载 MySQL，然后会自动运行 MySQL。而且，这种安装方式不用考虑运行的操作系统环境，它不仅可以在 CentOS 系统这样安装，
+在 Ubuntu 系统、macOS 系统、甚至是装了 WSL 的 Windows 下，都可以使用这条命令来安装 MySQL。如果是手动安装，就需要手动解决安装包不同、环境不同的、配置不同的问题。
+因为 Docker 安装 MySQL 不是直接下载它，而是拉取一个镜像，该镜像中不仅包含了 MySQL 本身，还包含了运行所需要的环境、配置、系统级函数库。基于此，
+它在运行时就有自己独立的环境，可以跨系统运行，也不需要手动配置环境，这种独立运行的隔离环境被称为容器。
+
+Docker 官方提供了一个专门管理、存储镜像的网站，并对外开放了镜像上传、下载的权利：[https://hub.docker.com/](https://hub.docker.com/)。
+DockerHub 网站是官方仓库，阿里云、华为云会提供一些第三方仓库，也可以自己搭建私有的镜像仓库。
+
+****
+## 2. Docker 基础
+
+官方文档：[https://docs.docker.com/](https://docs.docker.com/)
+
+### 2.1 常见命令
+
+| 命令          | 说明                          | 文档地址                                                                            |
+| ------------- | ----------------------------- |---------------------------------------------------------------------------------|
+| docker pull   | 拉取镜像                      | [docker pull](https://docs.docker.com/engine/reference/commandline/pull/)       |
+| docker push   | 推送镜像到DockerRegistry      | [docker push](https://docs.docker.com/engine/reference/commandline/push/)       |
+| docker images | 查看本地镜像                  | [docker images](https://docs.docker.com/engine/reference/commandline/images/)   |
+| docker rmi    | 删除本地镜像                  | [docker rmi](https://docs.docker.com/engine/reference/commandline/rmi/)         |
+| docker run    | 创建并运行容器（不能重复创建）| [docker run](https://docs.docker.com/engine/reference/commandline/run/)         |
+| docker stop   | 停止指定容器                  | [docker stop](https://docs.docker.com/engine/reference/commandline/stop/)       |
+| docker start  | 启动指定容器                  | [docker start](https://docs.docker.com/engine/reference/commandline/start/)     |
+| docker restart| 重新启动容器                  | [docker restart](https://docs.docker.com/engine/reference/commandline/restart/) |
+| docker rm     | 删除指定容器                  | [docker rm](https://docs.docker.com/engine/reference/commandline/rm/)           |
+| docker ps     | 查看容器                      | [docker ps](https://docs.docker.com/engine/reference/commandline/ps/)           |
+| docker logs   | 查看容器运行日志              | [docker logs](https://docs.docker.com/engine/reference/commandline/logs/)       |
+| docker exec   | 进入容器                      | [docker exec](https://docs.docker.com/engine/reference/commandline/exec/)                  |
+| docker save   | 保存镜像到本地压缩文件        | [docker save](https://docs.docker.com/engine/reference/commandline/save/)       |
+| docker load   | 加载本地压缩文件到镜像        | [docker load](https://docs.docker.com/engine/reference/commandline/load/)       |
+| docker inspect| 查看容器详细信息              | [docker inspect](https://docs.docker.com/engine/reference/commandline/inspect/) | 
+
+Docker 的核心命令可以划分为三个主要环节：镜像构建与管理、镜像仓库交互、容器生命周期管理：
+
+通过 docker build 命令，可以基于 Dockerfile 构建出一个自定义的镜像，比如定制版的 Nginx 服务镜像。构建好的镜像可以使用 docker images 查看详细信息，
+如镜像名、标签、大小等；如果不再使用某个镜像，可以使用 docker rmi 删除它。Docker 还提供了离线共享机制 docker save 和 docker load：
+前者将镜像打包为 .tar 文件，后者可从文件中恢复出镜像，实现离线迁移。
+
+关于镜像仓库交互操作，使用 docker pull 可以从远程镜像仓库（如 Docker Hub）拉取镜像到本地，比如拉取官方提供的 MySQL 镜像；docker push 则可以将本地构建好的镜像上传到仓库，这一过程类似源代码的版本管理。
+
+通过 docker run，可以基于镜像创建并启动一个新的容器，例如使用 Nginx 镜像启动一个 Web 服务。运行中的容器可以通过 docker stop 停止，
+再用 docker start 重新启动，或者直接使用 docker restart。docker ps 可以查看当前正在运行的容器列表，了解容器状态和端口映射等情况（加上 -a 则是查看所有）。
+docker logs 则用于查看容器的运行日志；而 docker exec 可以进入容器内部执行命令，比如修改配置或检查进程。当容器不再使用时，可以用 docker rm 将其删除。
+
+默认情况下，每次重启虚拟机都需要手动启动 Docker 和 Docker 中的容器。通过命令可以实现开机自启：
+
+```shell
+# Docker 开机自启
+systemctl enable docker
+
+# Docker 容器开机自启
+docker update --restart=always [容器名/容器id]
+```
+
+配置一个 Nginx 镜像：
+
+1、去 DockerHub 查看 [nginx](https://docs.docker.com/engine/swarm/configs/) 镜像仓库及相关信息
+
+2、拉取 Nginx 镜像
+
+```shell
+# 默认拉取最新版
+docker pull nginx
+# 打印结果如下：
+Using default tag: latest
+latest: Pulling from library/nginx
+59e22667830b: Pull complete
+140da4f89dcb: Pull complete
+96e47e70491e: Pull complete
+2ef442a3816e: Pull complete
+4b1e45a9989f: Pull complete
+1d9f51194194: Pull complete
+f30ffbee4c54: Pull complete
+Digest: sha256:84ec96...
+Status: Downloaded newer image for nginx:latest
+docker.io/library/nginx:latest
+```
+
+3、查看镜像
+
+```shell
+docker images
+# 结果如下：
+REPOSITORY           TAG       IMAGE ID       CREATED        SIZE
+nginx                latest    2cd1d97f893f   9 days ago     192MB
+redis                latest    ed3a2af6d0d4   7 weeks ago    128MB
+hello-world          latest    74cc54e27dc4   6 months ago   10.1kB
+canal/canal-server   latest    c5915ee0bdab   6 months ago   1.69GB
+mysql                8.0.33    f6360852d654   2 years ago    565MB
+```
+
+4、创建并允许 Nginx 容器
+
+```shell
+docker run -d \
+    --name nginx \
+    -p 80:80 \
+    nginx
+# 返回 id 表示成功
+70a1118...
+```
+
+5、查看运行中容器
+
+```shell
+docker ps
+# 也可以加格式化方式访问，格式会更加清爽
+docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}\t{{.Names}}"
+# 打印结果如下：
+CONTAINER ID   IMAGE          PORTS                                                    STATUS          NAMES
+70a111875174   nginx          0.0.0.0:80->80/tcp, [::]:80->80/tcp                      Up 35 seconds   nginx
+21c54622906e   mysql:8.0.33   33060/tcp, 0.0.0.0:3307->3306/tcp, [::]:3307->3306/tcp   Up 2 hours      mysql
+```
+
+6、访问网页，地址：http://localhost
+
+7、查看容器详细信息
+
+```shell
+docker inspect nginx
+```
+
+8、进入容器，查看容器内目录
+
+```shell
+docker exec -it nginx bash
+# 终端显示变成：
+root@70a111875174:/#
+```
+
+9、停止容器
+
+```shell
+docker stop nginx
+```
+
+10、删除容器
+
+```shell
+docker rm nginx
+```
+
+有些 Docker 的命令较长，可以采取起别名的方式简化命令：
+
+1、修改 /root/.bashrc 文件
+
+```shell
+vi /root/.bashrc
+```
+
+2、添加命令与别名
+
+```shell
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+alias dps='docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}\t{{.Names}}"'
+alias dis='docker images'
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+fi
+```
+
+3、让文件生效
+
+```shell
+source /root/.bashrc
+```
+
+****
+### 2.2 数据卷
+
+容器是隔离环境，容器内程序的文件、配置、运行时产生的容器都在容器内部，如果要读写容器内的文件就非常不方便。一般情况下，应该是要遵循容器运行环境应与数据、配置解耦。
+容器的本质是轻量级、快速启动、易于销毁的运行环境，这就意味着容器生命周期短，随时可能被销毁或替换，因此程序的数据（如 MySQL 的数据库文件）、配置（如 nginx.conf）、资源（如静态资源） 不能直接放在容器里。
+
+数据卷是 Docker 主机上的一个目录或文件，它可以被挂载到容器中。与容器的可写层不同，数据卷的数据不会随着容器的删除而丢失，并且对数据卷的修改会立即生效。它主要有以下几个作用：
+
+- 数据持久化：使用数据卷后，即使容器被删除，数据卷中的数据依然保留在主机上，下次启动新容器时可以继续使用。
+- 数据共享：多个容器可以同时挂载同一个数据卷，实现数据的共享。例如一个 Web 应用容器和一个数据库容器共享存储用户上传文件的目录。
+- 简化配置：可以将配置文件放在数据卷中，在不同的容器中挂载相同的数据卷，这样就可以快速复用相同的配置，而无需在每个容器中单独配置。
+
+相关命令：
+
+| 命令                | 说明             | 文档地址                                                                                          |
+| ------------------- | ---------------- |-----------------------------------------------------------------------------------------------|
+| docker volume create | 创建数据卷       | [docker volume create](https://docs.docker.com/engine/reference/commandline/volume_create/)   |
+| docker volume ls     | 查看所有数据卷   | [docker volume ls](https://docs.docker.com/engine/reference/commandline/volume_ls/)           |
+| docker volume rm     | 删除指定数据卷   | [docker volume rm](https://docs.docker.com/engine/reference/commandline/volume_rm/)           |
+| docker volume inspect | 查看某个数据卷的详情 | [docker volume inspect](https://docs.docker.com/engine/reference/commandline/volume_inspect/) |
+| docker volume prune  | 清除数据卷       | [docker volume prune](https://docs.docker.com/engine/reference/commandline/volume_prune/)                          | 
+
+注意：容器与数据卷的挂载要在创建容器时配置，对于创建好的容器，是不能设置数据卷的，而且创建容器的过程中，数据卷会自动创建。
+
+****
+#### 1. 挂载数据卷
+
+例如 nginx 的 html 目录挂载：
+
+1、首先创建容器并指定数据卷，通过 -v 参数来指定数据卷
+
+```shell
+docker run -d --name nginx -p 80:80 -v html:/usr/share/nginx/html nginx
+```
+
+2、查看数据卷
+
+```shell
+docker volume ls
+# 打印结果：
+DRIVER    VOLUME NAME
+...
+local     html
+```
+
+3、查看数据卷详情
+
+```shell
+docker volume inspect html
+
+[
+    {
+        "CreatedAt": "2025-07-24T16:14:35+08:00",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/html/_data",
+        "Name": "html",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+```
+
+4、查看 /var/lib/docker/volumes/html/_data 目录
+
+```shell
+ll /var/lib/docker/volumes/html/_data
+
+total 8
+-rw-r--r-- 1 root root 497 Jun 25 01:22 50x.html
+-rw-r--r-- 1 root root 615 Jun 25 01:22 index.html
+```
+
+5、进入该目录，并随意修改 index.html 内容
+
+```shell
+# 获取一个 root shell，切换到 root 用户
+sudo -s
+cd /var/lib/docker/volumes/html/_data
+vi index.html
+```
+
+****
+#### 2. 匿名数据卷
+
+先查看一下 MySQL 容器的详细信息：
+
+```shell
+docker inspect mysql
+```
+
+关注其中 .Config.Volumes 部分和 .Mounts 部分，可以发现这个容器声明了一个本地目录，需要挂载数据卷，但是数据卷未定义，这就是匿名卷。 
+
+```shell
+{
+    "Config": {
+        "Volumes": {
+            "/var/lib/mysql": {}
+        },
+    },
+}
+```
+
+- /var/lib/mysql：容器内的路径，即 MySQL 默认的数据目录
+- {}：空对象，表示这个路径会被 Docker 用数据卷挂载
+
+
+```shell
+{
+  "Mounts": [
+        {
+            "Type": "volume",
+            "Name": "278e740c8aea5cfa51ab666ea44dd9e5d0ffce3eb35e80214058e472a6cbcdac",
+            "Source": "/var/lib/docker/volumes/278e740c8aea5cfa51ab666ea44dd9e5d0ffce3eb35e80214058e472a6cbcdac/_data",
+            "Destination": "/var/lib/mysql",
+            "Driver": "local",
+            "Mode": "",
+            "RW": true,
+            "Propagation": ""
+        }
+    ],
+}
+```
+
+Mounts 中有几个关键属性：
+
+- Name：数据卷名称，由于定义容器未设置容器名，这里的就是匿名卷自动生成的名字，一串 hash 值。
+- Source：宿主机目录
+- Destination：容器内的目录
+
+上述配置是将容器内的 /var/lib/mysql 这个目录，与数据卷 278e740c8... 挂载，于是在宿主机中就有了 /var/lib/docker/volumes/278e740c8... 这个目录。
+这就是匿名数据卷对应的目录，它的使用方式与普通数据卷没有差别。即使没有显式挂载数据卷，Docker 也会自动挂载一个匿名数据卷。因为 MySQL 镜像的 Dockerfile 中定义了：
+
+```shell
+VOLUME /var/lib/mysql
+```
+
+这个声明表示：在容器运行时，该路径将使用数据卷存储。为什么 Docker 会选择自动挂载呢？因为容器特有的性质导致存储在容器中的配置、运行环境等会随着容器的删除而丢失，
+为了保证像 MySQL 这样的数据库应用中的数据（如数据库表结构、存储的业务数据等）能够长期保存，不受容器生命周期的影响，就采取了自动挂载匿名数据卷的形式。
+
+查看该目录下的 MySQL 的 data 文件：
+
+```shell
+ls -l /var/lib/docker/volumes/278e740c8.../_data
+```
+
+****
+#### 3. 挂载本地目录或文件
+
+数据卷的目录结构较复杂，如果直接操作数据卷目录会不太方便。大多情况下，应该直接将容器目录与宿主机指定目录挂载，或者直接挂载到 Windows 磁盘中。
+挂载语法与数据卷类似：
+
+```shell
+# 挂载宿主机本地目录
+-v 本地目录:容器内目录
+# 挂载 Windows 本地目录
+-v 本地文件:容器内文件
+```
+
+例如：
+
+```shell
+# 挂载宿主机本地目录
+docker run -v /home/user/mysql-data:/var/lib/mysql mysql
+# 挂载 Windows 本地目录
+docker run -v D:\docker\mysql-data:/var/lib/mysql mysql
+```
+
+现在尝试将本地 Windows 目录挂载到容器内，并且使用对应的初始化 SQL 脚本和配置文件，官方文档：[mysql](https://hub.docker.com/_/mysql)。
+
+容器的默认 mysql 配置文件目录为：/etc/mysql/conf.d，将 Windows 磁盘的目录挂载到这就行；
+初始化 SQL 脚本的默认目录为：/docker-entrypoint-initdb.d；
+mysql 数据存储的默认目录为：/var/lib/mysql。
+
+所以将 Windows 磁盘目录挂载到容器的对应路径为：
+
+- 挂载 mysql_data_volume 到容器内的 /var/lib/mysql 目录
+- 挂载 D:\docker_dataMountDirectory\mysql\init 到容器内的 /docker-entrypoint-initdb.d 目录（初始化的SQL脚本目录）
+- 挂载 D:\docker_dataMountDirectory\mysql\conf 到容器内的 /etc/mysql/conf.d 目录（这个是 MySQL 配置文件目录）
+
+```shell
+docker run -d \
+  --name mysql2 \
+  -p 3306:3306 \
+  -e TZ=Asia/Shanghai \
+  -e MYSQL_ROOT_PASSWORD=123 \
+  -v ./mysql/data:/var/lib/mysql \
+  -v /mnt/d/docker_dataMountDirectory/mysql/conf:/etc/mysql/conf.d \
+  -v /mnt/d/docker_dataMountDirectory/mysql/init:/docker-entrypoint-initdb.d \
+  mysql
+```
+
+需要注意的是：/var/lib/mysql 是 MySQL 容器中最核心的数据目录，主要用来存放：
+
+- 数据库的所有数据文件，包括表数据、索引、事务日志、二进制日志等
+- 系统表和元数据，MySQL 自身的管理信息也保存在这里。
+- 数据库的 socket 文件和配置相关文件（部分）
+
+所以建议：
+
+- 在 Windows 上使用 WSL2 或 Docker Desktop 挂载 Windows 目录时，Linux 容器往往无法正确操作 Windows 文件系统的权限，导致类似 “Operation not permitted” 的错误。
+- 所以建议避免直接挂载 Windows 目录到 MySQL 的数据目录，只把配置文件和初始化脚本挂载到 Windows 目录，数据目录使用 Docker 卷，让 Docker 维护数据存储在其内部虚拟文件系统里。
+- WSL2 中挂载 Windows 盘时，路径要用 Linux 格式，比如 /mnt/d/...；上述命令的路径写法为：/mnt/d/docker_dataMountDirectory/mysql/conf:/etc/mysql/conf.d
+
+具体操作：
+
+1、删除原来的 MySQL 容器
+
+2、创建并运行新 mysql 容器，挂载本地目录，使用上面的那个命令
+
+3、查看目录，检查是否创建了 /mysql/data
+
+```shell
+# 查看当前目录
+pwd
+# 打印结果
+/home/cell
+# 查看当前目录下的文件
+ls -l
+# 打印结果
+total 114408
+...
+drwxr-xr-x 3 root    root ... mysql
+# 查看 mysql 文件
+ls -l mysql
+# 打印结果
+total 4
+drwxr-xr-x 8 dnsmasq root ... data
+# 查看 data 文件
+ls -l data
+...
+```
+
+4、查看 MySQL 容器内数据
+
+```shell
+docker exec -it mysql2 mysql -uroot -p123
+# 进入 mysql 容器
+mysql> 
+# 查看编码表（本地挂载的配置文件中配置了编码）
+show variables like "%char%";
+# 打印结果
++--------------------------+--------------------------------+
+| Variable_name            | Value                          |
++--------------------------+--------------------------------+
+| character_set_client     | utf8mb4                        |
+| character_set_connection | utf8mb4                        |
+| character_set_database   | utf8mb4                        |
+| character_set_filesystem | binary                         |
+| character_set_results    | utf8mb4                        |
+| character_set_server     | utf8mb4                        |
+| character_set_system     | utf8mb3                        |
+| character_sets_dir       | /usr/share/mysql-8.0/charsets/ |
++--------------------------+--------------------------------+
+# 查看数据库
+show databases;
++--------------------+
+| Database           |
++--------------------+
+| hmall              |
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+...
+```
+
+5、用 Navicat 连接测试，可以发现有对应的数据库存在。
+
+基于以上操作，完成本地目录的挂在后，即使删除了容器，本地目录内的数据是不会丢失的，容器里 /var/lib/mysql 所有的文件操作，都会映射到宿主机的挂载路径上；
+同理，只要使用这些本地目录进行挂载，那么就可以达到数据恢复的操作。
+
+****
+### 2.3 镜像
+
+#### 1. 概念
+
+镜像（Image）是 Docker 容器的只读模板，它包含了运行某个应用所需的所有内容，包括：
+
+- 操作系统环境（比如 Ubuntu、Alpine） 
+- 预装的软件（如 Nginx、MySQL、Java） 
+- 配置文件 
+- 环境变量 
+- 入口脚本等
+
+镜像类似 Java 的 .class 文件，容器就是镜像运行后形成的实际进程（加上可读写层）。Docker 镜像是由多层（Layer）叠加而成的，每一层都是只读的。
+每一条 Dockerfile 指令（如 RUN, COPY, ADD）都会生成一个新的只读层。
+
+例如：
+
+```shell
+# 这段代码是一个 Dockerfile，用于构建一个基于 Ubuntu 20.04 的 Nginx Web 服务器镜像。
+FROM ubuntu:20.04 # 指定基础镜像，相当于 “从哪个操作系统开始构建”
+RUN apt-get update # 更新 Ubuntu 的软件包索引（类似刷新应用商店的列表）
+RUN apt-get install -y nginx # 安装 Nginx Web 服务器
+COPY index.html /usr/share/nginx/html/ # 将本地的 index.html 文件复制到镜像中的 Nginx 默认网站目录
+```
+
+当重新构建镜像时，如果前几层没有变化，它们会被缓存，不会重新构建，这也是镜像的共享机制。
+
+由于制作镜像的过程中，需要逐层处理和打包，比较复杂，所以 Docker 就提供了自动打包镜像的功能。
+只需要将打包的过程，每一层要做的事情用固定的语法写下来，交给 Docker 去执行即可，而这种记录镜像结构的文件就称为 Dockerfile，它是一个包含了一系列命令的脚本，这些命令按照顺序执行并生成最终的镜像。
+官方文档：[https://docs.docker.com/engine/reference/builder/](https://docs.docker.com/engine/reference/builder/)
+
+常用命令：
+
+| 指令        | 说明                                   | 示例                      |
+| ----------- | -------------------------------------- | ------------------------- |
+| FROM        | 指定基础镜像                           | FROM centos:6             |
+| ENV         | 设置环境变量，可在后面指令使用         | ENV key value             |
+| COPY        | 拷贝本地文件到镜像的指定目录           | COPY ./xx.jar /tmp/app.jar |
+| RUN         | 执行Linux的shell命令，一般是安装过程的命令 | RUN yum install gcc       |
+| EXPOSE      | 指定容器运行时监听的端口，是给镜像使用者看的 | EXPOSE 8080               |
+| ENTRYPOINT  | 镜像中应用的启动命令，容器运行时调用   | ENTRYPOINT java -jar xx.jar |
+
+****
+#### 2. 自定义镜像
+
+自定义一个 Java 应用的镜像，在 D:\docker_dataMountDirectory\my_java_demo 下准备两个文件：
+
+- docker-demo.jar：Java 应用的 jar 包
+- Dockerfile：镜像的构建脚本
+
+```shell
+# 基础镜像
+FROM openjdk:11.0-jre-buster
+# 设定时区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+# 拷贝 jar 包
+COPY docker-demo.jar /app.jar
+# 入口，启动时执行的命令
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+```
+
+在 wsl2 中进入该磁盘：
+
+```shell
+cd /mnt/d/docker_dataMountDirectory/my_java_demo
+```
+
+然后构建镜像：
+
+```shell
+docker build -t my-java-app .
+```
+
+- docker build：就是构建一个 docker 镜像
+- -t my-java-app：-t 参数是指定镜像的名称，也可以在后面添加 : 1.0（repository 和 tag，指定版本号）
+- . : 最后的点是指构建时 Dockerfile 所在路径，由于进入了 D 盘目录，所以指定的是 . 来代表当前目录
+
+验证镜像：
+
+```shell
+docker images
+# 打印结果：
+REPOSITORY           TAG       IMAGE ID       CREATED         SIZE
+...
+my-java-app          latest    d77979e0289f   2 minutes ago   315MB
+```
+
+运行镜像：
+
+```shell
+docker run -d --name my-java-demo -p 8080:8080 my-java-app
+# 打印结果：
+2bc56c92449f4a7b1a273f886144fa1ab17a337f902e4c6928fd5fe0cef4fd6d
+```
+
+访问地址：
+
+```shell
+curl localhost:8080/hello/count
+# 打印结果：
+<h5>欢迎访问黑马商城, 这是您第6次访问<h5>
+```
+
+****
+### 2.4 网络
+
+上面创建了一个 Java 项目的容器，而 Java 项目往往需要访问其它各种中间件，例如 MySQL、Redis 等。而 Docker 默认为所有容器创建一个叫作 bridge 的默认网络（除非显式使用 --network）。
+在同一 bridge 网络下的容器，可以通过容器名互相通信。
+
+查看 mysql2 容器的网络 IP 地址：
+
+```shell
+"Networks": {
+    "bridge": {
+        "IPAMConfig": null,
+        "Links": null,
+        "Aliases": null,
+        "MacAddress": "4a:e1:4c:87:c5:47",
+        "DriverOpts": null,
+        "GwPriority": 0,
+        "NetworkID": "c079483eeaa0e54b270543eacaec9fe041fa789891a18c690ca15d2c809a5e42",
+        "EndpointID": "c2f7db20ace5ccdf25f715c605818fe230c9eaf714c2228c462fdf686a0ecec9",
+        "Gateway": "172.17.0.1",
+        "IPAddress": "172.17.0.3",
+        "IPPrefixLen": 16,
+        "IPv6Gateway": "",
+        "GlobalIPv6Address": "",
+        "GlobalIPv6PrefixLen": 0,
+        "DNSNames": null
+    }
+}
+```
+
+得到 IP 地址为 172.17.0.3，然后进入 my-java-app 容器，在该容器内通过 ping 命令测试网络：
+
+```shell
+docker exec -it my-java-demo bash
+ping 172.17.0.3
+```
+
+但是，容器的网络 IP 其实是一个虚拟的 IP，其值并不固定与某一个容器绑定，如果在开发时写死某个 IP，而在部署时很可能 MySQL 容器的 IP 会发生变化，连接会失败。常见 Docker 网络的命令：
+
+| 命令                     | 说明                     | 文档地址                                                                                                  |
+| ------------------------ | ------------------------ |-------------------------------------------------------------------------------------------------------|
+| docker network create    | 创建一个网络             | [docker network create](https://docs.docker.com/engine/reference/commandline/network_create/)         |
+| docker network ls        | 查看所有网络             | [docker network ls](https://docs.docker.com/engine/reference/commandline/network_ls/)                 |
+| docker network rm        | 删除指定网络             | [docker network rm](https://docs.docker.com/engine/reference/commandline/network_rm/)                 |
+| docker network prune     | 清除未使用的网络         | [docker network prune](https://docs.docker.com/engine/reference/commandline/network_prune/)           |
+| docker network connect   | 使指定容器连接加入某网络 | [docker network connect](https://docs.docker.com/engine/reference/commandline/network_connect/)       |
+| docker network disconnect | 使指定容器连接离开某网络 | [docker network disconnect](https://docs.docker.com/engine/reference/commandline/network_disconnect/) |
+| docker network inspect   | 查看网络详细信息         | [docker network inspect](https://docs.docker.com/engine/reference/commandline/network_inspect/)       | 
+
+自定义 bridge 网络：
+
+1、首先通过命令创建一个网络
+
+```shell
+docker network create mynet
+
+82a90caaf846477e6ce8c577020b1738a7d46660dc87d6e89b04e5444021a234
+```
+
+2、查看网络
+
+```shell
+docker network ls
+# 除了 mynet 以外，其它都是默认的网络
+NETWORK ID     NAME      DRIVER    SCOPE
+c079483eeaa0   bridge    bridge    local
+74fb3e77ba1f   host      host      local
+82a90caaf846   mynet     bridge    local
+```
+
+3、让 my-java-demo 和 mysql2 都加入该网络，注意在加入网络时可以通过 --alias 给容器起别名，可用容器名作为 DNS
+
+```shell
+docker network connect mynet mysql2 --alias db
+docker network connect mynet my-java-demo
+```
+
+4、查看网络信息
+
+```shell
+docker network inspect mynet
+[
+    {
+        "Name": "mynet",
+        "Id": "82a90caaf846477e6ce8c577020b1738a7d46660dc87d6e89b04e5444021a234",
+        ...
+            "Config": [
+                {
+                    "Subnet": "172.19.0.0/16",
+                    "Gateway": "172.19.0.1"
+                }
+            ]
+        },
+        "Containers": {
+            "2bc56c92449f4a7b1a273f886144fa1ab17a337f902e4c6928fd5fe0cef4fd6d": {
+                "Name": "my-java-demo",
+                "EndpointID": "7d7bea676c53efa1b18a00615c16775a684bf8a0cca86830cc55cb709890307e",
+                "MacAddress": "ca:91:31:3e:8a:36",
+                "IPv4Address": "172.19.0.3/16",
+                "IPv6Address": ""
+            },
+            "9cf7e5215100f796e64b571ad3d5af91414e496418a810fd104d056c1be063cd": {
+                "Name": "mysql2",
+                "EndpointID": "51d8696282fffdbf8ef91be02863a9ba9b936cde5fc19771910a43ea5bdd97c6",
+                "MacAddress": "86:67:bb:60:6e:5e",
+                "IPv4Address": "172.19.0.2/16",
+                "IPv6Address": ""
+            }
+        },
+    }
+]
+```
+
+5、进入 my-java-demo 容器，尝试利用荣启铭和别名访问 mysql2
+
+```shell
+docker exec -it my-java-demo bash
+ping db
+ping mysql2
+```
+
+- 在自定义网络中，可以给容器起多个别名，默认的别名是容器名本身
+- 在同一个自定义网络中的容器，可以通过别名互相访问
+
+****
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
