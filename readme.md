@@ -1479,14 +1479,14 @@ mysql 数据存储的默认目录为：/var/lib/mysql。
 
 ```shell
 docker run -d \
-  --name mysql2 \
+  --name mysql \
   -p 3306:3306 \
   -e TZ=Asia/Shanghai \
   -e MYSQL_ROOT_PASSWORD=123 \
   -v ./mysql/data:/var/lib/mysql \
   -v /mnt/d/docker_dataMountDirectory/mysql/conf:/etc/mysql/conf.d \
   -v /mnt/d/docker_dataMountDirectory/mysql/init:/docker-entrypoint-initdb.d \
-  mysql
+  mysql:8.0.33
 ```
 
 需要注意的是：/var/lib/mysql 是 MySQL 容器中最核心的数据目录，主要用来存放：
@@ -1800,33 +1800,678 @@ ping mysql2
 - 在同一个自定义网络中的容器，可以通过别名互相访问
 
 ****
+## 3. 项目部署
+
+### 3.1 部署 Java 项目
+
+先创建网络，用于连接 Java 项目和 mysql：
+
+```shell
+docker network create hm-net
+```
+
+把创建好的 mysql 容器接入到网络中：
+
+```shell
+docker network connect hm-net mysql
+```
+
+hmall 项目是一个 maven 聚合项目，使用 IDEA 打开 hmall 项目，它有两个子模块：一个 hm-common，一个 hm-service，需要进行部署的就是 hm-service；
+因为 hm-common 模块本身不包含业务逻辑，也没有启动类，不能独立运行，在每个服务模块引入了 common 依赖，意味着在 maven 编译打包服务模块时，
+hm-common 的代码会被一起编译进去，打包进 jar 包内。
+
+打包完成后，将 hm-service 目录下的 Dockerfile 和 hm-service/target 目录下的 hm-service.jar 部署到 docker 中：
+
+```shell
+# 在 wsl2 中进入该磁盘
+cd /mnt/d/docker_dataMountDirectory/hmall
+# 构建镜像
+docker build -t hmall .
+```
 
 
 
 
+****
+### 3.3 DockerCompose
+部署一个简单的项目通常需要 3 个容器：
+
+- MySQL
+- Nginx
+- Java 项目
+
+但实际项目中不止这些，所以使用 Docker Compose 可以帮助实现多个相互关联的 Docker 容器的快速部署，它允许用户通过一个单独的 docker-compose.yml 模板文件（YAML 格式）来定义一组相关联的应用容器。
+
+#### 3.1 基本语法
+
+docker-compose 文件中可以定义多个相互关联的应用容器，每一个应用容器被称为一个服务（service）。由于 service 就是在定义某个应用的运行时参数，
+因此与 docker run 参数非常相似。用 docker ru n部署 MySQL 的命令如下：
+
+```shell
+docker run -d \
+  --name mysql \
+  -p 3306:3306 \
+  -e TZ=Asia/Shanghai \
+  -e MYSQL_ROOT_PASSWORD=123 \
+  -v ./mysql/data:/var/lib/mysql \
+  -v ./mysql/conf:/etc/mysql/conf.d \
+  -v ./mysql/init:/docker-entrypoint-initdb.d \
+  --network hmall
+  mysql
+```
+
+如果用 docker-compose.yml 文件来定义，就是这样：
+
+```shell
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: 123
+    volumes:
+      - "./mysql/conf:/etc/mysql/conf.d"
+      - "./mysql/data:/var/lib/mysql"
+    networks:
+      - new
+networks:
+  new:
+    name: hmall
+```
+
+对比如下：
+
+| docker run 参数 | docker compose 指令 | 说明     |
+| :-------------: | :-----------------: | -------- |
+|     --name      |    container_name   | 容器名称 |
+|       -p        |        ports        | 端口映射 |
+|       -e        |      environment    | 环境变量 |
+|       -v        |       volumes       | 数据卷配置 |
+|    --network    |       networks      | 网络     |
+
+****
+#### 3.2 基础命令
+
+```shell
+docker compose [OPTIONS] [COMMAND]
+```
+
+其中，OPTIONS 和 COMMAND 都是可选参数，比较常见的有：
+
+| 类型      | 参数或指令 | 说明                                                         |
+| --------- | ---------- | ------------------------------------------------------------ |
+| Options   | -f         | 指定compose文件的路径和名称                                  |
+| Options   | -p         | 指定project名称。project就是当前compose文件中设置的多个service的集合，是逻辑概念 |
+| Commands  | up         | 创建并启动所有service容器                                    |
+| Commands  | down       | 停止并移除所有容器、网络                                     |
+| Commands  | ps         | 列出所有启动的容器                                           |
+| Commands  | logs       | 查看指定容器的日志                                           |
+| Commands  | stop       | 停止容器                                                     |
+| Commands  | start      | 启动容器                                                     |
+| Commands  | restart    | 重启容器                                                     |
+| Commands  | top        | 查看运行的进程                                               |
+| Commands  | exec       | 在指定的运行中容器中执行命令                                 |
+
+****
+# 三、微服务
+
+## 1. 概述
+
+### 1.1 单体架构
+
+单体架构（monolithic structure）就是整个项目中所有功能模块都在一个工程中开发；项目部署时需要对所有模块一起编译、打包；项目的架构设计、开发模式都非常简单。
+当项目规模较小时，这种模式上手快，部署、运维也都很方便，因此早期很多小型项目都采用这种模式。但随着项目的业务规模越来越大，团队开发人员也不断增加，单体架构就呈现出越来越多的问题：
+
+- 团队协作成本高：由于所有模块都在一个项目中，不同模块的代码之间物理边界越来越模糊，最终要把功能合并到一个分支，此时可能发生各种 bug，导致解决问题较为麻烦。
+- 系统发布效率低：任何模块变更都需要发布整个系统，而系统发布过程中需要多个模块之间制约较多，需要对比各种文件，任何一处出现问题都会导致发布失败，往往一次发布需要数十分钟甚至数小时。
+- 系统可用性差：单体架构各个功能模块是作为一个服务部署，相互之间会互相影响，一些热点功能会耗尽系统资源，导致其它服务低可用。
+
+例如访问下面两个接口：
+
+- http://localhost:8080/hi
+- http://localhost:8080/search/list
+
+经过测试，目前 /search/list 是比较正常的，访问耗时在 30 毫秒左右。但如果此时 /hi 接口称为一个并发较高的热点接口，他就会抢占大量资源，最终会有越来越多请求积压，直至Tomcat资源耗尽。
+其它本来正常的接口（例如/search/list）也都会被拖慢，甚至因超时而无法访问了。
+
+****
+### 1.2 微服务
+
+微服务架构，首先是服务化，就是将单体架构中的功能模块从单体应用中拆分出来，独立部署为多个服务，同时要满足下面的一些特点：
+
+- 单一职责：一个微服务负责一部分业务功能，并且其核心数据不依赖于其它模块。
+- 团队自治：每个微服务都有自己独立的开发、测试、发布、运维人员，团队人员规模不超过10人
+- 服务自治：每个微服务都独立打包部署，访问自己独立的数据库。并且要做好服务隔离，避免对其它服务产生影响
+
+例如商城项目，就可以把商品、用户、购物车、交易等模块拆分，交给不同的团队去开发，并独立部署。微服务架构解决了单体架构存在的问题：
+
+- 由于服务拆分，每个服务代码量大大减少，参与开发的后台人员在1~3名，协作成本大大降低
+- 每个服务都是独立部署，当有某个服务有代码变更时，只需要打包部署该服务即可
+- 每个服务独立部署，并且做好服务隔离，使用自己的服务器资源，不会影响到其它服务。
+
+****
+## 2. 微服务拆分
+
+### 2.1 服务拆分原则
+
+#### 1. 什么时候拆
+
+一般情况下，对于一个初创的项目，首先要做的是验证项目的可行性。因此这一阶段的首要任务是敏捷开发，快速产出生产可用的产品，投入市场做验证。
+为了达成这一目的，该阶段项目架构往往会比较简单，很多情况下会直接采用单体架构，这样开发成本比较低，可以快速产出结果，一旦发现项目不符合市场，损失较小。
+如果这一阶段采用复杂的微服务架构，投入大量的人力和时间成本用于架构设计，最终发现产品不符合市场需求，等于全部做了无用功。
+所以，对于大多数小型项目来说，一般是先采用单体架构，随着用户规模扩大、业务复杂后再逐渐拆分为微服务架构，这样初期成本会比较低，可以快速试错。
+但是，这么做的问题就在于后期做服务拆分时，可能会遇到很多代码耦合带来的问题，拆分比较困难（前易后难）。而对于一些大型项目，在立项之初目的就很明确，为了长远考虑，
+在架构设计时就直接选择微服务架构。虽然前期投入较多，但后期就少了拆分服务的烦恼（前难后易）。
+
+****
+#### 2. 怎么拆
+
+具体可以从两个角度来分析：
+
+- 高内聚：每个微服务的职责要尽量单一，但包含的业务相互关联度高、完整度高。
+- 低耦合：每个微服务的功能要相对独立，尽量减少对其它微服务的依赖，或者依赖接口的稳定性要强。
+
+做服务拆分时一般有两种方式：
+
+- 纵向拆分
+
+按照项目的功能模块来拆分。例如黑马商城中有用户管理功能、订单管理功能、购物车功能、商品管理功能、支付功能等。那么按照功能模块将它们拆分为一个个服务，就属于纵向拆分。
+这种拆分模式可以尽可能提高服务的内聚性。
+
+- 横向拆分
+
+看各个功能模块之间有没有公共的业务部分，如果有将其抽取出来作为通用服务。例如用户登录是需要发送消息通知，记录风控数据，下单时也要发送短信，记录风控数据。
+因此消息发送、风控数据记录就是通用的业务功能，因此可以将它们分别抽取为公共服务：消息中心服务、风控管理服务。这样可以提高业务的复用性，避免重复开发。
+同时通用业务一般接口稳定性较强，也不会使服务之间过分耦合。
+
+而黑马商城按照纵向拆分则可以分为以下几个微服务：
+
+- 用户服务
+- 商品服务
+- 订单服务
+- 购物车服务
+- 支付服务
+
+****
+### 2.2 拆分购物车、商品服务
+
+一般微服务项目有两种不同的工程结构：
+
+- 完全解耦：每一个微服务都创建为一个独立的工程，甚至可以使用不同的开发语言来开发，项目完全解耦。
+  - 优点：服务之间耦合度低
+  - 缺点：每个项目都有自己的独立仓库，管理起来比较麻烦
+
+- Maven 聚合：整个项目为一个 Project，然后每个微服务是其中的一个 Module
+  - 优点：项目代码集中，管理和运维方便
+  - 缺点：服务之间耦合，编译时间较长
+
+在 hmall 父工程之中已经提前定义了 SpringBoot、SpringCloud 的依赖版本，所以可以直接在这个项目中创建微服务 module。购物车对应 cart-service，商品服务对应 item-service。
+分别导入 controller、service 和 mapper。
+
+****
+### 2.3 服务调用
+
+在拆分的时候有一个问题：就是购物车业务中需要查询商品信息，但商品信息查询的逻辑全部迁移到了 item-service 服务，导致无法查询。最终结果就是查询到的购物车数据不完整，
+要解决这个问题就必须改造其中的代码，把原本本地方法调用，改造成跨微服务的远程调用（RPC，即 Remote Produce Call）。即修改以下的代码：
+
+```java
+// 1. 获取商品id
+Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
+// 2. 查询商品
+List<ItemDTO> items = itemService.queryItemByIds(itemIds);
+```
+
+当前端向服务端发送查询数据请求时，其实就是从浏览器远程查询服务端数据。比如通过 Swagger 测试商品查询接口，就是向 http://localhost:8081/items 这个接口发起的请求。
+而这种查询就是通过 http 请求的方式来完成的，不仅仅可以实现远程查询，还可以实现新增、删除等各种远程请求。
+
+#### 1. RestTemplate
+
+Spring 提供了一个 RestTemplate 的 API，它是一个用于访问 REST 风格服务的模板类，封装了底层的 HTTP 请求逻辑，
+提供了多种方法以此实现 GET、POST、PUT、DELETE 等操作。
+
+常用方法：
+
+- `getForObject()`：发送 GET 请求，返回对象
+- `getForEntity()`：发送 GET 请求，返回 ResponseEntity
+- `postForObject()`：发送 POST 请求，返回对象
+- `postForEntity()`：发送 POST 请求，返回 ResponseEntity
+- `put()`：发送 PUT 请求，无返回值
+- `delete()`：发送 DELETE 请求
+- `exchange()`：更灵活地发送各种请求
+- `execute()`：最底层的请求控制方法
+
+在 cart-service 服务中定义一个配置类：
+
+```java
+@Configuration
+public class RemoteCallConfig {
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+}
+```
+
+修改 cart-service 中的 com.hmall.cart.service.impl.CartServiceImpl 的 handleCartItems 方法，发送 http 请求到 item-service：
+
+```java
+private void handleCartItems(List<CartVO> vos) {
+    // 1. 获取商品id
+    Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet()); // 使用 toSet() 去重 + 避免重复请求
+    // 2. 查询商品，利用 RestTemplate 发起 http 请求，得到 http 的响应
+    ResponseEntity<List<ItemDTO>> response = restTemplate.exchange(
+            "http://localhost:8081/items?ids={ids}", // 要调用的商品服务接口（支持多 id 查询）
+            HttpMethod.GET, // GET 请求
+            null, // 不传请求体（GET 请求）
+            new ParameterizedTypeReference<List<ItemDTO>>() {
+            }, // 因为需要接收的是 ItemDTO 类型的集合，所以需要告诉 RestTemplate 返回值类型是 List<ItemDTO>（Java 泛型反射）
+            Map.of("ids", CollUtil.join(itemIds, ","))
+    );
+    // 解析响应
+    if(!response.getStatusCode().is2xxSuccessful()){
+        // 查询失败，直接结束
+        return;
+    }
+    List<ItemDTO> items = response.getBody();
+    if (CollUtils.isEmpty(items)) {
+        return;
+    }
+    // 3. 转为 id 到 item 的 map
+    Map<Long, ItemDTO> itemMap = items.stream().collect(Collectors.toMap(ItemDTO::getId, 
+            Function.identity())); // 把当前的元素 ItemDTO 本身作为 Map 的 value
+    // 4. 写入 vo
+    for (CartVO v : vos) {
+        ItemDTO item = itemMap.get(v.getItemId());
+        if (item == null) {
+            continue;
+        }
+        v.setNewPrice(item.getPrice());
+        v.setStatus(item.getStatus());
+        v.setStock(item.getStock());
+    }
+}
+```
+
+需要注意的是，需要使用 RestTemplate 就需要把它注入进来，但 SpringBoot 推荐使用构造方法的方式进行注入，为了避免手写构造方法，所以可以使用 @RequiredArgsConstructor 注解，
+它只会为 final 字段或 @NonNull 字段生成构造器，这样就可以避免其它无需 SpringBoot 注入的字段也被构造器一起初始化：
+
+```java
+@Service
+@RequiredArgsConstructor
+public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements ICartService {
+    private final RestTemplate restTemplate;
+    ...
+}
+```
 
 
+****
+## 3. 服务治理
 
+### 3.1 注册中心
 
+在微服务远程调用的过程中，包括两个角色：
 
+- 服务提供者：提供接口供其它微服务访问，比如 item-service
+- 服务消费者：调用其它微服务提供的接口，比如 cart-service
 
+在大型微服务项目中，服务提供者的数量会非常多，为了管理这些服务就引入了注册中心的概念。
 
+- 服务启动时就会注册自己的服务信息（服务名、IP、端口）到注册中心
+- 调用者可以从注册中心订阅想要的服务，获取服务对应的实例列表（1个服务可能多实例部署）
+- 调用者自己对实例列表负载均衡，挑选一个实例
+- 调用者向该实例发起远程调用
 
+当服务提供者的实例宕机或者启动新实例时，调用者如何得知呢？
 
+- 服务提供者会定期向注册中心发送请求，报告自己的健康状态（心跳请求）
+- 当注册中心长时间收不到提供者的心跳时，会认为该实例宕机，将其从服务的实例列表中剔除
+- 当服务有新实例启动时，会发送注册服务请求，其信息会被记录在注册中心的服务实例列表
+- 当注册中心服务列表变更时，会主动通知微服务，更新本地服务列表
 
+****
+### 3.2 Nacos 注册中心
 
+目前开源的注册中心框架有很多，国内比较常见的有：
 
+- Eureka：Netflix 公司出品，目前被集成在 SpringCloud 当中，一般用于 Java 应用
+- Nacos：Alibaba 公司出品，目前被集成在 SpringCloudAlibaba 中，一般用于 Java 应用
+- Consul：HashiCorp 公司出品，目前集成在 SpringCloud 中，不限制微服务语言
 
+基于 Docker 来部署 Nacos 的注册中心，要准备 MySQL 数据库表用来存储 Nacos 的数据。由于是 Docker 部署，所以需要将 SQL 文件导入到 Docker 中的 MySQL 容器中。
+然后将 nacos/custom.env 文件上传至虚拟机：
 
+```text
+PREFER_HOST_MODE=hostname
+MODE=standalone
+SPRING_DATASOURCE_PLATFORM=mysql
+MYSQL_SERVICE_HOST=192.168.0.105
+MYSQL_SERVICE_DB_NAME=nacos
+MYSQL_SERVICE_PORT=3306
+MYSQL_SERVICE_USER=root
+MYSQL_SERVICE_PASSWORD=123
+MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+```
 
+进入对应的 Windows 磁盘目录后，再执行 docker 命令：
 
+```shell
+cd /mnt/d/docker_dataMountDirectory/nacos
+```
 
+```shell
+docker run -d \
+--name nacos \
+--env-file ./custom.env \
+-p 8848:8848 \
+-p 9848:9848 \
+-p 9849:9849 \
+--restart=always \
+nacos/nacos-server:v2.1.0-slim
+```
 
+启动完成后，访问下面地址：http://192.168.0.105:8848/nacos/ ，首次访问会跳转到登录页，账号密码都是 nacos。
 
+****
+### 3.3 服务注册
 
+完成 nacos 在 docker 中的初始化后，把 item-service 注册到 nacos：
 
+添加依赖：
 
+```xml
+<!--nacos 服务注册发现-->
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+</dependency>
+```
 
+在 item-service 的 application.yml 中添加 nacos 地址配置：
+
+```yaml
+spring:
+  application:
+    name: item-service # 服务名称
+  cloud:
+    nacos:
+      server-addr: 192.168.150.101:8848 # nacos地址
+```
+
+启动服务实例后，访问 nacos 控制台，可以发现服务注册成功：
+
+| 服务名       | 分组名称       | 集群数目 | 实例数 | 健康实例数 | 触发保护阈值 | 操作                             |
+| ------------ | -------------- | -------- | ------ | ---------- | ------------ | -------------------------------- |
+| cart-service | DEFAULT_GROUP  | 1        | 1      | 1          | false        | 详情 \| 示例代码 \| 订阅者 \| 删除 |
+| item-service | DEFAULT_GROUP  | 1        | 1      | 1          | false        | 详情 \| 示例代码 \| 订阅者 \| 删除 |
+
+然后服务调用者 cart-service 就可以去订阅 item-service 服务了，不过 item-service 可能有多个实例，而真正发起调用时只需要知道一个实例的地址。所以服务调用者必须利用负载均衡从多个实例中挑选一个去访问。
+并且服务发现需要用到一个工具 DiscoveryClient，不过 SpringCloud 已经自动装配，可以直接使用：
+
+```java
+private final DiscoveryClient discoveryClient;
+...
+private void handleCartItems(List<CartVO> vos) {
+    // 1. 获取商品id
+    Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
+    // 2. 查询商品
+    // 发现 item-service 服务的实力列表
+    List<ServiceInstance> instances = discoveryClient.getInstances("item-service");
+    // 使用负载均衡
+    ServiceInstance instance = instances.get(RandomUtil.randomInt(instances.size()));
+    // 利用 RestTemplate 发起 http 请求，得到 http 的响应
+    ResponseEntity<List<ItemDTO>> response = restTemplate.exchange(
+            // "http://localhost:8081/items?ids={ids}",
+            instance.getUri() + "/items?ids={ids}",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<List<ItemDTO>>() {
+            },
+            Map.of("ids", CollUtil.join(itemIds, ","))
+    );
+    ...
+}
+```
+
+****
+### 3.4 OpenFeign
+
+#### 1. 使用
+
+上面利用 Nacos 实现了服务的治理，利用 RestTemplate 实现了服务的远程调用，但是远程调用的代码太复杂了，一会儿远程调用，一会儿本地调用。所以引出了 OpenFeign 组件。
+远程调用的关键点：
+
+- 请求方式
+- 请求路径
+- 请求参数
+- 返回值类型
+
+OpenFeign 就利用 SpringMVC 的相关注解来声明上述 4 个参数，然后基于动态代理生成远程调用的代码。使用步骤：
+
+引入依赖：
+
+```xml
+<!--openFeign-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-openfeign</artifactId>
+</dependency>
+<!--负载均衡器-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+</dependency>
+```
+
+在 cart-service 的 CartApplication 启动类上添加注解，启动 OpenFeign 功能：
+
+```java
+@EnableFeignClients
+@MapperScan("com.hmall.cart.mapper")
+@SpringBootApplication
+public class CartApplication {
+}
+```
+
+在 cart-service 中，定义一个新的接口，编写 Feign 客户端：
+
+```java
+@FeignClient("item-service")
+public interface ItemClient {
+    @GetMapping("/items")
+    List<ItemDTO> queryItemByIds(@RequestParam("ids") Collection<Long> ids);
+}
+```
+
+这里只需要声明接口，无需实现方法：
+
+- @FeignClient("item-service")：声明服务名称
+- @GetMapping ：声明请求方式
+- @GetMapping("/items")：声明请求路径
+- @RequestParam("ids") Collection<Long> ids ：声明请求参数
+- List<ItemDTO> ：返回值类型
+
+配置了上述信息，OpenFeign 就可以利用动态代理实现该方法，并且向 http://item-service/items 发送一个 GET 请求，携带 ids 为请求参数，并自动将返回值处理为 List<ItemDTO>。
+然后在 service 层直接调用该接口的方法即可实现远程调用：
+
+```java
+private final ItemClient itemClient;
+...
+private void handleCartItems(List<CartVO> vos) {
+  // 1. 获取商品id
+  Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
+  ...
+  List<ItemDTO> items = itemClient.queryItemByIds(itemIds);
+  if (CollUtils.isEmpty(items)) {
+    return;
+  }
+  ...
+}
+```
+
+OpenFeign 完成了服务拉取、负载均衡、发送 http 请求的所有工作，还省去了 RestTemplate 的注册，代码十分便捷。
+
+****
+#### 2. 连接池
+
+Feign 是一个声明式的 HTTP 客户端，其底层真正发起 HTTP 请求时，是依赖第三方的 HTTP 客户端库来完成的。其底层支持的 http 客户端实现包括：
+
+- HttpURLConnection：默认实现（jdk 自带），不支持连接池
+- Apache HttpClient ：支持连接池
+- OKHttp：支持连接池
+
+所以通常会使用带有连接池的客户端来代替默认的 HttpURLConnection，例如 OKHttp。
+
+引入依赖：
+
+```xml
+<!--OK http 的依赖 -->
+<dependency>
+  <groupId>io.github.openfeign</groupId>
+  <artifactId>feign-okhttp</artifactId>
+</dependency>
+```
+
+在 application.yml 配置文件中开启 Feign 的连接池功（Spring Boot 3.x 和 Spring Cloud 2023.x 后可以不再写以下配置）：
+
+```yaml
+feign:
+  okhttp:
+    enabled: true # 开启 OKHttp 功能
+```
+
+****
+#### 3. 抽取公共部分
+
+在拆分 item-service 和 cart-service 两个微服务时，它们里面有部分代码是与需求是一样的，如果此时还要拆分一个 trade-service，它也需要远程调用 item-service 中的根据 id 批量查询商品，
+这个功能与 cart-service 中是一样的，所以为了避免大量编写重复的代码，就需要提取它们的公共部分，例如：
+
+- 方案1：抽取到微服务之外的公共 module（即作为一个新的微服务）
+- 方案2：每个微服务自己抽取一个 module（即作为微服务的子模块）
+
+方案1抽取更加简单，工程结构也比较清晰，但缺点是整个项目耦合度偏高；方案2抽取相对麻烦，工程结构相对更复杂，但服务之间耦合度降低。在 hmall 下定义一个新的 module，
+命名为 hm-api，引入需要使用到的接口依赖、OpenFeign 依赖和负载均衡依赖：
+
+```xml
+<!--open feign-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-openfeign</artifactId>
+</dependency>
+<!-- load balancer-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+</dependency>
+<dependency>
+    <groupId>com.github.xiaoymin</groupId>
+    <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+    <version>4.4.0</version>
+</dependency>
+```
+
+然后把需要重复使用到的 ItemDTO 和 ItemClient 都放到该模块下，其它需要使用到远程调用功能的地方直接导入 hm-api 包即可，不过需要引入 hm-api 作为依赖：
+
+```xml
+<!--feign模块-->
+<dependency>
+    <groupId>com.heima</groupId>
+    <artifactId>hm-api</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+需要注意的是:因为 ItemClient 现在定义到了 com.hmall.api.client 包下，而 cart-service 的启动类定义在 com.hmall.cart 包下，这就导致扫描不到 ItemClient，
+会报错，所以需要：
+
+- 方式1：声明扫描包
+
+```java
+@EnableFeignClients(basePackages = "com.hmall.api.client")
+@MapperScan("com.hmall.cart.mapper")
+@SpringBootApplication
+public class CartApplication {
+  ...
+}
+```
+
+- 方式2：声明要用的 FeignClient
+
+```java
+@EnableFeignClients(clients = {ItemClient.class})
+@MapperScan("com.hmall.cart.mapper")
+@SpringBootApplication
+public class CartApplication {
+  ...
+}
+```
+
+****
+#### 4. 日志配置
+
+OpenFeign 只会在 FeignClient 所在包的日志级别为 DEBUG 时，才会输出日志，而且其日志级别有 4 级：
+
+- NONE：不记录任何日志信息，这是默认值
+- BASIC：仅记录请求的方法，URL 以及响应状态码和执行时间
+- HEADERS：在 BASIC 的基础上，额外记录了请求和响应的头信息
+- FULL：记录所有请求和响应的明细，包括头信息、请求体、元数据
+
+在 hm-api 模块下新建一个配置类，定义 Feign 的日志级别：
+
+```java
+public class DefaultFeignConfig {
+    @Bean
+    public Logger.Level feignLogLevel(){
+        return Logger.Level.FULL;
+    }
+}
+```
+
+然后要让这个配置类生效还需要让它被扫描到：
+
+- 局部生效：在某个 FeignClient 中配置，只对当前 FeignClient 生效：
+
+```java
+@FeignClient(value = "item-service", configuration = DefaultFeignConfig.class)
+public interface ItemClient {
+  @GetMapping("/items")
+  List<ItemDTO> queryItemByIds(@RequestParam("ids") Collection<Long> ids);
+}
+```
+
+- 全局生效：在 @EnableFeignClients 中配置，针对所有 FeignClient 生效：
+
+```java
+@EnableFeignClients(clients = {ItemClient.class}, defaultConfiguration = DefaultFeignConfig.class)
+@MapperScan("com.hmall.cart.mapper")
+@SpringBootApplication
+public class CartApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(CartApplication.class, args);
+    }
+}
+```
+
+打印日志：
+
+```text
+[ItemClient#queryItemByIds] <--- HTTP/1.1 200 (171ms)
+[ItemClient#queryItemByIds] connection: keep-alive
+[ItemClient#queryItemByIds] content-type: application/json
+[ItemClient#queryItemByIds] date: Mon, 28 Jul 2025 13:41:18 GMT
+[ItemClient#queryItemByIds] keep-alive: timeout=60
+[ItemClient#queryItemByIds] transfer-encoding: chunked
+[ItemClient#queryItemByIds] 
+[ItemClient#queryItemByIds] [{"id":100000006163,"name":"巴布豆(BOBDOG)柔薄悦动婴儿拉拉裤XXL码80片(15kg以上)","price":67100,"stock":10000,...}]
+[ItemClient#queryItemByIds] <--- END HTTP (369-byte body)
+```
+
+****
 
 
 
