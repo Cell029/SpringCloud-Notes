@@ -2472,16 +2472,610 @@ public class CartApplication {
 ```
 
 ****
+# 三、网关路由
 
+## 1. 网关
 
+### 1.1 概述
 
+网关是微服务架构中的关键组件，位于客户端与后端服务之间，是网络的关口，数据在网络间传输，从一个网络传输到另一网络时就需要经过网关来做数据的路由转发以及数据安全的校验。
+在微服务架构中，客户端不会直接访问每个微服务，而是通过网关作为统一入口。核心功能：
 
+- 身份认证和权限校验：登录校验、JWT 校验、OAuth2、权限路由控制
+- 路由转发：根据 URL 或 Header 将请求转发到对应的微服务
+- 请求处理：参数校验、统一日志记录、限流、防重放、熔断、降级等
+- 协议转换：如 HTTP -> WebSocket、HTTP -> gRPC
+- 响应封装：对后端响应进行统一格式包装或脱敏处理
+- 监控与日志：埋点数据采集、链路追踪、性能统计、异常报警等
+- 限流与熔断：防止服务被高并发压垮，起到“缓冲”的作用
 
+在微服务架构中，微服务数量通常较多，客户端访问不便（需要统一出口），并且多个服务返回的格式、使用的协议可能不同，所以需要一个统一的访问入口来处理这些差异。常见网关:
 
+- Nginx
+- Spring Cloud Gateway
+- Zuul
 
+****
+### 1.2 使用
 
+网关的职责是：请求转发、统一认证、安全校验、限流熔断、日志记录等跨服务通用功能，如果把这些功能混在某一个业务服务里（比如订单服务、用户服务），不仅增加耦合度，还会导致系统维护复杂。
+所以应该将这些功能独立成一个网关服务，因此也需要创建一个新的模块来开发功能。
 
+引入依赖：
 
+```xml
+<!--网关-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-gateway</artifactId>
+</dependency>
+```
 
+配置路由：
+
+在 hm-gateway 模块的 resources 目录新建一个 application.yaml 文件：
+
+```yaml
+server:
+  port: 8080
+spring:
+  application:
+    name: gateway
+  cloud:
+    nacos:
+      server-addr: 192.168.0.105:8848
+    gateway:
+      routes:
+        - id: item # 路由规则id，自定义，唯一
+          uri: lb://item-service # 路由的目标服务，lb代表负载均衡，会从注册中心拉取服务列表
+          predicates: # 路由断言，判断当前请求是否符合当前规则，符合则路由到目标服务
+            - Path=/items/**,/search/** # 这里是以请求路径作为判断规则
+        - id: cart
+          uri: lb://cart-service
+          predicates:
+            - Path=/carts/**
+        - id: user
+          uri: lb://user-service
+          predicates:
+            - Path=/users/**,/addresses/**
+        - id: trade
+          uri: lb://trade-service
+          predicates:
+            - Path=/orders/**
+        - id: pay
+          uri: lb://pay-service
+          predicates:
+            - Path=/pay-orders/**
+```
+
+在配置文件中
+
+****
+### 1.3 路由属性
+
+路由规则的定义语法如下：
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: ..
+          uri: lb://...
+          predicates:
+            - Path=/...
+```
+
+其中 routes 对应的类型如下：
+
+```java
+@ConfigurationProperties("spring.cloud.gateway")
+@Validated
+public class GatewayProperties {
+    public static final String PREFIX = "spring.cloud.gateway";
+    private final Log logger = LogFactory.getLog(this.getClass());
+    private @NotNull
+    @Valid List<RouteDefinition> routes = new ArrayList();
+    private List<FilterDefinition> defaultFilters = new ArrayList();
+    private List<MediaType> streamingMediaTypes;
+    private boolean failOnRouteDefinitionError;
+    ...
+}
+```
+
+routes 是一个集合，也就是说可以定义很多路由规则。而集合中的 RouteDefinition 就是具体的路由规则定义，其中常见的属性如下：
+
+```java
+@Validated
+public class RouteDefinition {
+    private String id;
+    private @NotEmpty
+    @Valid List<PredicateDefinition> predicates = new ArrayList();
+    private @Valid List<FilterDefinition> filters = new ArrayList();
+    private @NotNull URI uri;
+    private Map<String, Object> metadata = new HashMap();
+    private int order = 0;
+    ...
+}
+```
+
+- id：路由的唯一标示
+- predicates：路由断言，其实就是匹配条件，满足的才能继续下去
+- filters：路由过滤条件
+- uri：路由目标地址，lb:// 代表负载均衡，从注册中心获取目标微服务的实例列表，并且负载均衡选择一个访问。
+
+对于 predicates，SpringCloudGateway 中支持的断言类型有很多：
+
+| 名称      | 说明                         | 示例                                                         |
+| --------- | ---------------------------- | ------------------------------------------------------------ |
+| After     | 是某个时间点后的请求         | - After=2037-01-20T17:42:47.789-07:00[America/Denver]        |
+| Before    | 是某个时间点之前的请求       | - Before=2031-04-13T15:14:47.433+08:00[Asia/Shanghai]       |
+| Between   | 是某两个时间点之前的请求     | - Between=2037-01-20T17:42:47.789-07:00[America/Denver], 2037-01-21T17:42:47.789-07:00[America/Denver] |
+| Cookie    | 请求必须包含某些cookie       | - Cookie=chocolate, ch.p                                     |
+| Header    | 请求必须包含某些header       | - Header=X-Request-Id, \d+                                   |
+| Host      | 请求必须是访问某个host（域名） | - Host=**.somehost.org,**.anotherhost.org                    |
+| Method    | 请求方式必须是指定方式       | - Method=GET,POST                                            |
+| Path      | 请求路径必须符合指定规则     | - Path=/red/{segment},/blue/**                               |
+| Query     | 请求参数必须包含指定参数     | - Query=name, Jack或者- Query=name                          |
+| RemoteAddr | 请求者的ip必须是指定范围     | - RemoteAddr=192.168.1.1/24                                  |
+| weight    | 权重处理                     |                                                              |
+
+****
+## 2. 网关登录校验
+
+单体架构时只需要完成一次用户登录、身份校验，就可以在所有业务中获取到用户信息。而微服务拆分后，每个微服务都独立部署，不再共享数据。也就意味着需要为每个微服务都做登录校验，
+这显然不合理，而网关正好又是所有微服务的起点，一切请求都需要先经过网关，那就可以把登录校验的工作放到网关去做，这样：
+
+- 只需要在网关和用户服务保存秘钥
+- 只需要在网关开发登录校验功能
+
+但需要注意的是：必须要在网关转发请求到微服务之前就进行校验，否则失去意义。
+
+### 2.1 网关过滤器
+
+网关转发流程：
+
+1. 客户端请求进入网关后由 HandlerMapping 对请求做判断，找到与当前请求匹配的路由规则（Route），然后将请求交给 WebHandler 去处理。
+2. WebHandler 则会加载当前路由下需要执行的过滤器链（Filter chain），然后按照顺序逐一执行过滤器。
+3. 而 Filter 内部的逻辑分为 pre 和 post 两部分，分别会在请求路由到微服务之前和之后被执行。
+4. 只有所有 Filter 的 pre 逻辑都依次顺序执行通过后，请求才会被路由到微服务。
+5. 微服务返回结果后，再倒序执行 Filter 的 post 逻辑。
+6. 最终把响应结果返回。
+
+最终请求转发是有一个名为 NettyRoutingFilter 的过滤器来执行的，而且这个过滤器是整个过滤器链中顺序最靠后的一个。所以可以定义一个过滤器，在其中实现登录校验逻辑，
+并且将过滤器执行顺序定义到 NettyRoutingFilter 之前，这样就可以实现登录校验。
+
+网关过滤器链中的过滤器有两种：
+
+- GatewayFilter：路由过滤器，作用范围比较灵活，可以是任意指定的路由 Route，绑定到某条路由规则上才会生效。比如 /pay-orders/** 路由的请求才需要做特殊的签名校验，那就只为这个 Route 配置一个 GatewayFilter
+- GlobalFilter：全局过滤器，作用范围是所有路由，声明后自动生效。在代码中通过实现 GlobalFilter 接口并注册为 Spring Bean 后做统一的校验，或者使用 default-filters
+
+常用 Gateway 中内置的 GatewayFilter 过滤器：
+
+| 过滤器名称                  | 作用说明                           |
+| ---------------------- | ------------------------------ |
+| `AddRequestHeader`     | 添加请求头                          |
+| `AddResponseHeader`    | 添加响应头                          |
+| `RemoveRequestHeader`  | 移除请求头                          |
+| `RemoveResponseHeader` | 移除响应头                          |
+| `RewritePath`          | 重写请求路径                         |
+| `SetStatus`            | 设置返回状态码                        |
+| `RedirectTo`           | 重定向                            |
+
+添加请求头：
+
+```yaml
+filters:
+  - AddRequestHeader=token, my-custom-token # 设置请求头的名称和内容
+```
+
+路径重写：
+
+```yaml
+filters:
+  - RewritePath=/api/(?<segment>.*), /$\{segment} # 例如访问 /api/user/info 会被转发为 /user/info
+```
+
+如果只需要一个路由使用路由器，那就可以把 filters 放到具体的路由下面：
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: test_route
+        uri: lb://test-service
+        predicates:
+          -Path=/test/**
+        filters:
+          - AddRequestHeader=key, value # 逗号之前是请求头的key，逗号之后是value
+```
+
+如果需要全局配置，那就可以使用 default-filters：
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      default-filters: # default-filters 下的过滤器可以作用于所有路由
+        - AddRequestHeader=key, value
+      routes:
+      - id: test_route
+        uri: lb://test-service
+        predicates:
+          -Path=/test/**
+```
+
+****
+### 2.2 自定义过滤器
+
+#### 1. 自定义 GlobalFilter
+
+```java
+@Component
+public class MyGlobalFilter implements GlobalFilter, Ordered {
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // 获取请求
+        ServerHttpRequest request = exchange.getRequest();
+        HttpHeaders headers = request.getHeaders();
+        System.out.println("headers: " + headers);
+        // 放行
+        return chain.filter(exchange);
+    }
+
+    @Override
+    public int getOrder() {
+        // 过滤器执行顺序，值越小，优先级越高
+        return 0;
+    }
+}
+```
+
+- ServerWebExchange：请求上下文，包含整个过滤器，例如 request、response
+- GatewayFilterChain：过滤器链，当前过滤器执行完后，要调用过滤器链中的下一个过滤器
+
+****
+#### 2. 自定义 GatewayFilter
+
+自定义 GatewayFilter 不是直接实现 GatewayFilter，而是实现 AbstractGatewayFilterFactory，且该类的名称一定要以 GatewayFilterFactory 为后缀：
+
+```java
+@Component
+public class PrintAnyGatewayFilterFactory extends AbstractGatewayFilterFactory<Object> {
+    @Override
+    public GatewayFilter apply(Object config) {
+        /*return new GatewayFilter() {
+            @Override
+            public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+                System.out.println(exchange.getRequest().getURI());
+                return chain.filter(exchange);
+            }
+        };*/
+        // OrderedGatewayFilter 是 GatewayFilter 的子类，包含两个参数：
+        // - GatewayFilter：过滤器
+        // - int order 值：值越小，过滤器执行优先级越高
+        return new OrderedGatewayFilter(new GatewayFilter() {
+            @Override
+            public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+                System.out.println("PrintAny 过滤器执行了");
+                return chain.filter(exchange);
+            }
+        }, 1);
+    }
+}
+```
+
+可以直接返回一个 GatewayFilter 过滤器内部类，也可以使用 OrderedGatewayFilter 指定优先级（因为内部类不能实现接口），然后在 yaml 配置中这样使用：
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      default-filters:
+            - PrintAny # 此处直接以自定义的GatewayFilterFactory类名称前缀类声明过滤器
+```
+
+另外，这种过滤器还可以支持动态配置参数，不过实现起来比较复杂：
+
+```java
+@Component
+public class PrintAnyGatewayFilterFactory extends AbstractGatewayFilterFactory<PrintAnyGatewayFilterFactory.Config> {
+    @Override
+    public GatewayFilter apply(Config config) {
+        return new OrderedGatewayFilter(new GatewayFilter() {
+            @Override
+            public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+                // 获取 config 值
+                String a = config.getA();
+                String b = config.getB();
+                String c = config.getC();
+                // 编写过滤器逻辑
+                System.out.println("a = " + a); // 1
+                System.out.println("b = " + b); // 2
+                System.out.println("c = " + c); // 3
+                // 放行
+                return chain.filter(exchange);
+            }
+        }, 100);
+    }
+
+    // 自定义配置属性，成员变量名称很重要，下面会用到
+    @Data
+    static class Config{
+        private String a;
+        private String b;
+        private String c;
+    }
+    
+    // 将变量名称依次返回，顺序很重要，将来读取参数时需要按顺序获取
+    @Override
+    public List<String> shortcutFieldOrder() {
+        return List.of("a", "b", "c");
+    }
+    
+    // 返回当前配置类的类型，也就是内部的 Config
+    @Override
+    public Class<Config> getConfigClass() {
+        return Config.class;
+    }
+}
+```
+
+然后在 yaml 配置中这样使用：
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      default-filters:
+        - PrintAny=1,2,3 # 注意，这里多个参数以 "," 隔开，将来会按照 shortcutFieldOrder() 方法返回的参数顺序依次复制
+```
+
+上面这种配置方式参数必须严格按照 shortcutFieldOrder() 方法的返回参数名顺序来赋值，还有一种用法，无需按照这个顺序，就是手动指定参数名：
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      default-filters:
+            - name: PrintAny
+              args: # 手动指定参数名，无需按照参数顺序
+                a: 1
+                b: 2
+                c: 3
+```
+
+****
+### 2.3 登录校验
+
+首先需要获取到 request，然后通过 request 获取到请求路径，通过和配置文件中设置的路径对比，看该路径是否为无需拦截的路径：
+
+```java
+if(isExclude(request.getPath().toString())){
+  // 无需拦截，直接放行
+  return chain.filter(exchange);
+}
+
+private boolean isExclude(String antPath) {
+    for (String pathPattern : authProperties.getExcludePaths()) {
+        if(antPathMatcher.match(pathPattern, antPath)){
+            return true;
+        }
+    }
+    return false;
+}
+```
+
+使用 Spring 提供的路径匹配工具，让获取的请求路径和自定义的排除路径做比较，返回 true 则无需拦截：
+
+```yaml
+hm:
+  auth:
+    excludePaths: # 无需登录校验的路径
+      - /search/**
+      - /users/login
+      - /items/**
+```
+
+```java
+@Component
+@RequiredArgsConstructor
+@EnableConfigurationProperties(AuthProperties.class)
+public class AuthGlobalFilter implements GlobalFilter, Ordered {
+
+    private final JwtTool jwtTool;
+
+    private final AuthProperties authProperties;
+
+    // Spring 提供的路径匹配工具，支持 **、* 等通配符，用于判断请求是否匹配白名单路径
+    private final AntPathMatcher antPathMatcher = new AntPathMatcher();
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // 1. 获取 Request
+        ServerHttpRequest request = exchange.getRequest();
+        // 2. 判断是否不需要拦截
+        if(isExclude(request.getPath().toString())){
+            // 无需拦截，直接放行
+            return chain.filter(exchange);
+        }
+        // 3. 获取请求头中的 token
+        String token = null;
+        List<String> headers = request.getHeaders().get("authorization");
+        if (!CollUtils.isEmpty(headers)) {
+            token = headers.get(0);
+        }
+        // 4. 校验并解析token
+        Long userId = null;
+        try {
+            userId = jwtTool.parseToken(token);
+        } catch (UnauthorizedException e) {
+            // 如果无效，拦截
+            ServerHttpResponse response = exchange.getResponse();
+            response.setRawStatusCode(401);
+            return response.setComplete();
+        }
+
+        // TODO 5. 如果有效，传递用户信息
+        System.out.println("userId = " + userId);
+        // 6. 放行
+        return chain.filter(exchange);
+    }
+
+    private boolean isExclude(String antPath) {
+        for (String pathPattern : authProperties.getExcludePaths()) {
+            if(antPathMatcher.match(pathPattern, antPath)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public int getOrder() {
+        return 0;
+    }
+}
+```
+
+****
+### 2.4 微服务获取用户
+
+由于网关发送请求到微服务依然采用的是 Http 请求，所以可以将用户信息以请求头的方式传递到下游微服务，然后微服务就可以从请求头中获取登录用户信息。
+考虑到微服务内部可能很多地方都需要用到登录用户信息，因此可以利用 SpringMVC 的拦截器来实现登录用户信息获取，并存入 ThreadLocal，方便后续使用。
+
+#### 1. 保存用户到请求头
+
+ServerWebExchange 是 WebFlux 中的请求上下文对象，包含了请求 ServerHttpRequest 和响应 ServerHttpResponse，它是不可变的，如果要修改 request，
+比如添加请求头，就得调用 exchange.mutate() 来创建一个新的、可修改的构建器。然后放行时不再使用 exchange 上下文对象，而是使用修改了 request 的上下文对象。
+而 builder 是 ServerHttpRequest.Builder 对象，它是用来构建修改后的 ServerHttpRequest。`.header("user-info", userInfo)` 表示在原始请求的基础上，
+添加一个名为 user-info 的请求头，值是用户 ID（转成字符串）。需要注意的是：header() 方法是追加，不会覆盖已有的同名 header（如果存在多个值，会变成列表）
+
+```java
+// 5. 如果有效，传递用户信息
+System.out.println("userId = " + userId);
+String userInfo = userId.toString();
+ServerWebExchange swe = exchange.mutate()
+        .request(builder -> builder.header("user-info", userInfo))
+        .build();
+// 6. 放行
+return chain.filter(swe);
+```
+
+在微服务架构中，一般只有网关会直接接触到客户端发来的 JWT token。下游服务（如 user-service, trade-service）通常不再自己解析 token，而是依赖网关，
+网关通过请求头 header（如 "user-info"）传递给下游服务。
+
+****
+#### 2. 拦截器获取用户
+
+由于每个微服务都有获取登录用户的需求，因此拦截器可以直接写在 hm-common 中，并写好自动装配，这样微服务只需要引入 hm-common 就可以直接具备拦截器功能，无需重复编写。
+
+```java
+public class UserInfoInterceptor implements HandlerInterceptor {
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // 1. 获取请求头中的用户信息
+        String userInfo = request.getHeader("user-info");
+        // 2. 判断是否为空
+        if (StrUtil.isNotBlank(userInfo)) {
+            // 不为空，保存到 ThreadLocal
+            UserContext.setUser(Long.valueOf(userInfo));
+        }
+        // 3.放行
+        return true;
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        // 移除用户
+        UserContext.removeUser();
+    }
+}
+```
+
+然后在 hm-common 模块下编写 SpringMVC 的配置类，配置登录拦截器：
+
+```java
+@Configuration
+@ConditionalOnClass(DispatcherServlet.class)
+public class MvcConfig implements WebMvcConfigurer {
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new UserInfoInterceptor());
+    }
+}
+```
+
+需要注意的是：这个配置类默认是不会生效的，因为它所在的包是 com.hmall.common.config，与其它微服务的扫描包不一致，无法被扫描到，因此无法生效。但基于 SpringBoot 的自动装配原理，
+只要将其添加到 resources 目录下的 META-INF/spring.factories 文件中即可被扫描到：
+
+```factories
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.hmall.common.config.MyBatisConfig,\
+  com.hmall.common.config.MvcConfig,\
+  com.hmall.common.config.JsonConfig
+```
+
+即告诉 Spring Boot：当项目引入了这个模块（hm-common）时，请自动加载 MvcConfig 这个类中的配置。但在 Springboot 3.x 版本后就不再使用这种方式了，
+而是使用 org.springframework.boot.autoconfigure.AutoConfiguration.imports，即在 resources 目录下的 META-INF/spring/ 创建 org.springframework.boot.autoconfigure.AutoConfiguration.imports 文件，
+然后在文件中添加：
+
+```text
+com.hmall.common.config.MyBatisConfig
+com.hmall.common.config.MvcConfig
+com.hmall.common.config.JsonConfig
+```
+
+还有一点需要注意：Spring Cloud Gateway 是基于 Spring WebFlux 的响应式编程模型构建的，而 Spring MVC 是基于 Servlet API 的阻塞式编程模型，
+两者不能同时存在于同一个应用程序中。而配置的拦截器 WebMvcConfig 是属于 Spring MVC 的，但网关模块中也引入了该包，所以启动时必定会报错，
+所以需要使用到一个注解：@ConditionalOnClass，它的作用就是当条件生效时该类才加载，所以可以使用 @ConditionalOnClass(DispatcherServlet.class)，
+因为微服务使用的是 SpringMVC，那就一定有这个转发请求的类存在，而网关中一定没有，所以网关模块中就不会加载 SpringMVC 的配置，从而避免发生报错。
+
+****
+### 2.5 OpenFeign 传递用户
+
+前端发起的请求都会经过网关再到微服务，搭配过滤器和拦截器微服务可以获取登录用户信息。但是有些业务会在微服务之间调用其它微服务，也就是说这些方法的调用不会经过网关，
+那么也就无法获取到存放在请求头中的 userInfo。例如：下单的过程中，需要调用商品服务扣减库存，即调用购物车服务清理用户购物车，而清理购物车时必须知道当前登录的用户身份。
+但是，订单服务调用购物车时并没有传递用户信息，购物车服务无法知道当前用户是谁，即 SQL 中的 where userId = ? 为 null，执行肯定失败。而微服务之间调用是基于 OpenFeign 来实现的，
+并不是手动发送的请求，所以要借助 Feign 中提供的一个拦截器接口：feign.RequestInterceptor：
+
+```java
+public interface RequestInterceptor {
+  /**
+   * Called for every request. 
+   * Add data using methods on the supplied {@link RequestTemplate}.
+   */
+  void apply(RequestTemplate template);
+}
+```
+
+只需要实现这个接口并重写 apply 方法，利用 RequestTemplate 类来添加请求头，将用户信息保存到请求头中，每次 OpenFeign 发起请求的时候都会调用该方法，传递用户信息。
+由于 FeignClient 全部都是在 hm-api 模块，所以直接在 hm-api 模块的 com.hmall.api.config.DefaultFeignConfig 中编写这个拦截器：
+
+```java
+@Bean
+public RequestInterceptor userInfoRequestInterceptor(){
+    return new RequestInterceptor() {
+        @Override
+        public void apply(RequestTemplate template) {
+            // 获取登录用户
+            Long userId = UserContext.getUser();
+            if(userId == null) {
+                // 如果为空则直接跳过
+                return;
+            }
+            // 如果不为空则放入请求头中，传递给下游微服务
+            template.header("user-info", userId.toString());
+        }
+    };
+}
+```
+
+RequestTemplate 就是用于组装请求信息的工具，这个 template.header(...) 就是给 OpenFeign 的这次请求添加一个请求头，底层会在实际发送请求时将添加的所有信息变成真实的 HTTP 请求。
+因为在 Controller 请求入口时，通过 Spring 拦截器就提取请求头中的用户信息，也就是一经过网关，用户信息就被读出并存在 ThreadLocal 了，在调用 Feign 请求前，
+就从 ThreadLocal 中拿出用户信息，主动添加到请求头中，转发给下一个微服务。
+
+****
 
 

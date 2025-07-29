@@ -36,8 +36,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements ICartService {
 
-    private final RestTemplate restTemplate;
-    private final DiscoveryClient discoveryClient;
     private final ItemClient itemClient;
 
     @Override
@@ -65,19 +63,20 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 
     @Override
     public List<CartVO> queryMyCarts() {
-        // 1.查询我的购物车列表
-        List<Cart> carts = lambdaQuery().eq(Cart::getUserId, 1L /*UserContext.getUser()*/).list();
+        System.out.println("userId:" + UserContext.getUser());
+        // 1. 查询我的购物车列表
+        List<Cart> carts = lambdaQuery().eq(Cart::getUserId, UserContext.getUser()).list();
         if (CollUtils.isEmpty(carts)) {
             return CollUtils.emptyList();
         }
 
-        // 2.转换VO
+        // 2. 转换VO
         List<CartVO> vos = BeanUtils.copyList(carts, CartVO.class);
 
-        // 3.处理VO中的商品信息
+        // 3. 处理VO中的商品信息
         handleCartItems(vos);
 
-        // 4.返回
+        // 4. 返回
         return vos;
     }
 
