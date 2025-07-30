@@ -2150,13 +2150,17 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 PREFER_HOST_MODE=hostname
 MODE=standalone
 SPRING_DATASOURCE_PLATFORM=mysql
-MYSQL_SERVICE_HOST=192.168.0.105
+MYSQL_SERVICE_HOST=host.docker.internal
 MYSQL_SERVICE_DB_NAME=nacos
 MYSQL_SERVICE_PORT=3306
 MYSQL_SERVICE_USER=root
 MYSQL_SERVICE_PASSWORD=123
 MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
 ```
+
+需要注意的是：由于使用的是 WSL2 + Docker，所以容器的 IP 地址可能每天变动，这就说明不能直接使用 IP 访问，所以使用 MYSQL_SERVICE_HOST=host.docker.internal，
+让容器访问宿主机的 MySQL。如果能确保容器的 IP 地址不会改变，那也可以使用 IP 访问，但是如果 MySQL 使用的 IP　是　127.0.0.1 的话，也不能直接用这个 IP 让 nacos 连接到 MySQL，
+因为它们不处于同一个网络，就会导致 nacos 连接到的不是配置在 Docker 中的 MySQL，而是 nacos 内部的。因为容器里的 127.0.0.1 是容器自己的环回地址，不是宿主机地址。
 
 进入对应的 Windows 磁盘目录后，再执行 docker 命令：
 
@@ -2472,7 +2476,7 @@ public class CartApplication {
 ```
 
 ****
-# 三、网关路由
+# 四、网关路由
 
 ## 1. 网关
 
@@ -3077,5 +3081,773 @@ RequestTemplate 就是用于组装请求信息的工具，这个 template.header
 就从 ThreadLocal 中拿出用户信息，主动添加到请求头中，转发给下一个微服务。
 
 ****
+## 3. 配置管理
+
+可以把微服务共享的配置抽取到 Nacos 中统一管理，这样就不需要每个微服务都重复配置了，分为两步：
+
+- 在 Nacos 中添加共享配置
+- 微服务拉取配置
+
+### 3.1 配置共享
+
+以 cart-service 为例，看有哪些配置是重复的，可以抽取的：
+
+```yaml
+server:
+  port: 8082
+spring:
+  application:
+    name: cart-service # 微服务名称
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848 # nacos地址
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:mysql://${hm.db.host}:3306/hm-cart?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: ${hm.db.pw}
+mybatis-plus:
+  configuration:
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+  global-config:
+    db-config:
+      update-strategy: not_null
+      id-type: auto
+logging:
+  level:
+    com.hmall: debug
+  pattern:
+    dateformat: HH:mm:ss:SSS
+  file:
+    path: "logs/${spring.application.name}"
+knife4j:
+  enable: true
+  openapi:
+    title: 黑马商城购物车管理接口文档
+    description: "黑马商城购物车管理接口文档"
+    email: zhanghuyi@itcast.cn
+    concat: 虎哥
+    url: https://www.itcast.cn
+    version: v1.0.0
+    group:
+      default:
+        group-name: default
+        api-rule: package
+        api-rule-resources:
+          - com.hmall.cart.controller
+```
+
+例如 jdbc 相关配置，这些配置在微服务中基本是一致的，只有某些需要动态的修改，例如数据库的名字，端口地址等：
+
+```yaml
+spring:
+  datasource:
+      url: jdbc:mysql://${hm.db.host}:3306/hm-cart?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      username: root
+      password: ${hm.db.pw}
+```
+
+```yaml
+mybatis-plus:
+  configuration:
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+  global-config:
+    db-config:
+      update-strategy: not_null
+      id-type: auto
+```
+
+在 Nacos 控制台中进入配置列表，点击 "+" 号，Data id 填写：shared-jdbc.yaml，配置内容填写：
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://${hm.db.host:127.0.0.1}:${hm.db.port:3306}/${hm.db.database}?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${hm.db.un:root}
+    password: ${hm.db.pw:123}
+mybatis-plus:
+  configuration:
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+  global-config:
+    db-config:
+      update-strategy: not_null
+      id-type: auto
+```
+
+- 数据库 ip：通过 ${hm.db.host:127.0.0.1} 配置了默认值为 127.0.0.1，同时允许通过 ${hm.db.host} 来覆盖默认值（从 SpringBoot 的 yaml 文件中获取）
+- 数据库端口：通过 ${hm.db.port:3306} 配置了默认值为 3306，同时允许通过 ${hm.db.port} 来覆盖默认值
+- 数据库 database：可以通过 ${hm.db.database} 来设定，无默认值
+
+```yaml
+logging:
+  level:
+    com.hmall: debug
+  pattern:
+    dateformat: HH:mm:ss:SSS
+  file:
+    path: "logs/${spring.application.name}"
+```
+
+```yaml
+knife4j:
+  enable: true
+  openapi:
+    title: ${hm.swagger.title:黑马商城接口文档}
+    description: ${hm.swagger.description:黑马商城接口文档}
+    email: ${hm.swagger.email:zhanghuyi@itcast.cn}
+    concat: ${hm.swagger.concat:虎哥}
+    url: https://www.itcast.cn
+    version: v1.0.0
+    group:
+      default:
+        group-name: default
+        api-rule: package
+        api-rule-resources:
+          - ${hm.swagger.package}
+```
+
+- title：接口文档标题，用 ${hm.swagger.title} 来代替，将来可以有用户手动指定
+- email：联系人邮箱，用 ${hm.swagger.email:zhanghuyi@itcast.cn}，默认值是 zhanghuyi@itcast.cn，同时允许利用 ${hm.swagger.email} 来覆盖
+
+要在微服务拉取共享配置，就需要将拉取到的共享配置与本地的 application.yaml 配置合并，完成项目上下文的初始化。但需要注意的是，
+读取 Nacos 配置是 SpringCloud 上下文（ApplicationContext）初始化时处理的，发生在项目的引导阶段。然后才会初始化 SpringBoot 上下文，去读取 application.yaml。
+也就是说在引导阶段 application.yaml 文件还没有被读取，也就无法加载 Nacaos 的地址并完成配置的合并，
+所以 SpringCloud 在初始化上下文的时候会先读取一个名为 bootstrap.yaml（或 bootstrap.properties）的文件，所以可以将 nacos 地址配置到 bootstrap.yaml 中，
+那么在项目引导阶段就可以读取 nacos 中的配置了。微服务整合 Nacos 配置管理的步骤如下：
+
+1、引入依赖：
+
+```xml
+<!--nacos配置管理-->
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+</dependency>
+<!--读取bootstrap文件-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-bootstrap</artifactId>
+</dependency>
+```
+
+2、resources 目录新建 bootstrap.yaml
+
+```yaml
+spring:
+  application:
+    name: cart-service # 服务名称
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1 # nacos地址
+      config:
+        file-extension: yaml # 文件后缀名
+        shared-configs: # 共享配置
+          - dataId: shared-jdbc.yaml # 共享mybatis配置
+          - dataId: shared-log.yaml # 共享日志配置
+          - dataId: shared-swagger.yaml # 共享日志配置
+```
+
+3、修改 application.yaml
+
+```yaml
+# 移除已经写在共享配置中的内容，并补充需要动态填写的内容
+server:
+  port: 8082
+
+hm:
+  swagger:
+    title: 购物车服务接口文档
+    package: com.hmall.cart.controller
+  db:
+    database: hm-cart
+```
+
+日志输出：
+
+```text
+Ignore the empty nacos configuration and get it based on dataId[cart-service] & group[DEFAULT_GROUP]
+Ignore the empty nacos configuration and get it based on dataId[cart-service.yaml] & group[DEFAULT_GROUP]
+Ignore the empty nacos configuration and get it based on dataId[cart-service-local.yaml] & group[DEFAULT_GROUP]
+```
+
+****
+### 3.2 配置热更新
+
+有很多的业务相关参数，将来可能会根据实际情况临时调整。例如购物车业务，购物车数量有一个上限，默认是 10，代码如下：
+
+```java
+private void checkCartsFull(Long userId) {
+    Long count = lambdaQuery().eq(Cart::getUserId, userId).count();
+    if (count >= 10) {
+        throw new BizIllegalException(StrUtil.format("用户购物车课程不能超过{}", 10));
+    }
+}
+```
+
+现在这里购物车是写死的固定值，应该将其配置在配置文件中，方便后期修改。但现在的问题是，即便写在配置文件中，修改了配置还是需要重新打包、重启服务才能生效。
+而 Nacos 提供了热更新能力，可以直接让配置文件生效，无序重启项目。
+
+在 nacos 中添加一个配置文件 cart-service.yaml，将购物车的上限数量添加到配置中：
+
+```yaml
+hm:
+  cart:
+    maxAmount: 1 # 购物车商品数量上限
+```
+
+需要注意该热更新文件的文件名格式（dataId）：
+
+```text
+[服务名]-[spring.profiles.active].[后缀名]
+```
+
+- 服务名：因为是购物车服务，所以是 cart-service
+- spring.active.profile：就是 SpringBoot 中的 spring.profiles.active，可以省略，则所有 profile 共享该配置
+
+在 Spring Boot 中，激活某个配置环境（Profile）应该写成：
+
+```yaml
+spring:
+  profiles:
+    active: dev
+```
+
+例如：cart-service-dev.yaml，代表指定激活 dev 的环境，所有的 Nacos 配置文件包括共享的，都是这样的命名规则，SpringBoot 会根据 active 选择对应的开发环境。
+
+- 后缀名：例如 yaml
+
+在 cart-service 中新建一个属性读取类：
+
+```java
+@Data
+@Component
+@ConfigurationProperties(prefix = "hm.cart")
+public class CartProperties {
+    private Integer maxAmount;
+}
+```
+
+****
+### 3.3 动态路由
+
+目前网关的路由配置全部是在项目启动时加载的，并且一经加载就会缓存到内存中的路由表内，如果新增或修改了路径，就需要重启服务，如果需要实时更新的话，就可以利用 Nacos 的热更新技术，
+手动把路由更新到路由表中。在 Nacos 官网中给出了手动监听 Nacos 配置变更的 SDK：[https://nacos.io/zh-cn/docs/sdk.html](https://nacos.io/zh-cn/docs/sdk.html)。
+如果希望 Nacos 推送配置变更，可以使用 Nacos 动态监听配置接口来实现：
+
+```java
+public void addListener(String dataId, String group, Listener listener)
+```
+
+- dataId：配置 ID，保证全局唯一性，只允许英文字符和 4 种特殊字符（"."、":"、"-"、"_"），不超过 256 字节
+- group：配置分组，一般是默认的 DEFAULT_GROUP
+- listener：监听器，配置变更进入监听器的回调函数，并将更新后的配置推送给服务端
+
+示例代码：
+
+```java
+String serverAddr = "{serverAddr}";
+String dataId = "{dataId}";
+String group = "{group}";
+// 1. 创建 ConfigService，连接 Nacos
+Properties properties = new Properties();
+properties.put("serverAddr", serverAddr);
+ConfigService configService = NacosFactory.createConfigService(properties);
+// 2. 读取配置
+String content = configService.getConfig(dataId, group, 5000);
+// 3. 添加配置监听器
+configService.addListener(dataId, group, new Listener() {
+        @Override
+        public void receiveConfigInfo(String configInfo) {
+        // 配置变更的通知处理
+                System.out.println("recieve1:" + configInfo);
+        }
+        @Override
+        public Executor getExecutor() {
+                return null;
+        }
+});
+```
+
+这里核心的步骤有 2 步：
+
+- 创建 ConfigService，目的是连接到 Nacos
+- 添加配置监听器，编写配置变更的通知处理逻辑
+
+在官方代码中，通过获取到 configService 来连接 nacos，但因为后端采用了 spring-cloud-starter-alibaba-nacos-config 自动装配，
+因此 ConfigService 已经在 com.alibaba.cloud.nacos.NacosConfigAutoConfiguration 中自动创建好了：
+
+```java
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnProperty(name = {"spring.cloud.nacos.config.enabled"}, matchIfMissing = true)
+public class NacosConfigAutoConfiguration {
+  @Bean
+  public NacosConfigManager nacosConfigManager(NacosConfigProperties nacosConfigProperties) {
+    return new NacosConfigManager(nacosConfigProperties);
+  }
+}
+```
+
+因为 NacosConfigManager 是一个 Bean，所以它可以自动注入，并且 NacosConfigManager 是负责管理 Nacos 的 ConfigService 的，因此，只要拿到 NacosConfigManager 就等于拿到了 ConfigService，即可以连接到 Nacos 了。具体代码如下：
+
+```java
+// 配置管理器
+public class NacosConfigManager {
+  ...
+  public NacosConfigManager(NacosConfigProperties nacosConfigProperties) {
+    this.nacosConfigProperties = nacosConfigProperties;
+    createConfigService(nacosConfigProperties); // 创建 configService
+  }
+  static ConfigService createConfigService(NacosConfigProperties nacosConfigProperties) {
+    ...
+    service = NacosFactory.createConfigService(nacosConfigProperties.assembleConfigServiceProperties());
+    ...
+    return service;
+  }
+  public ConfigService getConfigService() { // 读取 configService
+    if (Objects.isNull(service)) {
+      createConfigService(this.nacosConfigProperties);
+    }
+    return service;
+  }
+  ...
+}
+```
+
+第二步，编写监听器。虽然官方提供的 SDK 是 ConfigService 中的 addListener，不过项目第一次启动时不仅仅需要添加监听器，也需要读取配置，因此建议使用的 API 是这个：
+
+```java
+// ConfigService 接口中的方法
+String getConfigAndSignListener(String var1, String var2, long var3, Listener var5) throws NacosException;
+// 实现类中的配置
+String getConfigAndSignListener(
+        String dataId, // 配置文件id
+        String group, // 配置组，走默认
+        long timeoutMs, // 读取配置的超时时间
+        Listener listener // 监听器
+) throws NacosException;
+```
+
+该方法既可以配置监听器，还会根据 dataId 和 group 读取配置并返回，然后就可以在项目启动时先更新一次路由，后续随着配置变更通知到监听器，完成路由更新。在 Spring Cloud Gateway 中，
+所有的路由定义最终都要写入到 RouteDefinitionRouteLocator 维护的内存路由表中，而写入这张表的接口就是 RouteDefinitionWriter，它提供了两个功能：
+
+```java
+public interface RouteDefinitionWriter {
+        // 更新路由到路由表，如果路由id重复，则会覆盖旧的路由
+        Mono<Void> save(Mono<RouteDefinition> route);
+        // 根据路由id删除某个路由
+        Mono<Void> delete(Mono<String> routeId);
+}
+```
+
+因为 Spring Cloud Gateway 默认是基于配置文件静态加载路由表，而现在是要从 Nacos 配置中心动态获取路由表然后再写入内存中，所以需要手动调用该接口的两个方法。而保存到 Nacos 的配置则使用 json 的格式，
+因为动态路由机制是代码主动拉取并解析配置，而 RouteDefinitionWriter 是基于 JSON 对象模型进行解析的，它不能像 Spring Boot 一样自动解析 yaml 格式的数据。例如：
+
+```json
+{
+  "id": "item",
+  "predicates": [{
+    "name": "Path",
+    "args": {"_genkey_0":"/items/**", "_genkey_1":"/search/**"}
+  }],
+  "filters": [],
+  "uri": "lb://item-service"
+}
+```
+
+具体使用：
+
+1、引入依赖
+
+```xml
+<!--统一配置管理-->
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+</dependency>
+<!--加载bootstrap-->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-bootstrap</artifactId>
+</dependency>
+```
+
+2、创建 bootstrap.yaml 文件
+
+```yaml
+spring:
+  application:
+    name: gateway # 服务名称
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1 # nacos地址
+      config:
+        file-extension: yaml # 文件后缀名
+        shared-configs: # 共享配置
+          - dataId: shared-log.yaml # 共享日志配置
+```
+
+3、编写代码
+
+因为把 DynamicRouteLoader 写成了一个配置类，所以它在 SpringBoot 加载时就会被初始化，而 initRouteConfigListener() 被添加了 @PostConstruct 注解（Bean 初始化后会自动执行），
+所以它会在 Bean 初始化后就注册监听并拉取 Nacos 中的配置文件，然后通过 RouteDefinitionWriter 更新与删除路由表。需要注意的是：RouteDefinitionWriter 没有提供更新操作，只有新增操作，
+所以如果要保证整体路由表的实时性，需要在每次 Nacos 更新数据时，这里执行删除所有内存中路由的操作，然后再把 Nacos 中的所有路由添加进内存。
+
+```java
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class DynamicRouteLoader {
+
+    private final RouteDefinitionWriter writer;
+    private final NacosConfigManager nacosConfigManager;
+
+    // 路由配置文件的id和分组
+    private final String dataId = "gateway-routes.json";
+    private final String group = "DEFAULT_GROUP";
+    // 保存更新过的路由 id
+    private final Set<String> routeIds = new HashSet<>();
+
+    // Bean 初始化后再执行
+    @PostConstruct
+    public void initRouteConfigListener() throws NacosException {
+        // 1. 注册监听器并首次拉取配置
+        String configInfo = nacosConfigManager.getConfigService()
+                .getConfigAndSignListener(dataId, group, 5000, new Listener() {
+                    @Override
+                    public Executor getExecutor() { // 定义线程池
+                        return null;
+                    }
+
+                    @Override
+                    public void receiveConfigInfo(String configInfo) {
+                        // 监听到配置变更，需要更新路由表
+                        updateConfigInfo(configInfo);
+                    }
+                });
+        // 2. 首次启动时，更新一次配置
+        updateConfigInfo(configInfo);
+    }
+
+    private void updateConfigInfo(String configInfo) {
+        log.debug("监听到路由配置变更：{}", configInfo);
+        // 1. 反序列化，将 json 文件转换成 RouteDefinition
+        List<RouteDefinition> routeDefinitions = JSONUtil.toList(configInfo, RouteDefinition.class);
+        // 2. 更新前先清空旧路由
+        for (String routeId : routeIds) {
+            writer.delete(Mono.just(routeId)).subscribe();
+        }
+        // 清空集合
+        routeIds.clear();
+        // 判断是否有新的路由要更新
+        if (CollUtils.isEmpty(routeDefinitions)) {
+            // 无新路由配置，直接结束
+            return;
+        }
+        // 3. 更新路由
+        routeDefinitions.forEach(routeDefinition -> {
+            writer.save(Mono.just(routeDefinition)).subscribe();
+            // 记录路由 id，方便将来删除
+            routeIds.add(routeDefinition.getId());
+        });
+    }
+}
+```
+
+监听结果：
+
+```json
+// 监听到路由配置变更：
+[
+    {
+        "id": "item",
+        "predicates": [{
+            "name": "Path",
+            "args": {"_genkey_0":"/items/**", "_genkey_1":"/search/**"}
+        }],
+        "filters": [],
+        "uri": "lb://item-service"
+    },
+  ...
+]
+```
+
+****
+# 五、微服务保护和分布式事务
+
+## 1. 微服务保护
+
+### 1.1 雪崩问题
+
+例如在之前的查询购物车列表业务中，购物车服务需要查询最新的商品信息并与购物车数据做对比，提醒用户。可如果商品服务查询时发生故障，查询购物车列表在调用商品服务时，也会异常从而导致购物车查询失败。
+但从业务角度来说，为了提升用户体验，即便是商品查询失败，购物车列表也应该正确展示出来，哪怕是不包含最新的商品信息。
+
+还是查询购物车的业务，假如商品服务业务并发较高，占用过多 Tomcat 连接。可能会导致商品服务的所有接口响应时间增加，延迟变高，甚至是长时间阻塞直至查询失败。
+此时查询购物车业务需要查询并等待商品查询结果，从而导致查询购物车列表业务的响应时间也变长，甚至也阻塞直至无法访问。而整个微服务中，都可能存在类似的问题，最终导致整个集群不可用。
+
+****
+### 1.2 服务保护方案
+
+1、请求限流
+
+服务故障最重要原因，就是并发太高。解决了这个问题，就能避免大部分故障。当然，通常情况下接口的并发不是一直很高，而是突发的，因此请求限流，就是限制或控制接口访问的并发流量，
+避免服务因流量激增而出现故障。请求限流往往会有一个限流器，数量高低起伏的并发请求曲线，经过限流器就变的非常平稳。这就像是水电站的大坝，起到蓄水的作用，
+可以通过开关控制水流出的大小，让下游水流始终维持在一个平稳的量。
+
+2、线程隔离
+
+当一个业务接口响应时间长，而且并发高时，就可能耗尽服务器的线程资源，导致服务内的其它接口受到影响，所以必须把这种影响降低，或者缩减这种影响的范围。而县城隔离就是为了避免某个接口故障或压力过大导致整个服务不可用，
+限定每个接口的可以使用的资源范围，将不同的接口、不同的逻辑，用不同的线程池处理，防止相互影响。
+
+3、服务熔断
+
+线程隔离虽然避免了雪崩问题，但故障服务（商品服务）依然会拖慢购物车服务（服务调用方）的接口响应速度。而且商品查询的故障依然会导致查询购物车功能出现故障，购物车业务也变的不可用了。
+所以需要：
+
+- 编写服务降级逻辑：就是服务调用失败后的处理逻辑，根据业务场景，可以抛出异常，也可以返回提示或默认数据
+- 异常统计和熔断：统计服务提供方的异常比例，当比例过高表明该接口会影响到其它服务，应该拒绝调用该接口，并直接走降级逻辑
+
+****
+## 2. Sentinel
+
+### 2.1 安装
+
+Sentinel 是阿里巴巴开源的一款面向分布式服务架构的流量控制组件，专注于流量控制、熔断降级、系统负载保护等。在微服务架构中，一个接口的异常不应影响整个系统，
+而 Sentinel 就是用来保证系统稳定性和可用性的关键中间件。
+
+Sentinel 的使用可以分为两个部分:
+
+- 核心库（Jar包）：不依赖任何框架/库，能够运行于 Java 8 及以上的版本的运行时环境，同时对 Dubbo / Spring Cloud 等框架也有较好的支持。在项目中引入依赖即可实现服务限流、隔离、熔断等功能。
+- 控制台（Dashboard）：Dashboard 主要负责管理推送规则、监控、管理机器信息等。
+
+具体使用步骤：
+
+1、下载 jar 包
+
+下载地址：[https://github.com/alibaba/Sentinel/releases](https://github.com/alibaba/Sentinel/releases)
+
+2、运行
+
+将jar包放在任意非中文、不包含特殊字符的目录下，重命名为sentinel-dashboard.jar，然后在 cmd 中运行如下命令：
+
+```shell
+java "-Dserver.port=8099" "-Dcsp.sentinel.dashboard.server=localhost:8099" "-Dproject.name=sentinel-dashboard" -jar sentinel-dashboard.jar
+```
+
+3、访问 http://localhost:8099 页面
+
+登录需要输入账号和密码，默认都是：sentinel
+
+在 cart-service 模块中整合 sentinel，连接 sentinel-dashboard 控制台，步骤如下：
+
+1、引入 sentinel 依赖
+
+```xml
+<!--sentinel-->
+<dependency>
+    <groupId>com.alibaba.cloud</groupId> 
+    <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+</dependency>
+```
+
+2、配置控制台
+
+修改 application.yaml 文件，添加下面内容：
+
+```yaml
+spring:
+  cloud: 
+    sentinel:
+      transport:
+        dashboard: localhost:8099
+```
+
+3、访问 cart-service 的任意端点
+
+重启 cart-service，然后访问查询购物车接口，sentinel 的客户端就会将服务访问的信息提交到 sentinel-dashboard 控制台，并展示出统计信息。
+
+点击簇点链路可以看到类似 controller 层的请求路径。所谓簇点链路，就是单机调用链路，是一次请求进入服务后经过的每一个被 Sentinel 监控的资源。默认情况下，
+Sentinel 会监 控SpringMVC 的每一个 Endpoint（即 Http 接口）。所以看到的 /carts 接口路径就是其中一个簇点，可以对其进行限流、熔断、隔离等保护措施。
+不过，需要注意的是，该项目的 SpringMVC 接口是按照 Restful 风格设计，因此购物车的查询、删除、修改等接口全部都是 /carts 路径。而默认情况下，Sentinel 会把路径作为簇点资源的名称，
+无法区分路径相同但请求方式不同的接口，而查询、删除、修改等都被识别为一个簇点资源，这显然是不合适的。所以可以选择打开 Sentinel 的请求方式前缀，把请求方式 + 请求路径作为簇点资源名。
+在 cart-service 的 application.yml 中添加下面的配置：
+
+```yaml
+spring:
+  cloud:
+    sentinel:
+      transport:
+        dashboard: localhost:8090
+      http-method-specify: true # 开启请求方式前缀
+```
+
+****
+### 2.2 请求限流
+
+在簇点链路后面点击流控按钮，即可对其做限流配置，在弹出的菜单中的阈值类型选择 QPS，单机阈值填写 6，这样就把查询购物车列表这个簇点资源的流量限制在了每秒 6 个，也就是最大 QPS 为 6。
+利用 JMeter 进行测试，开启 1000 个线程，运行时间为 100 s，所以大概是 1 s 运行 10 次，而 GET:/carts 这个接口的通过 QPS 稳定在 6 附近，而拒绝的 QPS 在 4 附近。
+
+****
+### 2.3 线程隔离
+
+限流可以降低服务器压力，尽量减少因并发流量引起的服务故障的概率，但并不能完全避免服务故障，一旦某个服务出现故障，就必须隔离对这个服务的调用，避免发生雪崩。比如，查询购物车的时候需要查询商品，
+为了避免因商品服务出现故障导致购物车服务级联失败，可以把购物车业务中查询商品的部分隔离起来，限制可用的线程资源。而查询商品又调用了别的微服务的功能，它不涉及 Http 请求，
+所以要通过 OpenFeign 整合 Sentinel。
+
+修改 cart-service 模块的 application.yml 文件，开启 Feign 的 sentinel 功能：
+
+```yaml
+feign:
+  sentinel:
+    enabled: true # 开启feign对sentinel的支持
+```
+
+需要注意的是，默认情况下 SpringBoot 项目的 tomcat 最大线程数是 200，允许的最大连接是 8492，单机测试很难打满。所以需要配置一下 cart-service 模块的 application.yml 文件，
+修改 tomcat 连接：
+
+```yaml
+server:
+  port: 8082
+  tomcat:
+    threads:
+      max: 50 # 允许的最大线程数
+    accept-count: 50 # 最大排队等待数量
+    max-connections: 100 # 允许的最大连接
+```
+
+在 sentinel 页面可以看到查询商品的 FeignClient 自动变成了一个簇点资源：
+
+```text
+GET:/carts
+    GET:http://item-service/items // 查询商品，是查询购物车的下级链路
+```
+
+需要注意的是：这里使用的 spring-cloud-alibaba 依赖不能使用 2022.x 版本的了，不然会报错，得换用 2023 版本：
+
+```xml
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+    <version>2023.0.1.0</version>
+    <type>pom</type>
+    <scope>import</scope>
+</dependency>
+```
+
+点击查询商品的 FeignClient 对应的簇点资源后面的流控按钮，选择并发线程数，单机阈值填写 5，注意，这里勾选的是并发线程数限制，也就是说这个查询功能最多使用 5 个线程，
+而不是 5QPS。一个线程对应 2 个 QPS 如果查询商品的接口每秒处理 2 个请求，则 5 个线程的实际 QPS 在 10 左右，而超出的请求自然会被拒绝。利用 Jemeter 测试，创建 5000 个线程，
+运行时间 50 s，即每秒发送 100 个请求，最终测试结果：进入查询购物车的请求每秒大概在 100，但基本都拒绝九十多个请求，而在查询商品时却只剩下每秒 10 左右，符合预期。
+此时如果通过页面访问购物车的其它接口，例如添加购物车、修改购物车商品数量，发现不受影响，响应时间非常短，这就证明线程隔离起到了作用，尽管查询购物车这个接口并发很高，
+但是它能使用的线程资源被限制了，因此不会影响到其它接口。
+
+****
+### 2.4 服务熔断
+
+上面利用线程隔离对查询购物车业务进行隔离，保护了购物车服务的其它接口，但由于查询商品的功能耗时较高（模拟了 500 毫秒延时），再加上线程隔离限定了线程数为5，导致接口吞吐能力有限，
+最终 QPS 只有 10 左右。这就导致了几个问题：
+
+1、超出的 QPS 上限的请求就只能抛出异常，从而导致购物车的查询失败。但从业务角度来说，即便没有查询到最新的商品信息，购物车也应该展示给用户，用户体验更好。
+也就是应该给查询失败设置一个降级处理逻辑。
+
+2、由于查询商品的延迟较高（模拟的 500ms），从而导致查询购物车的响应时间也变的很长。这样不仅拖慢了购物车服务，消耗了购物车服务的更多资源，而且用户体验也很差。
+对于商品服务这种不太健康的接口，应该直接停止调用，直接走降级逻辑，避免影响到当前服务，也就是将商品查询接口熔断。
+
+#### 1. 编写降级逻辑
+
+触发限流或熔断后的请求不一定要直接报错，也可以返回一些默认数据或者友好提示，用户体验会更好。给 FeignClient 编写失败后的降级逻辑有两种方式：
+
+- 方式一：FallbackClass，无法对远程调用的异常做处理
+- 方式二：FallbackFactory，可以对远程调用的异常做处理，一般选择这种方式
+
+1、在 hm-api 模块中给 ItemClient 定义降级处理类，实现 FallbackFactory：
+
+```java
+@Slf4j
+public class ItemClientFallback implements FallbackFactory<ItemClient> {
+    @Override
+    public ItemClient create(Throwable cause) {
+        return new ItemClient() {
+            @Override
+            public List<ItemDTO> queryItemByIds(Collection<Long> ids) {
+                log.error("远程调用ItemClient#queryItemByIds方法出现异常，参数：{}", ids, cause);
+                // 查询购物车允许失败，查询失败，返回空集合
+                return CollUtils.emptyList();
+            }
+            @Override
+            public void deductStock(List<OrderDetailDTO> items) {
+                // 库存扣减业务需要触发事务回滚，查询失败，抛出异常
+                throw new BizIllegalException(cause);
+            }
+        };
+    }
+}
+```
+
+2、在 hm-api 模块中的 com.hmall.api.config.DefaultFeignConfig 类中将 ItemClientFallback 注册为一个 Bean：
+
+```java
+@Bean
+public ItemClientFallback itemClientFallback(){
+    return new ItemClientFallback();
+}
+```
+
+3、在 hm-api 模块中的 ItemClient 接口中使用 ItemClientFallbackFactory：
+
+```java
+@FeignClient(name = "item-service",configuration = DefaultFeignConfig.class, fallbackFactory = ItemClientFallback.class)
+public interface ItemClient {
+  ...
+}
+```
+
+****
+#### 2. 服务熔断
+
+查询商品的 RT 较高（模拟的 500ms），从而导致查询购物车的RT也变的很长，这样不仅拖慢了购物车服务，消耗了购物车服务的更多资源，而且用户体验也很差。对于商品服务这种不太健康的接口，
+应该停止调用，直接走降级逻辑，避免影响到当前服务,也就是将商品查询接口熔断。当商品服务接口恢复正常后，再允许调用，这其实就是断路器的工作模式。
+
+Sentinel 中的断路器不仅可以统计某个接口的慢请求比例，还可以统计异常请求比例。当这些比例超出阈值时，就会熔断该接口，即拦截访问该接口的一切请求，降级处理；
+当该接口恢复正常时，再放行对于该接口的请求。
+
+断路器的工作状态切换有一个状态机来控制，状态机包括三个状态：
+
+- closed：关闭状态，断路器放行所有请求，并开始统计异常比例、慢请求比例。超过阈值则切换到 open 状态
+- open：打开状态，服务调用被熔断，访问被熔断服务的请求会被拒绝，快速失败，直接走降级逻辑。Open 状态持续一段时间后会进入 half-open 状态
+- half-open：半开状态，放行一次请求，根据执行结果来判断接下来的操作。
+  - 请求成功：则切换到 closed 状态
+  - 请求失败：则切换到 open 状态
+
+可以在控制台通过点击簇点后的熔断按钮来配置熔断策略，在弹出的表格中填写：
+
+```text
+资源名：GET:http://item-service/items
+熔断策略：慢比例调用
+最大 RT：200（ms）   比例阈值：0.5
+熔断时长：20     最小请求数：5
+统计时长：1000
+```
+
+- RT 超过 200 毫秒的请求调用就是慢调用
+- 统计最近 1000ms 内的最少 5 次请求，如果慢调用比例不低于 0.5，则触发熔断
+- 熔断持续时长 20s
+
+观察 Sentinel 的实时监控，在一开始一段时间是允许访问的，后来触发熔断后，查询商品服务的接口通过 QPS 直接为 0，所有请求都被熔断了，而查询购物车的本身并没有受到影响。
+
+****
+
+
+
+
+
+
+
 
 

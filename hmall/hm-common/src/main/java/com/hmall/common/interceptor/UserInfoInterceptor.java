@@ -14,11 +14,10 @@ public class UserInfoInterceptor implements HandlerInterceptor {
         System.out.println("请求头 user-info = " + userInfo);
         // 2. 判断是否为空
         if (StrUtil.isNotBlank(userInfo)) {
-
             // 不为空，保存到 ThreadLocal
             UserContext.setUser(Long.valueOf(userInfo));
         }
-        // 3.放行
+        // 3. 放行
         return true;
     }
 
