@@ -16,6 +16,7 @@ public class UserInfoInterceptor implements HandlerInterceptor {
         if (StrUtil.isNotBlank(userInfo)) {
             // 不为空，保存到 ThreadLocal
             UserContext.setUser(Long.valueOf(userInfo));
+            System.out.println("ThreadLocal's user-info = " + UserContext.getUser());
         }
         // 3. 放行
         return true;

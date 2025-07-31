@@ -6,7 +6,7 @@
 其中的 T 表示操作的实体类类型（比如 User、Product 等），它已经默认实现了大量常用方法，比如：
 
 | 方法名                                | 说明         |
-| ---------------------------------- | ---------- |
+|------------------------------------|------------|
 | `insert(T entity)`                 | 插入记录       |
 | `deleteById(Serializable id)`      | 根据主键删除     |
 | `updateById(T entity)`             | 根据主键更新记录   |
@@ -15,7 +15,8 @@
 | `selectCount(QueryWrapper<T>)`     | 查询总记录数     |
 | `selectByMap(Map<String, Object>)` | 根据字段精确匹配查询 |
 
-因此自定义的 Mapper 只要实现了这个 BaseMapper<T> 接口，就无需自己实现单表 CRUD 了。修改 mp-demo 中的 com.itheima.mp.mapper 包下的 UserMapper 接口，
+因此自定义的 Mapper 只要实现了这个 BaseMapper<T> 接口，就无需自己实现单表 CRUD 了。修改 mp-demo 中的 com.itheima.mp.mapper
+包下的 UserMapper 接口，
 让其继承 BaseMapper：
 
 ```java
@@ -26,10 +27,12 @@ public interface UserMapper extends BaseMapper<User> {
 
 测试：
 
-1、测试插入数据，如果使用的是 mybatis 的话，就需要在 Mapper 接口中编写对应的 saveUser 方法，然后在 UserMapper 配置文件中编写 sql 语句，使用 MyBatisPlus 后，
+1、测试插入数据，如果使用的是 mybatis 的话，就需要在 Mapper 接口中编写对应的 saveUser 方法，然后在 UserMapper 配置文件中编写
+sql 语句，使用 MyBatisPlus 后，
 直接调用 BaseMapper 的 insert 方法即可完成插入操作。
 
 ```java
+
 @Test
 void testInsert() {
     User user = new User();
@@ -49,6 +52,7 @@ void testInsert() {
 2、测试查询
 
 ```java
+
 @Test
 void testSelectById() {
     // User user = userMapper.queryUserById(5L);
@@ -58,6 +62,7 @@ void testSelectById() {
 ```
 
 ```java
+
 @Test
 void testQueryByIds() {
     // List<User> users = userMapper.queryUserByIds(List.of(1L, 2L, 3L, 4L));
@@ -69,6 +74,7 @@ void testQueryByIds() {
 3、测试修改
 
 ```java
+
 @Test
 void testUpdateById() {
     User user = new User();
@@ -82,6 +88,7 @@ void testUpdateById() {
 4、测试删除
 
 ```java
+
 @Test
 void testDeleteUser() {
     // userMapper.deleteUser(5L);
@@ -90,20 +97,24 @@ void testDeleteUser() {
 ```
 
 ****
+
 ## 2. 常见注解
 
-UserMapper 在继承 BaseMapper 的时候指定了一个泛型，而泛型中的 User 就是与数据库对应的 POJO。MybatisPlus 就是根据 POJO 实体的信息来推断出表的信息，
+UserMapper 在继承 BaseMapper 的时候指定了一个泛型，而泛型中的 User 就是与数据库对应的 POJO。MybatisPlus 就是根据 POJO
+实体的信息来推断出表的信息，
 从而生成 SQL 的。默认情况下：
 
 - MybatisPlus 会把 POJO 实体的类名驼峰转下划线作为表名
 - MybatisPlus 会把 POJO 实体的所有变量名驼峰转下划线作为表的字段名，并根据变量类型推断字段类型（可被配置文件修改，但默认是开启驼峰的）
 - MybatisPlus 会把名为 id 的字段作为主键
 
-但很多情况下，现实中数据库表/字段的命名经常不符合 Java 类命名规范，例如表名是全大写或没有遵循驼峰转下划线规范、主键字段不是 id 等，所以 MybatisPlus 提供了一些注解便于声明表信息。
+但很多情况下，现实中数据库表/字段的命名经常不符合 Java 类命名规范，例如表名是全大写或没有遵循驼峰转下划线规范、主键字段不是
+id 等，所以 MybatisPlus 提供了一些注解便于声明表信息。
 
 1、@TableName：用于指定表名
 
 ```java
+
 @TableName("user")
 public class User {
     private Long id;
@@ -113,18 +124,19 @@ public class User {
 
 TableName 注解除了指定表名以外，还可以指定很多其它属性：
 
-| 属性             | 类型    | 必须指定 | 默认值 | 描述                                                         |
-| ---------------- | ------- | -------- | ------ | ----------------------------------------------------------- |
-| value            | String  | 否       | ""     | 表名                                                         |
-| schema           | String  | 否       | ""     | 指定数据库的 schema（模式）                                           |
-| keepGlobalPrefix | boolean | 否       | false  | 是否保留全局配置中的表前缀 tablePrefix 的值（当全局 tablePrefix 生效时） |
-| resultMap        | String  | 否       | ""     | xml 中 resultMap 的 id（用于满足特定类型的实体类对象绑定）   |
-| autoResultMap    | boolean | 否       | false  | 是否自动构建 resultMap 并使用（如果设置 resultMap 则不会进行 resultMap 的自动构建与注入） |
-| excludeProperty  | String[]| 否       | {}     | 需要排除的属性名 @since 3.3.1                                |
+| 属性               | 类型       | 必须指定 | 默认值   | 描述                                                            |
+|------------------|----------|------|-------|---------------------------------------------------------------|
+| value            | String   | 否    | ""    | 表名                                                            |
+| schema           | String   | 否    | ""    | 指定数据库的 schema（模式）                                             |
+| keepGlobalPrefix | boolean  | 否    | false | 是否保留全局配置中的表前缀 tablePrefix 的值（当全局 tablePrefix 生效时）             |
+| resultMap        | String   | 否    | ""    | xml 中 resultMap 的 id（用于满足特定类型的实体类对象绑定）                        |
+| autoResultMap    | boolean  | 否    | false | 是否自动构建 resultMap 并使用（如果设置 resultMap 则不会进行 resultMap 的自动构建与注入） |
+| excludeProperty  | String[] | 否    | {}    | 需要排除的属性名 @since 3.3.1                                         |
 
 2、@TableId：用于指定主键及主键策略
 
 ```java
+
 @TableName("user")
 public class User {
     @TableId
@@ -133,10 +145,10 @@ public class User {
 }
 ```
 
-| 属性 | 类型 | 必须指定 | 默认值 | 描述 |
-| ---- | ---- | ---- | ---- | ---- |
-| value | String | 否 | "" | 表名 |
-| type | Enum | 否 | IdType.NONE | 指定主键类型 |
+| 属性    | 类型     | 必须指定 | 默认值         | 描述     |
+|-------|--------|------|-------------|--------|
+| value | String | 否    | ""          | 表名     |
+| type  | Enum   | 否    | IdType.NONE | 指定主键类型 |
 
 IdType 支持的常用类型：
 
@@ -147,12 +159,13 @@ IdType 支持的常用类型：
 3、@TableField：用于字段映射及自动填充控制
 
 一般情况下我们并不需要给字段添加 @TableField 注解，一些特殊情况除外：
- 
+
 - 成员变量名与数据库字段名不一致
 - 成员变量是以 isXXX 命名，按照 JavaBean 的规范，MybatisPlus 识别字段时会把is去除，这就导致与数据库不符。
 - 成员变量名与数据库一致，但是与数据库的关键字冲突。使用 @TableField 注解给字段名添加转义字符：``
 
 ****
+
 ## 3. 常见配置
 
 MybatisPlus 也支持基于 yaml 文件的自定义配置，大多数的配置都有默认值，因此都无需配置。但还有一些是没有默认值的，例如:
@@ -177,23 +190,28 @@ mybatis-plus:
 也就是说只要把 mapper.xml 文件放置这个目录下就一定会被加载。
 
 ****
+
 ## 4. 核心功能
 
 ### 4.1 条件构造器
 
-除了新增以外，修改、删除、查询的 SQL 语句都需要指定 where 条件，因此 BaseMapper 中提供的相关方法除了以 id 作为 where 条件以外，还支持更加复杂的 where 条件。
+除了新增以外，修改、删除、查询的 SQL 语句都需要指定 where 条件，因此 BaseMapper 中提供的相关方法除了以 id 作为 where
+条件以外，还支持更加复杂的 where 条件。
 MyBatis-Plus 提供了一个非常强大的条件构造器：QueryWrapper / LambdaQueryWrapper 和 UpdateWrapper / LambdaUpdateWrapper，
 使用它们可以灵活地构造出复杂的 where 条件。Wrapper 的子类 AbstractWrapper 提供了 where 中包含的所有条件构造方法，
-而 QueryWrapper 在 AbstractWrapper 的基础上拓展了一个 select 方法，允许指定查询字段；而 UpdateWrapper 在 AbstractWrapper 的基础上拓展了一个 set 方法，
+而 QueryWrapper 在 AbstractWrapper 的基础上拓展了一个 select 方法，允许指定查询字段；而 UpdateWrapper 在 AbstractWrapper
+的基础上拓展了一个 set 方法，
 允许指定 SQL 中的 set 部分。
 
 #### 1. QueryWrapper
 
-QueryWrapper<T> 是 MyBatis-Plus 提供的条件构造器，它主要用于构建查询条件，泛型 <T> 表示实体类类型。QueryWrapper 的核心作用就是 构建查询条件，
+QueryWrapper<T> 是 MyBatis-Plus 提供的条件构造器，它主要用于构建查询条件，泛型 <T> 表示实体类类型。QueryWrapper 的核心作用就是
+构建查询条件，
 然后将这些条件传递给 MyBatis-Plus 提供的 CRUD 方法（如 selectList、selectPage、selectCount 等）来执行具体的数据库操作。
 例如：查询查询出名字中带 o 的，存款大于等于 1000 元的人：
 
 ```java
+
 @Test
 void testQueryWrapper() {
     // 1. 构建查询条件 where name like "%o%" AND balance >= 1000
@@ -210,6 +228,7 @@ void testQueryWrapper() {
 更新用户名为 jack 的用户的余额为 2000：
 
 ```java
+
 @Test
 void testUpdateByQueryWrapper() {
     // 1. 构建查询条件 where name = "Jack"
@@ -223,17 +242,22 @@ void testUpdateByQueryWrapper() {
 ```
 
 ****
+
 #### 2. UpdateWrapper
 
-基于 BaseMapper 中的 update 方法更新时只能直接赋值，对于一些复杂的需求就难以实现。例如更新 id 为 1,2,4 的用户的余额扣 200，对应的 SQL 应该是：
+基于 BaseMapper 中的 update 方法更新时只能直接赋值，对于一些复杂的需求就难以实现。例如更新 id 为 1,2,4 的用户的余额扣
+200，对应的 SQL 应该是：
 
 ```sql
-UPDATE user SET balance = balance - 200 WHERE id in (1, 2, 4)
+UPDATE user
+SET balance = balance - 200
+WHERE id in (1, 2, 4)
 ```
 
 使用 UpdateWrapper：
 
 ```java
+
 @Test
 void testUpdateWrapper() {
     List<Long> ids = List.of(1L, 2L, 4L);
@@ -250,16 +274,21 @@ void testUpdateWrapper() {
 而这里则不需要再创建对象并赋值字段，直接创建一个条件，然后更新这个数据。
 
 ****
+
 #### 3. LambdaQueryWrapper
 
-无论是 QueryWrapper 还是 UpdateWrapper 在构造条件的时候都需要写死字段名称，这在编程规范中显然是不推荐的。通过 方法引用（如 User::getUsername）获取字段的 getter 方法引用，
-然后借助反射解析出实际的字段名（如 username），再映射成数据库列名（如 user_name）。所以只要将条件对应的字段的 getter 方法传递给 MybatisPlus，
-它就能计算出对应的变量名了，而传递方法可以使用 JDK8 中的方法引用和 Lambda 表达式。因此 MybatisPlus 又提供了一套基于 Lambda 的 Wrapper，包含两个：
+无论是 QueryWrapper 还是 UpdateWrapper 在构造条件的时候都需要写死字段名称，这在编程规范中显然是不推荐的。通过 方法引用（如
+User::getUsername）获取字段的 getter 方法引用，
+然后借助反射解析出实际的字段名（如 username），再映射成数据库列名（如 user_name）。所以只要将条件对应的字段的 getter 方法传递给
+MybatisPlus，
+它就能计算出对应的变量名了，而传递方法可以使用 JDK8 中的方法引用和 Lambda 表达式。因此 MybatisPlus 又提供了一套基于 Lambda
+的 Wrapper，包含两个：
 
 - LambdaQueryWrapper
 - LambdaUpdateWrapper
 
 ```java
+
 @Test
 void testLambdaQueryWrapper() {
     // 1. 构建条件 WHERE username LIKE "%o%" AND balance >= 1000
@@ -275,23 +304,28 @@ void testLambdaQueryWrapper() {
 ```
 
 ****
+
 ### 4.2 自定义 SQL
 
 在使用 UpdateWrapper 的时候，写了这样一段代码：
 
 ```java
 UpdateWrapper<User> wrapper = new UpdateWrapper<User>()
-            .setSql("balance = balance - 200") // SET balance = balance - 200
-            .in("id", ids);
+        .setSql("balance = balance - 200") // SET balance = balance - 200
+        .in("id", ids);
 ```
 
-这种写法在某些企业也是不允许的，因为 SQL 语句最好都维护在持久层，而不是业务层。就当前案例来说，由于条件是 in 语句，只能将 SQL 写在 Mapper.xml 文件，
-然后利用 foreach 来生成动态 SQL。但这实在是太麻烦了，假如查询条件更复杂，动态 SQL 的编写也会更加复杂。所以，MybatisPlus 提供了自定义 SQL 功能，
+这种写法在某些企业也是不允许的，因为 SQL 语句最好都维护在持久层，而不是业务层。就当前案例来说，由于条件是 in 语句，只能将 SQL
+写在 Mapper.xml 文件，
+然后利用 foreach 来生成动态 SQL。但这实在是太麻烦了，假如查询条件更复杂，动态 SQL 的编写也会更加复杂。所以，MybatisPlus
+提供了自定义 SQL 功能，
 可以利用 Wrapper 生成查询条件，再结合 Mapper.xml 编写 SQL。
 
-例如上述代码可以改写成在业务层通过 MyBatisPlus 定义一些复杂的查询条件（where in ...），然后把定义好的条件作为参数传递给 MyBatis 手写的 SQL，
+例如上述代码可以改写成在业务层通过 MyBatisPlus 定义一些复杂的查询条件（where in ...），然后把定义好的条件作为参数传递给
+MyBatis 手写的 SQL，
 
 ```java
+
 @Test
 void testCustomWrapper() {
     // 1. 准备自定义查询条件
@@ -302,9 +336,11 @@ void testCustomWrapper() {
 }
 ```
 
-然后在 Mapper 层手动拼接条件，需要注意的是，传递的参数必须通过 @Param 设置为 "ew" / Constants.WRAPPER，然后拼接时使用 ${} 拼接字符串的方式
+然后在 Mapper 层手动拼接条件，需要注意的是，传递的参数必须通过 @Param 设置为 "ew" / Constants.WRAPPER，然后拼接时使用 ${}
+拼接字符串的方式
 
 ```java
+
 @Select("UPDATE user SET balance = balance - #{money} ${ew.customSqlSegment}")
 void deductBalanceByIds(@Param("money") int money, @Param("ew") QueryWrapper<User> wrapper);
 ```
@@ -313,21 +349,25 @@ void deductBalanceByIds(@Param("money") int money, @Param("ew") QueryWrapper<Use
 查询出所有收货地址在北京的并且用户 id 在 1、2、4 之中的用户，如果使用 MyBatis 是这样的：
 
 ```sql
-<select id="queryUserByIdAndAddr" resultType="com.itheima.mp.domain.User">
-    SELECT *
-    FROM user u
-    INNER JOIN address a ON u.id = a.user_id
-    WHERE u.id
-    <foreach collection="ids" separator="," item="id" open="IN (" close=")">
-      #{id}
-    </foreach>
-    AND a.city = #{city}
-</select>
+<
+select id = "queryUserByIdAndAddr" resultType="com.itheima.mp.domain.User">
+SELECT *
+FROM user u
+         INNER JOIN address a ON u.id = a.user_id
+WHERE u.id
+    < foreach
+    collection="ids" separator="," item="id" open="IN (" close=")"> #{id}
+    </foreach
+    >
+  AND a.city = #{city}
+    </
+select>
 ```
 
 但是使用 MyBatisPlus 就可以利用 Wrapper 来构建查询条件，然后手写 SELECT 及 FROM 部分，实现多表查询：
 
 ```java
+
 @Test
 void testCustomJoinWrapper() {
     // 1. 准备自定义查询条件
@@ -341,22 +381,29 @@ void testCustomJoinWrapper() {
 ```
 
 ```java
+
 @Select("SELECT u.* FROM user u INNER JOIN address a ON u.id = a.user_id ${ew.customSqlSegment}")
-List<User> queryUserByWrapper(@Param(Constants.WRAPPER)QueryWrapper<User> wrapper);
+List<User> queryUserByWrapper(@Param(Constants.WRAPPER) QueryWrapper<User> wrapper);
 ```
 
 也可以在 UserMapper.xml 中写：
 
 ```sql
-<select id="queryUserByIdAndAddr" resultType="com.itheima.mp.domain.User">
-    SELECT * FROM user u INNER JOIN address a ON u.id = a.user_id ${ew.customSqlSegment}
-</select>
+<
+select id = "queryUserByIdAndAddr" resultType="com.itheima.mp.domain.User">
+SELECT *
+FROM user u
+         INNER JOIN address a ON u.id = a.user_id ${ew.customSqlSegment}
+</
+select>
 ```
 
 ****
+
 ### 4.3 Service 接口
 
-MybatisPlus 不仅提供了 BaseMapper，还提供了通用的 Service 接口及默认实现，封装了一些常用的 service 模板方法。通用接口为 IService，默认实现为 ServiceImpl，
+MybatisPlus 不仅提供了 BaseMapper，还提供了通用的 Service 接口及默认实现，封装了一些常用的 service 模板方法。通用接口为
+IService，默认实现为 ServiceImpl，
 其中封装的方法可以分为以下几类：
 
 - save：新增
@@ -369,7 +416,8 @@ MybatisPlus 不仅提供了 BaseMapper，还提供了通用的 Service 接口及
 
 #### 1. 基本用法
 
-由于 Service 中经常需要定义与业务有关的自定义方法，所以不能直接使用 IService，而是自定义一个 Service 接口，然后继承 IService 来拓展方法。同时，
+由于 Service 中经常需要定义与业务有关的自定义方法，所以不能直接使用 IService，而是自定义一个 Service 接口，然后继承
+IService 来拓展方法。同时，
 让自定义的 Service 的实现类继承 ServiceImpl，这样就不用自己实现 IService 中的接口了。
 
 ```java
@@ -377,13 +425,14 @@ public interface IUserService extends IService<User> {
 }
 
 // 如果后续需要自定义方法，则需要实现 IUserService
-public class UserServiceImpl extends ServiceImpl<UserMapper, User>{
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> {
 }
 ```
 
 使用 swagger 接口文档，引入相关依赖和 yaml 配置文件：
 
 ```xml
+
 <dependency>
     <groupId>com.github.xiaoymin</groupId>
     <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
@@ -391,9 +440,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>{
 </dependency>
 
 <dependency>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-    <version>2.3.0</version>
+<groupId>org.springdoc</groupId>
+<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+<version>2.3.0</version>
 </dependency>
 ```
 
@@ -410,7 +459,7 @@ springdoc:
     - group: 'default' # 分组名，设置默认分组 default，
       paths-to-match: '/**' # 该分组扫描的接口路径，这里匹配所有接口 /** 
       packages-to-scan: com.itheima.mp.controller # 扫描的包路径，这里只扫描 com.sky 这个包里的 Controller，扫描出来的文档就放到当前设置的分组；如果后面还设置了分组，那么就让每个分组扫描不同的包，达到清晰定位的效果
-      
+
 # knife4j 的增强配置，不需要增强可以不配
 knife4j:
   enable: true # 是否启用 Knife4j 增强功能，true 表示启用
@@ -431,9 +480,10 @@ knife4j:
 1、新增用户
 
 ```java
+
 @PostMapping
 @Operation(summary = "新增用户")
-public void saveUser(@RequestBody UserFormDTO userFormDTO){
+public void saveUser(@RequestBody UserFormDTO userFormDTO) {
     // 1. 转换 DTO 为 PO
     User user = BeanUtil.copyProperties(userFormDTO, User.class);
     // 2. 新增
@@ -444,9 +494,10 @@ public void saveUser(@RequestBody UserFormDTO userFormDTO){
 2、删除用户
 
 ```java
+
 @DeleteMapping("/{id}")
 @Operation(summary = "删除用户")
-public void removeUserById(@PathVariable("id") Long userId){
+public void removeUserById(@PathVariable("id") Long userId) {
     userService.removeById(userId);
 }
 ```
@@ -454,9 +505,10 @@ public void removeUserById(@PathVariable("id") Long userId){
 3、根据 id 查询用户
 
 ```java
+
 @GetMapping("/{id}")
 @Operation(summary = "根据id查询用户")
-public UserVO queryUserById(@PathVariable("id") Long userId){
+public UserVO queryUserById(@PathVariable("id") Long userId) {
     // 1. 查询用户
     User user = userService.getById(userId);
     // 2. 处理 vo
@@ -467,9 +519,10 @@ public UserVO queryUserById(@PathVariable("id") Long userId){
 4、根据 id 批量查询
 
 ```java
+
 @GetMapping
 @Operation(summary = "根据id集合查询用户")
-public List<UserVO> queryUserByIds(@RequestParam("ids") List<Long> ids){
+public List<UserVO> queryUserByIds(@RequestParam("ids") List<Long> ids) {
     List<User> users = userService.listByIds(ids);
     return BeanUtil.copyToList(users, UserVO.class);
 }
@@ -477,7 +530,8 @@ public List<UserVO> queryUserByIds(@RequestParam("ids") List<Long> ids){
 
 5、根据 id 扣减余额
 
-上述接口都直接在 controller 即可实现，无需编写任何 service 代码，非常方便。但一些带有业务逻辑的接口则需要在 service 中自定义实现，例如此功能的修改操作就涉及：
+上述接口都直接在 controller 即可实现，无需编写任何 service 代码，非常方便。但一些带有业务逻辑的接口则需要在 service
+中自定义实现，例如此功能的修改操作就涉及：
 
 - 判断用户状态是否正常
 - 判断用户余额是否充足
@@ -487,9 +541,10 @@ public List<UserVO> queryUserByIds(@RequestParam("ids") List<Long> ids){
 Controller 层：
 
 ```java
+
 @PutMapping("{id}/deduction/{money}")
 @Operation(summary = "扣减用户余额")
-public void deductBalance(@PathVariable("id") Long id, @PathVariable("money")Integer money){
+public void deductBalance(@PathVariable("id") Long id, @PathVariable("money") Integer money) {
     userService.deductBalance(id, money);
 }
 ```
@@ -497,6 +552,7 @@ public void deductBalance(@PathVariable("id") Long id, @PathVariable("money")Int
 Service 层：
 
 ```java
+
 @Override
 public void deductBalance(Long id, Integer money) {
     // 1. 查询用户
@@ -517,11 +573,13 @@ public void deductBalance(Long id, Integer money) {
 Mapper 层：
 
 ```java
+
 @Update("UPDATE user SET balance = balance - #{money} WHERE id = #{id}")
 void deductMoneyById(@Param("id") Long id, @Param("money") Integer money);
 ```
 
 ****
+
 #### 2. Lambda 查询与修改
 
 实现一个根据复杂条件查询用户的接口，查询条件如下：
@@ -530,15 +588,16 @@ void deductMoneyById(@Param("id") Long id, @Param("money") Integer money);
 - status：用户状态，可以为空
 - minBalance：最小余额，可以为空
 - maxBalance：最大余额，可以为空
-  
+
 可以理解成一个用户的后台管理界面，管理员可以自己选择条件来筛选用户，因此上述条件不一定存在，需要做判断。
 
 Controller 层：
 
 ```java
+
 @GetMapping("/list")
 @Operation(summary = "根据id集合查询用户")
-public List<UserVO> queryUsers(UserQuery query){
+public List<UserVO> queryUsers(UserQuery query) {
     // 1. 组织条件
     String username = query.getName();
     Integer status = query.getStatus();
@@ -556,12 +615,14 @@ public List<UserVO> queryUsers(UserQuery query){
 }
 ```
 
-在组织查询条件的时候，加入了 username != null 这样的参数，意思就是当条件成立时才会添加这个查询条件，类似 mapper.xml 文件中的 `<if>` 标签，
-这样就实现了动态查询条件效果了。但这种写法仍较为麻烦，所以 Service 中对 LambdaQueryWrapper 和 LambdaUpdateWrapper 的用法进一步做了简化，
+在组织查询条件的时候，加入了 username != null 这样的参数，意思就是当条件成立时才会添加这个查询条件，类似 mapper.xml 文件中的
+`<if>` 标签，
+这样就实现了动态查询条件效果了。但这种写法仍较为麻烦，所以 Service 中对 LambdaQueryWrapper 和 LambdaUpdateWrapper
+的用法进一步做了简化，
 无需通过 new 的方式来创建 Wrapper，而是直接调用 lambdaQuery 和 lambdaUpdate 方法：
 
 ```java
-public List<UserVO> queryUsers(UserQuery query){
+public List<UserVO> queryUsers(UserQuery query) {
     ...
     List<User> users = userService.lambdaQuery()
             .like(username != null, User::getUsername, username)
@@ -572,7 +633,8 @@ public List<UserVO> queryUsers(UserQuery query){
 }
 ```
 
-可以发现 lambdaQuery 方法中除了可以构建条件，还需要在链式编程的最后添加一个 list()，这是在告诉 MP 调用结果需要一个 list 集合，其它可选的方法有：
+可以发现 lambdaQuery 方法中除了可以构建条件，还需要在链式编程的最后添加一个 list()，这是在告诉 MP 调用结果需要一个 list
+集合，其它可选的方法有：
 
 - .one()：最多1个结果
 - .list()：返回集合结果
@@ -585,6 +647,7 @@ public List<UserVO> queryUsers(UserQuery query){
 也就是说在扣减用户余额时，需要对用户剩余余额做出判断，如果发现剩余余额为 0，则应该将 status 修改为 2：
 
 ```java
+
 @Override
 @Transactional
 public void deductBalance(Long id, Integer money) {
@@ -601,11 +664,13 @@ public void deductBalance(Long id, Integer money) {
 ```
 
 ****
+
 #### 3. 批量新增
 
 关于批量插入，如果使用一条一条插入的话，那就是执行 100000 次数据库的插入操作，这样效率肯定是最低的。
 
 ```java
+
 @Test
 void testSaveOneByOne() {
     long b = System.currentTimeMillis();
@@ -620,6 +685,7 @@ void testSaveOneByOne() {
 但如果将数据封装进集合中，每一千条数据发送一次将集合插入数据库的操作，那效率又会高一点。
 
 ```java
+
 @Test
 void testSaveBatch() {
     List<User> list = new ArrayList<>(1000);
@@ -637,40 +703,65 @@ void testSaveBatch() {
 }
 ```
 
-但上面 MyBatisPlus 提供的 saveBatch 批量插入操作，在底层仍然是将数据一条一条的插入数据库的，而效率最高的应该是将所有的数据全部封装进一个 SQL 语句，即只执行一次插入操作。
-MySQL 的客户端连接参数中有这样的一个参数：rewriteBatchedStatements，它就是重写批处理的 statement 语句。这个参数的默认值是 false，将其配置为 true 即代表开启批处理模式，
+但上面 MyBatisPlus 提供的 saveBatch 批量插入操作，在底层仍然是将数据一条一条的插入数据库的，而效率最高的应该是将所有的数据全部封装进一个
+SQL 语句，即只执行一次插入操作。
+MySQL 的客户端连接参数中有这样的一个参数：rewriteBatchedStatements，它就是重写批处理的 statement 语句。这个参数的默认值是
+false，将其配置为 true 即代表开启批处理模式，
 开启后可以保证最终只执行 100 次插入。
 
 ****
+
 ## 5. 扩展功能
 
 ### 5.1 代码生成
 
-在使用 MybatisPlus 以后，基础的 Mapper、Service、POJO 代码相对固定，重复编写也比较麻烦，所以 MybatisPlus 官方提供了代码生成器根据数据库表结构生成 POJO、Mapper、Service 等相关代码，
+在使用 MybatisPlus 以后，基础的 Mapper、Service、POJO 代码相对固定，重复编写也比较麻烦，所以 MybatisPlus 官方提供了代码生成器根据数据库表结构生成
+POJO、Mapper、Service 等相关代码，
 只不过代码生成器同样要编码使用。所以更推荐使用一款 MybatisPlus 的插件，它可以基于图形化界面完成 MybatisPlus 的代码生成。
 
 ****
+
 ### 5.2 静态工具
 
-有的时候 Service 之间也会相互调用，为了避免出现循环依赖问题，MybatisPlus 提供一个静态工具类 Db，它本质上是一个对 BaseMapper 的静态代理，
+有的时候 Service 之间也会相互调用，为了避免出现循环依赖问题，MybatisPlus 提供一个静态工具类 Db，它本质上是一个对 BaseMapper
+的静态代理，
 内部通过 SpringContextUtils.getBean(Class) 动态获取对应实体类的 BaseMapper<T> 实例，然后再调用其方法，主要是用于简化数据库操作，
 可以在没有手动注入 Service 或 Mapper 的前提下执行常用操作。
 
 ```java
 Db.save(entity);
-Db.updateById(entity);
-Db.removeById(id);
-Db.list(new QueryWrapper<>());
-Db.getById(id);
+Db.
+
+updateById(entity);
+Db.
+
+removeById(id);
+Db.
+
+list(new QueryWrapper<>());
+        Db.
+
+getById(id);
 // 等价于
-userService.save(entity);
-userService.updateById(entity);
-userService.removeById(id);
-userService.list(queryWrapper);
-userService.getById(id);
+userService.
+
+save(entity);
+userService.
+
+updateById(entity);
+userService.
+
+removeById(id);
+userService.
+
+list(queryWrapper);
+userService.
+
+getById(id);
 ```
 
 ****
+
 ### 5.3 逻辑删除
 
 对于一些比较重要的数据，可以采用逻辑删除的方案，即：
@@ -680,7 +771,8 @@ userService.getById(id);
 - 查询时过滤掉标记为 true 的数据
 
 可是一旦采用了逻辑删除，所有的查询和删除逻辑都要跟着变化，非常麻烦。所以 MybatisPlus 就添加了对逻辑删除的支持，
-在对应的表和实体类中添加对应的逻辑删除字段（只有MybatisPlus生成的SQL语句才支持自动的逻辑删除，自定义SQL需要自己手动处理逻辑删除），然后在 yaml 中配置逻辑删除字段：
+在对应的表和实体类中添加对应的逻辑删除字段（只有MybatisPlus生成的SQL语句才支持自动的逻辑删除，自定义SQL需要自己手动处理逻辑删除），然后在
+yaml 中配置逻辑删除字段：
 
 ```yaml
 mybatis-plus:
@@ -694,6 +786,7 @@ mybatis-plus:
 测试：
 
 ```java
+
 @Test
 void testDeleteByLogic() {
     // 删除方法与以前没有区别
@@ -704,25 +797,43 @@ void testDeleteByLogic() {
 实际执行的 SQL 为 update 语句：
 
 ```sql
-UPDATE address SET deleted=1 WHERE id=? AND deleted=0
+UPDATE address
+SET deleted=1
+WHERE id = ?
+  AND deleted = 0
 ```
 
 测试查询，发现查询语句多了个 deleted = 0 的条件：
 
 ```sql
-SELECT id,user_id,province,city,town,mobile,street,contact,is_default,notes,deleted FROM address WHERE deleted=0
+SELECT id,
+       user_id,
+       province,
+       city,
+       town,
+       mobile,
+       street,
+       contact,
+       is_default,
+       notes,
+       deleted
+FROM address
+WHERE deleted = 0
 ```
 
 ****
+
 ### 5.4 通用枚举
 
 在当前的 User 类中有一个 status 字段，它用来表示用户当前的状态，但像这种字段一般应该定义为一个枚举，做业务判断的时候就可以直接基于枚举做比较。
-但是目前的数据库采用的是 Integer 类型，对应的 POJO 中的 status 字段也是 Integer 类型，因此业务操作时就必须手动把枚举与 Integer 转换，非常麻烦。
+但是目前的数据库采用的是 Integer 类型，对应的 POJO 中的 status 字段也是 Integer 类型，因此业务操作时就必须手动把枚举与
+Integer 转换，非常麻烦。
 所以 MybatisPlus 提供了一个处理枚举的类型转换器，可以自动完成枚举类型与数据库类型的转换。
 
 定义一个枚举类：
 
 ```java
+
 @Getter
 public enum UserStatus {
     NORMAL(1, "正常"),
@@ -744,9 +855,11 @@ public enum UserStatus {
 private UserStatus status;
 ```
 
-要让 MybatisPlus 处理枚举与数据库类型自动转换，就必须告诉 MybatisPlus 枚举中的哪个字段的值是作为数据库值的，所以要使用它提供的 @EnumValue 来标记枚举属性：
+要让 MybatisPlus 处理枚举与数据库类型自动转换，就必须告诉 MybatisPlus 枚举中的哪个字段的值是作为数据库值的，所以要使用它提供的
+@EnumValue 来标记枚举属性：
 
 ```java
+
 @EnumValue
 private final int value;
 ```
@@ -755,13 +868,15 @@ private final int value;
 
 ```java
 mybatis-plus:
-  configuration:
-    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+configuration:
+default-enum-type-handler:com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
 ```
 
-需要注意的是，需要在 UserStatus 的 desc 字段上添加 @JsonValue 注解，它是用来指定 JSON 序列化时展示的字段，即用 desc 字段表示该枚举本身：
+需要注意的是，需要在 UserStatus 的 desc 字段上添加 @JsonValue 注解，它是用来指定 JSON 序列化时展示的字段，即用 desc
+字段表示该枚举本身：
 
 ```java
+
 @JsonValue
 private final String desc;
 ```
@@ -780,23 +895,32 @@ private final String desc;
 ```
 
 ****
+
 ### 5.5 JSON 处理器
 
 数据库的 user 表中有一个 info 字段，是 JSON 类型：
 
 ```json
-{"age": 20, "intro": "佛系青年", "gender": "male"}
+{
+  "age": 20,
+  "intro": "佛系青年",
+  "gender": "male"
+}
 ```
 
-但目前 User 实体类中却是 String 类型，所以现在读取 info 中的属性时就非常不方便，如果要方便获取，info 的类型最好是一个 Map 或者实体类，可如果把 info 改为对象类型，
-在写入数据库时就需要手动转换为 String，读取数据库时又需要手动转换成对象，过程十分繁琐，所以 MybatisPlus 提供了很多特殊类型字段的类型处理器，解决特殊字段类型与数据库类型转换的问题。
+但目前 User 实体类中却是 String 类型，所以现在读取 info 中的属性时就非常不方便，如果要方便获取，info 的类型最好是一个 Map
+或者实体类，可如果把 info 改为对象类型，
+在写入数据库时就需要手动转换为 String，读取数据库时又需要手动转换成对象，过程十分繁琐，所以 MybatisPlus
+提供了很多特殊类型字段的类型处理器，解决特殊字段类型与数据库类型转换的问题。
 例如处理 JSON 就可以使用 JacksonTypeHandler 处理器。
 
 定义一个 [User
-Info](./mp-demo/src/main/java/com/itheima/mp/domain/po/UserInfo.java) 实体类来与 info 字段的属性匹配，并修改 User 的 info 字段的类型。
+Info](./mp-demo/src/main/java/com/itheima/mp/domain/po/UserInfo.java) 实体类来与 info 字段的属性匹配，并修改 User 的 info
+字段的类型。
 同时在 User 类和对应的字段上上添加一个注解，声明自动映射：
 
 ```java
+
 @TableName(value = "user", autoResultMap = true)
 public class User {
     @TableField(typeHandler = JacksonTypeHandler.class)
@@ -820,6 +944,7 @@ public class User {
 ```
 
 ****
+
 ## 6. 插件功能
 
 ### 6.1 分页插件
@@ -827,6 +952,7 @@ public class User {
 在未引入分页插件的情况下，MybatisPlus 是不支持分页功能的，IService 和 BaseMapper 中的分页方法都无法正常起效。所以需要配置一个分页配置类：
 
 ```java
+
 @Configuration
 public class MybatisConfig {
     @Bean
@@ -840,10 +966,12 @@ public class MybatisConfig {
 }
 ```
 
-在 3.5.9 版本中，MyBatisPlus 对组件做了拆分，比如分页功能依赖的 `jsqlparser` 被单独拆成了 `mybatis-plus-jsqlparser` 包。要想让分页功能跑起来，
+在 3.5.9 版本中，MyBatisPlus 对组件做了拆分，比如分页功能依赖的 `jsqlparser` 被单独拆成了 `mybatis-plus-jsqlparser`
+包。要想让分页功能跑起来，
 需要添加这个依赖，否则 `PaginationInnerInterceptor` 会找不到所需的解析工具：
 
 ```xml
+
 <dependency>
     <groupId>com.baomidou</groupId>
     <artifactId>mybatis-plus-jsqlparser</artifactId>
@@ -854,6 +982,7 @@ public class MybatisConfig {
 测试：
 
 ```java
+
 @Test
 void testPageQuery() {
     // 1. 分页查询，new Page() 的两个参数分别是：页码、每页大小
@@ -869,23 +998,33 @@ void testPageQuery() {
 ```
 
 ```sql
-SELECT id,username,password,phone,info,status,balance,create_time,update_time FROM user LIMIT ?,?
+SELECT id,
+       username,
+       password,
+       phone,
+       info,
+       status,
+       balance,
+       create_time,
+       update_time
+FROM user LIMIT ?,?
 ```
 
 ****
+
 ### 6.2 通用分页实体
 
 实现一个分页查询，前端传递的参数为：
 
 ```json
-{  
-  "pageNo": 0, 
-  "pageSize": 0,  
-  "sortBy": "", 
-  "isAsc": true,  
-  "name": "",  
-  "status": 0,  
-  "minBalance": 0,  
+{
+  "pageNo": 0,
+  "pageSize": 0,
+  "sortBy": "",
+  "isAsc": true,
+  "name": "",
+  "status": 0,
+  "minBalance": 0,
   "maxBalance": 0
 }
 ```
@@ -894,30 +1033,31 @@ SELECT id,username,password,phone,info,status,balance,create_time,update_time FR
 
 ```json
 {
-    "total": 100006,
-    "pages": 50003,
-    "list": [
-        {
-            "id": 1685100878975279298,
-            "username": "user_9****",
-            "info": {
-                "age": 24,
-                "intro": "英文老师",
-                "gender": "female"
-            },
-            "status": "正常",
-            "balance": 2000
-        }
-    ]
+  "total": 100006,
+  "pages": 50003,
+  "list": [
+    {
+      "id": 1685100878975279298,
+      "username": "user_9****",
+      "info": {
+        "age": 24,
+        "intro": "英文老师",
+        "gender": "female"
+      },
+      "status": "正常",
+      "balance": 2000
+    }
+  ]
 }
 ```
 
 Controller 层：
 
 ```java
+
 @GetMapping("/page")
 @Operation(summary = "分页查询")
-public PageDTO<UserVO> queryUsersPage(UserQuery query){
+public PageDTO<UserVO> queryUsersPage(UserQuery query) {
     return userService.queryUsersPage(query);
 }
 ```
@@ -925,6 +1065,7 @@ public PageDTO<UserVO> queryUsersPage(UserQuery query){
 Service 层：
 
 ```java
+
 @Override
 public PageDTO<UserVO> queryUsersPage(UserQuery query) {
     // 1. 构建条件分页条件
@@ -957,9 +1098,11 @@ Page<User> records = lambdaQuery()
         .page(page);
 ```
 
-设置两个条件查询条件，当前端传递的用户名称和用户状态不为空时，则把它们作为分页查询的限制条件，而 .page(page) 里面的那个 page，是构建好的分页条件：
+设置两个条件查询条件，当前端传递的用户名称和用户状态不为空时，则把它们作为分页查询的限制条件，而 .page(page) 里面的那个
+page，是构建好的分页条件：
 
 ```java
+
 @Data
 @Schema(description = "分页查询实体")
 public class PageQuery {
@@ -971,6 +1114,7 @@ public class PageQuery {
     private String sortBy;
     @Schema(description = "是否升序")
     private Boolean isAsc = true;
+
     public <T> Page<T> toMpPage(OrderItem... orders) {
         // 1. 分页条件
         Page<T> page = Page.of(pageNo, pageSize);
@@ -986,6 +1130,7 @@ public class PageQuery {
         }
         return page;
     }
+
     public <T> Page<T> toMpPage(String defaultSortBy, boolean isAsc) {
         if (defaultSortBy != null && !defaultSortBy.isEmpty()) {
             if (!isAsc) {
@@ -994,22 +1139,26 @@ public class PageQuery {
         }
         return this.toMpPage(OrderItem.asc(defaultSortBy));
     }
+
     public <T> Page<T> toMpPageDefaultSortByCreateTimeDesc() {
         return toMpPage("create_time", false);
     }
+
     public <T> Page<T> toMpPageDefaultSortByUpdateTimeDesc() {
         return toMpPage("update_time", false);
     }
 }
 ```
 
-封装了一个 PageQuery 实体类，专门用来构建分页查询的条件，在这里完成页码以及每页数据条数的初始化，因为 MybatisPlus 提供了查询结果的排序，
+封装了一个 PageQuery 实体类，专门用来构建分页查询的条件，在这里完成页码以及每页数据条数的初始化，因为 MybatisPlus
+提供了查询结果的排序，
 所以除了 pageNo 和 pageSize 还设置了排序字段和升降序的标识符。在 Service 层可以自定义排序规则，又因为该类作为前端的接收参数的封装，所以如果前端传递了排序字段，
 则按照前端的来，当然这里直接设置为了按照更新时间降序。
 
 它继承了 PageQuery，所以即使 PageQuery 中没有封装 name 和 status 但前端仍能发送这些数据然后被后端接收作为查询条件：
 
 ```java
+
 @Data
 @Schema(description = "用户查询条件实体")
 @EqualsAndHashCode(callSuper = true)
@@ -1025,23 +1174,25 @@ public class UserQuery extends PageQuery {
 }
 ```
 
-之前有学过，最后的返回结果虽然是一个 List 集合，但集合内部是具体的对象，所以需要返回一个 VO 类型的对象专门展示在前端，所以定义了一个 PageDTO<V> 实体类，
+之前有学过，最后的返回结果虽然是一个 List 集合，但集合内部是具体的对象，所以需要返回一个 VO 类型的对象专门展示在前端，所以定义了一个
+PageDTO<V> 实体类，
 它可以自定义返回的具体类型，所以在 Service 层中可以传入 UserVO 类，将 User 类拷贝给 UserVO：
 
 ```java
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "分页结果")
 public class PageDTO<V> {
-    @Schema(description ="总条数")
+    @Schema(description = "总条数")
     private Long total;
-    @Schema(description ="总页数")
+    @Schema(description = "总页数")
     private Long pages;
-    @Schema(description ="返回的数据集合")
+    @Schema(description = "返回的数据集合")
     private List<V> list;
-    
-    public static <V, P> PageDTO<V> empty(Page<P> p){
+
+    public static <V, P> PageDTO<V> empty(Page<P> p) {
         return new PageDTO<>(p.getTotal(), p.getPages(), Collections.emptyList());
     }
 
@@ -1057,7 +1208,7 @@ public class PageDTO<V> {
         // 3. 封装返回
         return new PageDTO<>(p.getTotal(), p.getPages(), vos);
     }
-    
+
     public static <VO, PO> PageDTO<VO> of(Page<PO> p, Function<PO, VO> convertor) {
         // 1. 非空校验
         List<PO> records = p.getRecords();
@@ -1076,18 +1227,25 @@ public class PageDTO<V> {
 第二个 of() 方法，允许 Service 层传入一个函数接口，也就是利用 Steam 流来自定义每个 UserVO 中的数据的转换规则：
 
 ```java
-return PageDTO.of(records, user -> {
-    // 1. 拷贝基础属性
-    UserVO userVO = BeanUtil.copyProperties(user, UserVO.class);
-    // 2. 处理特殊逻辑
-    userVO.setUsername(userVO.getUsername().substring(0, userVO.getUsername().length() - 2) + "**");
-    return userVO;
+return PageDTO.of(records, user ->{
+// 1. 拷贝基础属性
+UserVO userVO = BeanUtil.copyProperties(user, UserVO.class);
+// 2. 处理特殊逻辑
+    userVO.
+
+setUsername(userVO.getUsername().
+
+substring(0,userVO.getUsername().
+
+length() -2)+"**");
+        return userVO;
 });
 ```
 
 这里就是将 userName 的最后两个字符变为 **。
 
 ****
+
 # 二、Docker
 
 > Docker 的安装参考 Redis 笔记
@@ -1116,7 +1274,8 @@ docker run -d \
 - --name mysql  : 给容器起个名字叫 mysql
 - -p 3306:3306 : 设置端口映射
     - 容器是隔离环境，外界不可访问，但是可以将宿主机（即 Docker 所在的 Linux 系统）端口映射到容器内端口，当访问宿主机指定端口时，就是在访问容器内的端口。
-    - 容器内端口往往是由容器内的进程决定，例如 MySQL 进程默认端口是 3306，因此容器内端口就是 3306；而宿主机端口则可以任意指定，一般与容器内保持一致。
+    - 容器内端口往往是由容器内的进程决定，例如 MySQL 进程默认端口是 3306，因此容器内端口就是
+      3306；而宿主机端口则可以任意指定，一般与容器内保持一致。
     - 格式： -p 宿主机端口:容器内端口，该命令就是将宿主机的 3306 映射到容器内的 3306 端口
 - -e TZ=Asia/Shanghai : 配置容器内进程运行时的一些参数
     - 格式：-e KEY=VALUE，KEY 和 VALUE 都由容器内进程决定
@@ -1125,50 +1284,60 @@ docker run -d \
     - 格式：REPOSITORY:TAG，例如 mysql:8.0，其中 REPOSITORY 可以理解为镜像名，TAG 是版本号
     - 在未指定 TAG 的情况下，默认是最新版本，也就是 mysql:latest
 
-执行命令后，Docker 就会自动搜索并下载 MySQL，然后会自动运行 MySQL。而且，这种安装方式不用考虑运行的操作系统环境，它不仅可以在 CentOS 系统这样安装，
-在 Ubuntu 系统、macOS 系统、甚至是装了 WSL 的 Windows 下，都可以使用这条命令来安装 MySQL。如果是手动安装，就需要手动解决安装包不同、环境不同的、配置不同的问题。
+执行命令后，Docker 就会自动搜索并下载 MySQL，然后会自动运行 MySQL。而且，这种安装方式不用考虑运行的操作系统环境，它不仅可以在
+CentOS 系统这样安装，
+在 Ubuntu 系统、macOS 系统、甚至是装了 WSL 的 Windows 下，都可以使用这条命令来安装
+MySQL。如果是手动安装，就需要手动解决安装包不同、环境不同的、配置不同的问题。
 因为 Docker 安装 MySQL 不是直接下载它，而是拉取一个镜像，该镜像中不仅包含了 MySQL 本身，还包含了运行所需要的环境、配置、系统级函数库。基于此，
 它在运行时就有自己独立的环境，可以跨系统运行，也不需要手动配置环境，这种独立运行的隔离环境被称为容器。
 
-Docker 官方提供了一个专门管理、存储镜像的网站，并对外开放了镜像上传、下载的权利：[https://hub.docker.com/](https://hub.docker.com/)。
+Docker
+官方提供了一个专门管理、存储镜像的网站，并对外开放了镜像上传、下载的权利：[https://hub.docker.com/](https://hub.docker.com/)。
 DockerHub 网站是官方仓库，阿里云、华为云会提供一些第三方仓库，也可以自己搭建私有的镜像仓库。
 
 ****
+
 ## 2. Docker 基础
 
 官方文档：[https://docs.docker.com/](https://docs.docker.com/)
 
 ### 2.1 常见命令
 
-| 命令          | 说明                          | 文档地址                                                                            |
-| ------------- | ----------------------------- |---------------------------------------------------------------------------------|
-| docker pull   | 拉取镜像                      | [docker pull](https://docs.docker.com/engine/reference/commandline/pull/)       |
-| docker push   | 推送镜像到DockerRegistry      | [docker push](https://docs.docker.com/engine/reference/commandline/push/)       |
-| docker images | 查看本地镜像                  | [docker images](https://docs.docker.com/engine/reference/commandline/images/)   |
-| docker rmi    | 删除本地镜像                  | [docker rmi](https://docs.docker.com/engine/reference/commandline/rmi/)         |
-| docker run    | 创建并运行容器（不能重复创建）| [docker run](https://docs.docker.com/engine/reference/commandline/run/)         |
-| docker stop   | 停止指定容器                  | [docker stop](https://docs.docker.com/engine/reference/commandline/stop/)       |
-| docker start  | 启动指定容器                  | [docker start](https://docs.docker.com/engine/reference/commandline/start/)     |
-| docker restart| 重新启动容器                  | [docker restart](https://docs.docker.com/engine/reference/commandline/restart/) |
-| docker rm     | 删除指定容器                  | [docker rm](https://docs.docker.com/engine/reference/commandline/rm/)           |
-| docker ps     | 查看容器                      | [docker ps](https://docs.docker.com/engine/reference/commandline/ps/)           |
-| docker logs   | 查看容器运行日志              | [docker logs](https://docs.docker.com/engine/reference/commandline/logs/)       |
-| docker exec   | 进入容器                      | [docker exec](https://docs.docker.com/engine/reference/commandline/exec/)                  |
-| docker save   | 保存镜像到本地压缩文件        | [docker save](https://docs.docker.com/engine/reference/commandline/save/)       |
-| docker load   | 加载本地压缩文件到镜像        | [docker load](https://docs.docker.com/engine/reference/commandline/load/)       |
-| docker inspect| 查看容器详细信息              | [docker inspect](https://docs.docker.com/engine/reference/commandline/inspect/) | 
+| 命令             | 说明                  | 文档地址                                                                            |
+|----------------|---------------------|---------------------------------------------------------------------------------|
+| docker pull    | 拉取镜像                | [docker pull](https://docs.docker.com/engine/reference/commandline/pull/)       |
+| docker push    | 推送镜像到DockerRegistry | [docker push](https://docs.docker.com/engine/reference/commandline/push/)       |
+| docker images  | 查看本地镜像              | [docker images](https://docs.docker.com/engine/reference/commandline/images/)   |
+| docker rmi     | 删除本地镜像              | [docker rmi](https://docs.docker.com/engine/reference/commandline/rmi/)         |
+| docker run     | 创建并运行容器（不能重复创建）     | [docker run](https://docs.docker.com/engine/reference/commandline/run/)         |
+| docker stop    | 停止指定容器              | [docker stop](https://docs.docker.com/engine/reference/commandline/stop/)       |
+| docker start   | 启动指定容器              | [docker start](https://docs.docker.com/engine/reference/commandline/start/)     |
+| docker restart | 重新启动容器              | [docker restart](https://docs.docker.com/engine/reference/commandline/restart/) |
+| docker rm      | 删除指定容器              | [docker rm](https://docs.docker.com/engine/reference/commandline/rm/)           |
+| docker ps      | 查看容器                | [docker ps](https://docs.docker.com/engine/reference/commandline/ps/)           |
+| docker logs    | 查看容器运行日志            | [docker logs](https://docs.docker.com/engine/reference/commandline/logs/)       |
+| docker exec    | 进入容器                | [docker exec](https://docs.docker.com/engine/reference/commandline/exec/)       |
+| docker save    | 保存镜像到本地压缩文件         | [docker save](https://docs.docker.com/engine/reference/commandline/save/)       |
+| docker load    | 加载本地压缩文件到镜像         | [docker load](https://docs.docker.com/engine/reference/commandline/load/)       |
+| docker inspect | 查看容器详细信息            | [docker inspect](https://docs.docker.com/engine/reference/commandline/inspect/) | 
 
 Docker 的核心命令可以划分为三个主要环节：镜像构建与管理、镜像仓库交互、容器生命周期管理：
 
-通过 docker build 命令，可以基于 Dockerfile 构建出一个自定义的镜像，比如定制版的 Nginx 服务镜像。构建好的镜像可以使用 docker images 查看详细信息，
-如镜像名、标签、大小等；如果不再使用某个镜像，可以使用 docker rmi 删除它。Docker 还提供了离线共享机制 docker save 和 docker load：
+通过 docker build 命令，可以基于 Dockerfile 构建出一个自定义的镜像，比如定制版的 Nginx 服务镜像。构建好的镜像可以使用
+docker images 查看详细信息，
+如镜像名、标签、大小等；如果不再使用某个镜像，可以使用 docker rmi 删除它。Docker 还提供了离线共享机制 docker save 和 docker
+load：
 前者将镜像打包为 .tar 文件，后者可从文件中恢复出镜像，实现离线迁移。
 
-关于镜像仓库交互操作，使用 docker pull 可以从远程镜像仓库（如 Docker Hub）拉取镜像到本地，比如拉取官方提供的 MySQL 镜像；docker push 则可以将本地构建好的镜像上传到仓库，这一过程类似源代码的版本管理。
+关于镜像仓库交互操作，使用 docker pull 可以从远程镜像仓库（如 Docker Hub）拉取镜像到本地，比如拉取官方提供的 MySQL 镜像；docker
+push 则可以将本地构建好的镜像上传到仓库，这一过程类似源代码的版本管理。
 
-通过 docker run，可以基于镜像创建并启动一个新的容器，例如使用 Nginx 镜像启动一个 Web 服务。运行中的容器可以通过 docker stop 停止，
-再用 docker start 重新启动，或者直接使用 docker restart。docker ps 可以查看当前正在运行的容器列表，了解容器状态和端口映射等情况（加上 -a 则是查看所有）。
-docker logs 则用于查看容器的运行日志；而 docker exec 可以进入容器内部执行命令，比如修改配置或检查进程。当容器不再使用时，可以用 docker rm 将其删除。
+通过 docker run，可以基于镜像创建并启动一个新的容器，例如使用 Nginx 镜像启动一个 Web 服务。运行中的容器可以通过 docker stop
+停止，
+再用 docker start 重新启动，或者直接使用 docker restart。docker ps 可以查看当前正在运行的容器列表，了解容器状态和端口映射等情况（加上
+-a 则是查看所有）。
+docker logs 则用于查看容器的运行日志；而 docker exec 可以进入容器内部执行命令，比如修改配置或检查进程。当容器不再使用时，可以用
+docker rm 将其删除。
 
 默认情况下，每次重启虚拟机都需要手动启动 Docker 和 Docker 中的容器。通过命令可以实现开机自启：
 
@@ -1298,10 +1467,12 @@ source /root/.bashrc
 ```
 
 ****
+
 ### 2.2 数据卷
 
 容器是隔离环境，容器内程序的文件、配置、运行时产生的容器都在容器内部，如果要读写容器内的文件就非常不方便。一般情况下，应该是要遵循容器运行环境应与数据、配置解耦。
-容器的本质是轻量级、快速启动、易于销毁的运行环境，这就意味着容器生命周期短，随时可能被销毁或替换，因此程序的数据（如 MySQL 的数据库文件）、配置（如 nginx.conf）、资源（如静态资源） 不能直接放在容器里。
+容器的本质是轻量级、快速启动、易于销毁的运行环境，这就意味着容器生命周期短，随时可能被销毁或替换，因此程序的数据（如 MySQL
+的数据库文件）、配置（如 nginx.conf）、资源（如静态资源） 不能直接放在容器里。
 
 数据卷是 Docker 主机上的一个目录或文件，它可以被挂载到容器中。与容器的可写层不同，数据卷的数据不会随着容器的删除而丢失，并且对数据卷的修改会立即生效。它主要有以下几个作用：
 
@@ -1311,17 +1482,18 @@ source /root/.bashrc
 
 相关命令：
 
-| 命令                | 说明             | 文档地址                                                                                          |
-| ------------------- | ---------------- |-----------------------------------------------------------------------------------------------|
-| docker volume create | 创建数据卷       | [docker volume create](https://docs.docker.com/engine/reference/commandline/volume_create/)   |
-| docker volume ls     | 查看所有数据卷   | [docker volume ls](https://docs.docker.com/engine/reference/commandline/volume_ls/)           |
-| docker volume rm     | 删除指定数据卷   | [docker volume rm](https://docs.docker.com/engine/reference/commandline/volume_rm/)           |
+| 命令                    | 说明         | 文档地址                                                                                          |
+|-----------------------|------------|-----------------------------------------------------------------------------------------------|
+| docker volume create  | 创建数据卷      | [docker volume create](https://docs.docker.com/engine/reference/commandline/volume_create/)   |
+| docker volume ls      | 查看所有数据卷    | [docker volume ls](https://docs.docker.com/engine/reference/commandline/volume_ls/)           |
+| docker volume rm      | 删除指定数据卷    | [docker volume rm](https://docs.docker.com/engine/reference/commandline/volume_rm/)           |
 | docker volume inspect | 查看某个数据卷的详情 | [docker volume inspect](https://docs.docker.com/engine/reference/commandline/volume_inspect/) |
-| docker volume prune  | 清除数据卷       | [docker volume prune](https://docs.docker.com/engine/reference/commandline/volume_prune/)                          | 
+| docker volume prune   | 清除数据卷      | [docker volume prune](https://docs.docker.com/engine/reference/commandline/volume_prune/)     | 
 
 注意：容器与数据卷的挂载要在创建容器时配置，对于创建好的容器，是不能设置数据卷的，而且创建容器的过程中，数据卷会自动创建。
 
 ****
+
 #### 1. 挂载数据卷
 
 例如 nginx 的 html 目录挂载：
@@ -1380,6 +1552,7 @@ vi index.html
 ```
 
 ****
+
 #### 2. 匿名数据卷
 
 先查看一下 MySQL 容器的详细信息：
@@ -1388,7 +1561,7 @@ vi index.html
 docker inspect mysql
 ```
 
-关注其中 .Config.Volumes 部分和 .Mounts 部分，可以发现这个容器声明了一个本地目录，需要挂载数据卷，但是数据卷未定义，这就是匿名卷。 
+关注其中 .Config.Volumes 部分和 .Mounts 部分，可以发现这个容器声明了一个本地目录，需要挂载数据卷，但是数据卷未定义，这就是匿名卷。
 
 ```shell
 {
@@ -1402,7 +1575,6 @@ docker inspect mysql
 
 - /var/lib/mysql：容器内的路径，即 MySQL 默认的数据目录
 - {}：空对象，表示这个路径会被 Docker 用数据卷挂载
-
 
 ```shell
 {
@@ -1427,8 +1599,10 @@ Mounts 中有几个关键属性：
 - Source：宿主机目录
 - Destination：容器内的目录
 
-上述配置是将容器内的 /var/lib/mysql 这个目录，与数据卷 278e740c8... 挂载，于是在宿主机中就有了 /var/lib/docker/volumes/278e740c8... 这个目录。
-这就是匿名数据卷对应的目录，它的使用方式与普通数据卷没有差别。即使没有显式挂载数据卷，Docker 也会自动挂载一个匿名数据卷。因为 MySQL 镜像的 Dockerfile 中定义了：
+上述配置是将容器内的 /var/lib/mysql 这个目录，与数据卷 278e740c8... 挂载，于是在宿主机中就有了
+/var/lib/docker/volumes/278e740c8... 这个目录。
+这就是匿名数据卷对应的目录，它的使用方式与普通数据卷没有差别。即使没有显式挂载数据卷，Docker 也会自动挂载一个匿名数据卷。因为
+MySQL 镜像的 Dockerfile 中定义了：
 
 ```shell
 VOLUME /var/lib/mysql
@@ -1444,9 +1618,11 @@ ls -l /var/lib/docker/volumes/278e740c8.../_data
 ```
 
 ****
+
 #### 3. 挂载本地目录或文件
 
-数据卷的目录结构较复杂，如果直接操作数据卷目录会不太方便。大多情况下，应该直接将容器目录与宿主机指定目录挂载，或者直接挂载到 Windows 磁盘中。
+数据卷的目录结构较复杂，如果直接操作数据卷目录会不太方便。大多情况下，应该直接将容器目录与宿主机指定目录挂载，或者直接挂载到
+Windows 磁盘中。
 挂载语法与数据卷类似：
 
 ```shell
@@ -1465,7 +1641,8 @@ docker run -v /home/user/mysql-data:/var/lib/mysql mysql
 docker run -v D:\docker\mysql-data:/var/lib/mysql mysql
 ```
 
-现在尝试将本地 Windows 目录挂载到容器内，并且使用对应的初始化 SQL 脚本和配置文件，官方文档：[mysql](https://hub.docker.com/_/mysql)。
+现在尝试将本地 Windows 目录挂载到容器内，并且使用对应的初始化 SQL
+脚本和配置文件，官方文档：[mysql](https://hub.docker.com/_/mysql)。
 
 容器的默认 mysql 配置文件目录为：/etc/mysql/conf.d，将 Windows 磁盘的目录挂载到这就行；
 初始化 SQL 脚本的默认目录为：/docker-entrypoint-initdb.d；
@@ -1497,9 +1674,12 @@ docker run -d \
 
 所以建议：
 
-- 在 Windows 上使用 WSL2 或 Docker Desktop 挂载 Windows 目录时，Linux 容器往往无法正确操作 Windows 文件系统的权限，导致类似 “Operation not permitted” 的错误。
-- 所以建议避免直接挂载 Windows 目录到 MySQL 的数据目录，只把配置文件和初始化脚本挂载到 Windows 目录，数据目录使用 Docker 卷，让 Docker 维护数据存储在其内部虚拟文件系统里。
-- WSL2 中挂载 Windows 盘时，路径要用 Linux 格式，比如 /mnt/d/...；上述命令的路径写法为：/mnt/d/docker_dataMountDirectory/mysql/conf:/etc/mysql/conf.d
+- 在 Windows 上使用 WSL2 或 Docker Desktop 挂载 Windows 目录时，Linux 容器往往无法正确操作 Windows 文件系统的权限，导致类似
+  “Operation not permitted” 的错误。
+- 所以建议避免直接挂载 Windows 目录到 MySQL 的数据目录，只把配置文件和初始化脚本挂载到 Windows 目录，数据目录使用 Docker
+  卷，让 Docker 维护数据存储在其内部虚拟文件系统里。
+- WSL2 中挂载 Windows 盘时，路径要用 Linux 格式，比如
+  /mnt/d/...；上述命令的路径写法为：/mnt/d/docker_dataMountDirectory/mysql/conf:/etc/mysql/conf.d
 
 具体操作：
 
@@ -1567,20 +1747,22 @@ show databases;
 
 5、用 Navicat 连接测试，可以发现有对应的数据库存在。
 
-基于以上操作，完成本地目录的挂在后，即使删除了容器，本地目录内的数据是不会丢失的，容器里 /var/lib/mysql 所有的文件操作，都会映射到宿主机的挂载路径上；
+基于以上操作，完成本地目录的挂在后，即使删除了容器，本地目录内的数据是不会丢失的，容器里 /var/lib/mysql
+所有的文件操作，都会映射到宿主机的挂载路径上；
 同理，只要使用这些本地目录进行挂载，那么就可以达到数据恢复的操作。
 
 ****
+
 ### 2.3 镜像
 
 #### 1. 概念
 
 镜像（Image）是 Docker 容器的只读模板，它包含了运行某个应用所需的所有内容，包括：
 
-- 操作系统环境（比如 Ubuntu、Alpine） 
-- 预装的软件（如 Nginx、MySQL、Java） 
-- 配置文件 
-- 环境变量 
+- 操作系统环境（比如 Ubuntu、Alpine）
+- 预装的软件（如 Nginx、MySQL、Java）
+- 配置文件
+- 环境变量
 - 入口脚本等
 
 镜像类似 Java 的 .class 文件，容器就是镜像运行后形成的实际进程（加上可读写层）。Docker 镜像是由多层（Layer）叠加而成的，每一层都是只读的。
@@ -1599,21 +1781,23 @@ COPY index.html /usr/share/nginx/html/ # 将本地的 index.html 文件复制到
 当重新构建镜像时，如果前几层没有变化，它们会被缓存，不会重新构建，这也是镜像的共享机制。
 
 由于制作镜像的过程中，需要逐层处理和打包，比较复杂，所以 Docker 就提供了自动打包镜像的功能。
-只需要将打包的过程，每一层要做的事情用固定的语法写下来，交给 Docker 去执行即可，而这种记录镜像结构的文件就称为 Dockerfile，它是一个包含了一系列命令的脚本，这些命令按照顺序执行并生成最终的镜像。
+只需要将打包的过程，每一层要做的事情用固定的语法写下来，交给 Docker 去执行即可，而这种记录镜像结构的文件就称为
+Dockerfile，它是一个包含了一系列命令的脚本，这些命令按照顺序执行并生成最终的镜像。
 官方文档：[https://docs.docker.com/engine/reference/builder/](https://docs.docker.com/engine/reference/builder/)
 
 常用命令：
 
-| 指令        | 说明                                   | 示例                      |
-| ----------- | -------------------------------------- | ------------------------- |
-| FROM        | 指定基础镜像                           | FROM centos:6             |
-| ENV         | 设置环境变量，可在后面指令使用         | ENV key value             |
-| COPY        | 拷贝本地文件到镜像的指定目录           | COPY ./xx.jar /tmp/app.jar |
-| RUN         | 执行Linux的shell命令，一般是安装过程的命令 | RUN yum install gcc       |
-| EXPOSE      | 指定容器运行时监听的端口，是给镜像使用者看的 | EXPOSE 8080               |
-| ENTRYPOINT  | 镜像中应用的启动命令，容器运行时调用   | ENTRYPOINT java -jar xx.jar |
+| 指令         | 说明                         | 示例                          |
+|------------|----------------------------|-----------------------------|
+| FROM       | 指定基础镜像                     | FROM centos:6               |
+| ENV        | 设置环境变量，可在后面指令使用            | ENV key value               |
+| COPY       | 拷贝本地文件到镜像的指定目录             | COPY ./xx.jar /tmp/app.jar  |
+| RUN        | 执行Linux的shell命令，一般是安装过程的命令 | RUN yum install gcc         |
+| EXPOSE     | 指定容器运行时监听的端口，是给镜像使用者看的     | EXPOSE 8080                 |
+| ENTRYPOINT | 镜像中应用的启动命令，容器运行时调用         | ENTRYPOINT java -jar xx.jar |
 
 ****
+
 #### 2. 自定义镜像
 
 自定义一个 Java 应用的镜像，在 D:\docker_dataMountDirectory\my_java_demo 下准备两个文件：
@@ -1676,9 +1860,11 @@ curl localhost:8080/hello/count
 ```
 
 ****
+
 ### 2.4 网络
 
-上面创建了一个 Java 项目的容器，而 Java 项目往往需要访问其它各种中间件，例如 MySQL、Redis 等。而 Docker 默认为所有容器创建一个叫作 bridge 的默认网络（除非显式使用 --network）。
+上面创建了一个 Java 项目的容器，而 Java 项目往往需要访问其它各种中间件，例如 MySQL、Redis 等。而 Docker 默认为所有容器创建一个叫作
+bridge 的默认网络（除非显式使用 --network）。
 在同一 bridge 网络下的容器，可以通过容器名互相通信。
 
 查看 mysql2 容器的网络 IP 地址：
@@ -1712,17 +1898,18 @@ docker exec -it my-java-demo bash
 ping 172.17.0.3
 ```
 
-但是，容器的网络 IP 其实是一个虚拟的 IP，其值并不固定与某一个容器绑定，如果在开发时写死某个 IP，而在部署时很可能 MySQL 容器的 IP 会发生变化，连接会失败。常见 Docker 网络的命令：
+但是，容器的网络 IP 其实是一个虚拟的 IP，其值并不固定与某一个容器绑定，如果在开发时写死某个 IP，而在部署时很可能 MySQL 容器的
+IP 会发生变化，连接会失败。常见 Docker 网络的命令：
 
-| 命令                     | 说明                     | 文档地址                                                                                                  |
-| ------------------------ | ------------------------ |-------------------------------------------------------------------------------------------------------|
-| docker network create    | 创建一个网络             | [docker network create](https://docs.docker.com/engine/reference/commandline/network_create/)         |
-| docker network ls        | 查看所有网络             | [docker network ls](https://docs.docker.com/engine/reference/commandline/network_ls/)                 |
-| docker network rm        | 删除指定网络             | [docker network rm](https://docs.docker.com/engine/reference/commandline/network_rm/)                 |
-| docker network prune     | 清除未使用的网络         | [docker network prune](https://docs.docker.com/engine/reference/commandline/network_prune/)           |
-| docker network connect   | 使指定容器连接加入某网络 | [docker network connect](https://docs.docker.com/engine/reference/commandline/network_connect/)       |
+| 命令                        | 说明           | 文档地址                                                                                                  |
+|---------------------------|--------------|-------------------------------------------------------------------------------------------------------|
+| docker network create     | 创建一个网络       | [docker network create](https://docs.docker.com/engine/reference/commandline/network_create/)         |
+| docker network ls         | 查看所有网络       | [docker network ls](https://docs.docker.com/engine/reference/commandline/network_ls/)                 |
+| docker network rm         | 删除指定网络       | [docker network rm](https://docs.docker.com/engine/reference/commandline/network_rm/)                 |
+| docker network prune      | 清除未使用的网络     | [docker network prune](https://docs.docker.com/engine/reference/commandline/network_prune/)           |
+| docker network connect    | 使指定容器连接加入某网络 | [docker network connect](https://docs.docker.com/engine/reference/commandline/network_connect/)       |
 | docker network disconnect | 使指定容器连接离开某网络 | [docker network disconnect](https://docs.docker.com/engine/reference/commandline/network_disconnect/) |
-| docker network inspect   | 查看网络详细信息         | [docker network inspect](https://docs.docker.com/engine/reference/commandline/network_inspect/)       | 
+| docker network inspect    | 查看网络详细信息     | [docker network inspect](https://docs.docker.com/engine/reference/commandline/network_inspect/)       | 
 
 自定义 bridge 网络：
 
@@ -1800,6 +1987,7 @@ ping mysql2
 - 在同一个自定义网络中的容器，可以通过别名互相访问
 
 ****
+
 ## 3. 项目部署
 
 ### 3.1 部署 Java 项目
@@ -1816,8 +2004,10 @@ docker network create hm-net
 docker network connect hm-net mysql
 ```
 
-hmall 项目是一个 maven 聚合项目，使用 IDEA 打开 hmall 项目，它有两个子模块：一个 hm-common，一个 hm-service，需要进行部署的就是 hm-service；
-因为 hm-common 模块本身不包含业务逻辑，也没有启动类，不能独立运行，在每个服务模块引入了 common 依赖，意味着在 maven 编译打包服务模块时，
+hmall 项目是一个 maven 聚合项目，使用 IDEA 打开 hmall 项目，它有两个子模块：一个 hm-common，一个 hm-service，需要进行部署的就是
+hm-service；
+因为 hm-common 模块本身不包含业务逻辑，也没有启动类，不能独立运行，在每个服务模块引入了 common 依赖，意味着在 maven
+编译打包服务模块时，
 hm-common 的代码会被一起编译进去，打包进 jar 包内。
 
 打包完成后，将 hm-service 目录下的 Dockerfile 和 hm-service/target 目录下的 hm-service.jar 部署到 docker 中：
@@ -1829,18 +2019,18 @@ cd /mnt/d/docker_dataMountDirectory/hmall
 docker build -t hmall .
 ```
 
-
-
-
 ****
+
 ### 3.3 DockerCompose
+
 部署一个简单的项目通常需要 3 个容器：
 
 - MySQL
 - Nginx
 - Java 项目
 
-但实际项目中不止这些，所以使用 Docker Compose 可以帮助实现多个相互关联的 Docker 容器的快速部署，它允许用户通过一个单独的 docker-compose.yml 模板文件（YAML 格式）来定义一组相关联的应用容器。
+但实际项目中不止这些，所以使用 Docker Compose 可以帮助实现多个相互关联的 Docker 容器的快速部署，它允许用户通过一个单独的
+docker-compose.yml 模板文件（YAML 格式）来定义一组相关联的应用容器。
 
 #### 3.1 基本语法
 
@@ -1886,15 +2076,16 @@ networks:
 
 对比如下：
 
-| docker run 参数 | docker compose 指令 | 说明     |
-| :-------------: | :-----------------: | -------- |
-|     --name      |    container_name   | 容器名称 |
-|       -p        |        ports        | 端口映射 |
-|       -e        |      environment    | 环境变量 |
-|       -v        |       volumes       | 数据卷配置 |
-|    --network    |       networks      | 网络     |
+| docker run 参数 | docker compose 指令 | 说明    |
+|:-------------:|:-----------------:|-------|
+|    --name     |  container_name   | 容器名称  |
+|      -p       |       ports       | 端口映射  |
+|      -e       |    environment    | 环境变量  |
+|      -v       |      volumes      | 数据卷配置 |
+|   --network   |     networks      | 网络    |
 
 ****
+
 #### 3.2 基础命令
 
 ```shell
@@ -1903,21 +2094,22 @@ docker compose [OPTIONS] [COMMAND]
 
 其中，OPTIONS 和 COMMAND 都是可选参数，比较常见的有：
 
-| 类型      | 参数或指令 | 说明                                                         |
-| --------- | ---------- | ------------------------------------------------------------ |
-| Options   | -f         | 指定compose文件的路径和名称                                  |
-| Options   | -p         | 指定project名称。project就是当前compose文件中设置的多个service的集合，是逻辑概念 |
-| Commands  | up         | 创建并启动所有service容器                                    |
-| Commands  | down       | 停止并移除所有容器、网络                                     |
-| Commands  | ps         | 列出所有启动的容器                                           |
-| Commands  | logs       | 查看指定容器的日志                                           |
-| Commands  | stop       | 停止容器                                                     |
-| Commands  | start      | 启动容器                                                     |
-| Commands  | restart    | 重启容器                                                     |
-| Commands  | top        | 查看运行的进程                                               |
-| Commands  | exec       | 在指定的运行中容器中执行命令                                 |
+| 类型       | 参数或指令   | 说明                                                     |
+|----------|---------|--------------------------------------------------------|
+| Options  | -f      | 指定compose文件的路径和名称                                      |
+| Options  | -p      | 指定project名称。project就是当前compose文件中设置的多个service的集合，是逻辑概念 |
+| Commands | up      | 创建并启动所有service容器                                       |
+| Commands | down    | 停止并移除所有容器、网络                                           |
+| Commands | ps      | 列出所有启动的容器                                              |
+| Commands | logs    | 查看指定容器的日志                                              |
+| Commands | stop    | 停止容器                                                   |
+| Commands | start   | 启动容器                                                   |
+| Commands | restart | 重启容器                                                   |
+| Commands | top     | 查看运行的进程                                                |
+| Commands | exec    | 在指定的运行中容器中执行命令                                         |
 
 ****
+
 # 三、微服务
 
 ## 1. 概述
@@ -1927,7 +2119,8 @@ docker compose [OPTIONS] [COMMAND]
 单体架构（monolithic structure）就是整个项目中所有功能模块都在一个工程中开发；项目部署时需要对所有模块一起编译、打包；项目的架构设计、开发模式都非常简单。
 当项目规模较小时，这种模式上手快，部署、运维也都很方便，因此早期很多小型项目都采用这种模式。但随着项目的业务规模越来越大，团队开发人员也不断增加，单体架构就呈现出越来越多的问题：
 
-- 团队协作成本高：由于所有模块都在一个项目中，不同模块的代码之间物理边界越来越模糊，最终要把功能合并到一个分支，此时可能发生各种 bug，导致解决问题较为麻烦。
+- 团队协作成本高：由于所有模块都在一个项目中，不同模块的代码之间物理边界越来越模糊，最终要把功能合并到一个分支，此时可能发生各种
+  bug，导致解决问题较为麻烦。
 - 系统发布效率低：任何模块变更都需要发布整个系统，而系统发布过程中需要多个模块之间制约较多，需要对比各种文件，任何一处出现问题都会导致发布失败，往往一次发布需要数十分钟甚至数小时。
 - 系统可用性差：单体架构各个功能模块是作为一个服务部署，相互之间会互相影响，一些热点功能会耗尽系统资源，导致其它服务低可用。
 
@@ -1936,10 +2129,12 @@ docker compose [OPTIONS] [COMMAND]
 - http://localhost:8080/hi
 - http://localhost:8080/search/list
 
-经过测试，目前 /search/list 是比较正常的，访问耗时在 30 毫秒左右。但如果此时 /hi 接口称为一个并发较高的热点接口，他就会抢占大量资源，最终会有越来越多请求积压，直至Tomcat资源耗尽。
+经过测试，目前 /search/list 是比较正常的，访问耗时在 30 毫秒左右。但如果此时 /hi
+接口称为一个并发较高的热点接口，他就会抢占大量资源，最终会有越来越多请求积压，直至Tomcat资源耗尽。
 其它本来正常的接口（例如/search/list）也都会被拖慢，甚至因超时而无法访问了。
 
 ****
+
 ### 1.2 微服务
 
 微服务架构，首先是服务化，就是将单体架构中的功能模块从单体应用中拆分出来，独立部署为多个服务，同时要满足下面的一些特点：
@@ -1955,6 +2150,7 @@ docker compose [OPTIONS] [COMMAND]
 - 每个服务独立部署，并且做好服务隔离，使用自己的服务器资源，不会影响到其它服务。
 
 ****
+
 ## 2. 微服务拆分
 
 ### 2.1 服务拆分原则
@@ -1969,6 +2165,7 @@ docker compose [OPTIONS] [COMMAND]
 在架构设计时就直接选择微服务架构。虽然前期投入较多，但后期就少了拆分服务的烦恼（前难后易）。
 
 ****
+
 #### 2. 怎么拆
 
 具体可以从两个角度来分析：
@@ -1998,25 +2195,29 @@ docker compose [OPTIONS] [COMMAND]
 - 支付服务
 
 ****
+
 ### 2.2 拆分购物车、商品服务
 
 一般微服务项目有两种不同的工程结构：
 
 - 完全解耦：每一个微服务都创建为一个独立的工程，甚至可以使用不同的开发语言来开发，项目完全解耦。
-  - 优点：服务之间耦合度低
-  - 缺点：每个项目都有自己的独立仓库，管理起来比较麻烦
+    - 优点：服务之间耦合度低
+    - 缺点：每个项目都有自己的独立仓库，管理起来比较麻烦
 
 - Maven 聚合：整个项目为一个 Project，然后每个微服务是其中的一个 Module
-  - 优点：项目代码集中，管理和运维方便
-  - 缺点：服务之间耦合，编译时间较长
+    - 优点：项目代码集中，管理和运维方便
+    - 缺点：服务之间耦合，编译时间较长
 
-在 hmall 父工程之中已经提前定义了 SpringBoot、SpringCloud 的依赖版本，所以可以直接在这个项目中创建微服务 module。购物车对应 cart-service，商品服务对应 item-service。
+在 hmall 父工程之中已经提前定义了 SpringBoot、SpringCloud 的依赖版本，所以可以直接在这个项目中创建微服务 module。购物车对应
+cart-service，商品服务对应 item-service。
 分别导入 controller、service 和 mapper。
 
 ****
+
 ### 2.3 服务调用
 
-在拆分的时候有一个问题：就是购物车业务中需要查询商品信息，但商品信息查询的逻辑全部迁移到了 item-service 服务，导致无法查询。最终结果就是查询到的购物车数据不完整，
+在拆分的时候有一个问题：就是购物车业务中需要查询商品信息，但商品信息查询的逻辑全部迁移到了 item-service
+服务，导致无法查询。最终结果就是查询到的购物车数据不完整，
 要解决这个问题就必须改造其中的代码，把原本本地方法调用，改造成跨微服务的远程调用（RPC，即 Remote Produce Call）。即修改以下的代码：
 
 ```java
@@ -2026,7 +2227,8 @@ Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet
 List<ItemDTO> items = itemService.queryItemByIds(itemIds);
 ```
 
-当前端向服务端发送查询数据请求时，其实就是从浏览器远程查询服务端数据。比如通过 Swagger 测试商品查询接口，就是向 http://localhost:8081/items 这个接口发起的请求。
+当前端向服务端发送查询数据请求时，其实就是从浏览器远程查询服务端数据。比如通过 Swagger
+测试商品查询接口，就是向 http://localhost:8081/items 这个接口发起的请求。
 而这种查询就是通过 http 请求的方式来完成的，不仅仅可以实现远程查询，还可以实现新增、删除等各种远程请求。
 
 #### 1. RestTemplate
@@ -2048,6 +2250,7 @@ Spring 提供了一个 RestTemplate 的 API，它是一个用于访问 REST 风�
 在 cart-service 服务中定义一个配置类：
 
 ```java
+
 @Configuration
 public class RemoteCallConfig {
     @Bean
@@ -2057,7 +2260,8 @@ public class RemoteCallConfig {
 }
 ```
 
-修改 cart-service 中的 com.hmall.cart.service.impl.CartServiceImpl 的 handleCartItems 方法，发送 http 请求到 item-service：
+修改 cart-service 中的 com.hmall.cart.service.impl.CartServiceImpl 的 handleCartItems 方法，发送 http 请求到
+item-service：
 
 ```java
 private void handleCartItems(List<CartVO> vos) {
@@ -2073,7 +2277,7 @@ private void handleCartItems(List<CartVO> vos) {
             Map.of("ids", CollUtil.join(itemIds, ","))
     );
     // 解析响应
-    if(!response.getStatusCode().is2xxSuccessful()){
+    if (!response.getStatusCode().is2xxSuccessful()) {
         // 查询失败，直接结束
         return;
     }
@@ -2082,7 +2286,7 @@ private void handleCartItems(List<CartVO> vos) {
         return;
     }
     // 3. 转为 id 到 item 的 map
-    Map<Long, ItemDTO> itemMap = items.stream().collect(Collectors.toMap(ItemDTO::getId, 
+    Map<Long, ItemDTO> itemMap = items.stream().collect(Collectors.toMap(ItemDTO::getId,
             Function.identity())); // 把当前的元素 ItemDTO 本身作为 Map 的 value
     // 4. 写入 vo
     for (CartVO v : vos) {
@@ -2097,10 +2301,12 @@ private void handleCartItems(List<CartVO> vos) {
 }
 ```
 
-需要注意的是，需要使用 RestTemplate 就需要把它注入进来，但 SpringBoot 推荐使用构造方法的方式进行注入，为了避免手写构造方法，所以可以使用 @RequiredArgsConstructor 注解，
+需要注意的是，需要使用 RestTemplate 就需要把它注入进来，但 SpringBoot 推荐使用构造方法的方式进行注入，为了避免手写构造方法，所以可以使用
+@RequiredArgsConstructor 注解，
 它只会为 final 字段或 @NonNull 字段生成构造器，这样就可以避免其它无需 SpringBoot 注入的字段也被构造器一起初始化：
 
 ```java
+
 @Service
 @RequiredArgsConstructor
 public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements ICartService {
@@ -2109,8 +2315,8 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 }
 ```
 
-
 ****
+
 ## 3. 服务治理
 
 ### 3.1 注册中心
@@ -2135,6 +2341,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 - 当注册中心服务列表变更时，会主动通知微服务，更新本地服务列表
 
 ****
+
 ### 3.2 Nacos 注册中心
 
 目前开源的注册中心框架有很多，国内比较常见的有：
@@ -2143,7 +2350,8 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 - Nacos：Alibaba 公司出品，目前被集成在 SpringCloudAlibaba 中，一般用于 Java 应用
 - Consul：HashiCorp 公司出品，目前集成在 SpringCloud 中，不限制微服务语言
 
-基于 Docker 来部署 Nacos 的注册中心，要准备 MySQL 数据库表用来存储 Nacos 的数据。由于是 Docker 部署，所以需要将 SQL 文件导入到 Docker 中的 MySQL 容器中。
+基于 Docker 来部署 Nacos 的注册中心，要准备 MySQL 数据库表用来存储 Nacos 的数据。由于是 Docker 部署，所以需要将 SQL 文件导入到
+Docker 中的 MySQL 容器中。
 然后将 nacos/custom.env 文件上传至虚拟机：
 
 ```text
@@ -2158,9 +2366,12 @@ MYSQL_SERVICE_PASSWORD=123
 MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
 ```
 
-需要注意的是：由于使用的是 WSL2 + Docker，所以容器的 IP 地址可能每天变动，这就说明不能直接使用 IP 访问，所以使用 MYSQL_SERVICE_HOST=host.docker.internal，
-让容器访问宿主机的 MySQL。如果能确保容器的 IP 地址不会改变，那也可以使用 IP 访问，但是如果 MySQL 使用的 IP　是　127.0.0.1 的话，也不能直接用这个 IP 让 nacos 连接到 MySQL，
-因为它们不处于同一个网络，就会导致 nacos 连接到的不是配置在 Docker 中的 MySQL，而是 nacos 内部的。因为容器里的 127.0.0.1 是容器自己的环回地址，不是宿主机地址。
+需要注意的是：由于使用的是 WSL2 + Docker，所以容器的 IP 地址可能每天变动，这就说明不能直接使用 IP 访问，所以使用
+MYSQL_SERVICE_HOST=host.docker.internal，
+让容器访问宿主机的 MySQL。如果能确保容器的 IP 地址不会改变，那也可以使用 IP 访问，但是如果 MySQL 使用的 IP 是 127.0.0.1
+的话，也不能直接用这个 IP 让 nacos 连接到 MySQL，
+因为它们不处于同一个网络，就会导致 nacos 连接到的不是配置在 Docker 中的 MySQL，而是 nacos 内部的。因为容器里的 127.0.0.1
+是容器自己的环回地址，不是宿主机地址。
 
 进入对应的 Windows 磁盘目录后，再执行 docker 命令：
 
@@ -2182,6 +2393,7 @@ nacos/nacos-server:v2.1.0-slim
 启动完成后，访问下面地址：http://192.168.0.105:8848/nacos/ ，首次访问会跳转到登录页，账号密码都是 nacos。
 
 ****
+
 ### 3.3 服务注册
 
 完成 nacos 在 docker 中的初始化后，把 item-service 注册到 nacos：
@@ -2209,17 +2421,19 @@ spring:
 
 启动服务实例后，访问 nacos 控制台，可以发现服务注册成功：
 
-| 服务名       | 分组名称       | 集群数目 | 实例数 | 健康实例数 | 触发保护阈值 | 操作                             |
-| ------------ | -------------- | -------- | ------ | ---------- | ------------ | -------------------------------- |
-| cart-service | DEFAULT_GROUP  | 1        | 1      | 1          | false        | 详情 \| 示例代码 \| 订阅者 \| 删除 |
-| item-service | DEFAULT_GROUP  | 1        | 1      | 1          | false        | 详情 \| 示例代码 \| 订阅者 \| 删除 |
+| 服务名          | 分组名称          | 集群数目 | 实例数 | 健康实例数 | 触发保护阈值 | 操作                      |
+|--------------|---------------|------|-----|-------|--------|-------------------------|
+| cart-service | DEFAULT_GROUP | 1    | 1   | 1     | false  | 详情 \| 示例代码 \| 订阅者 \| 删除 |
+| item-service | DEFAULT_GROUP | 1    | 1   | 1     | false  | 详情 \| 示例代码 \| 订阅者 \| 删除 |
 
-然后服务调用者 cart-service 就可以去订阅 item-service 服务了，不过 item-service 可能有多个实例，而真正发起调用时只需要知道一个实例的地址。所以服务调用者必须利用负载均衡从多个实例中挑选一个去访问。
+然后服务调用者 cart-service 就可以去订阅 item-service 服务了，不过 item-service
+可能有多个实例，而真正发起调用时只需要知道一个实例的地址。所以服务调用者必须利用负载均衡从多个实例中挑选一个去访问。
 并且服务发现需要用到一个工具 DiscoveryClient，不过 SpringCloud 已经自动装配，可以直接使用：
 
 ```java
 private final DiscoveryClient discoveryClient;
 ...
+
 private void handleCartItems(List<CartVO> vos) {
     // 1. 获取商品id
     Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
@@ -2243,11 +2457,13 @@ private void handleCartItems(List<CartVO> vos) {
 ```
 
 ****
+
 ### 3.4 OpenFeign
 
 #### 1. 使用
 
-上面利用 Nacos 实现了服务的治理，利用 RestTemplate 实现了服务的远程调用，但是远程调用的代码太复杂了，一会儿远程调用，一会儿本地调用。所以引出了 OpenFeign 组件。
+上面利用 Nacos 实现了服务的治理，利用 RestTemplate 实现了服务的远程调用，但是远程调用的代码太复杂了，一会儿远程调用，一会儿本地调用。所以引出了
+OpenFeign 组件。
 远程调用的关键点：
 
 - 请求方式
@@ -2265,16 +2481,17 @@ OpenFeign 就利用 SpringMVC 的相关注解来声明上述 4 个参数，然�
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-openfeign</artifactId>
 </dependency>
-<!--负载均衡器-->
+        <!--负载均衡器-->
 <dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+<groupId>org.springframework.cloud</groupId>
+<artifactId>spring-cloud-starter-loadbalancer</artifactId>
 </dependency>
 ```
 
 在 cart-service 的 CartApplication 启动类上添加注解，启动 OpenFeign 功能：
 
 ```java
+
 @EnableFeignClients
 @MapperScan("com.hmall.cart.mapper")
 @SpringBootApplication
@@ -2285,6 +2502,7 @@ public class CartApplication {
 在 cart-service 中，定义一个新的接口，编写 Feign 客户端：
 
 ```java
+
 @FeignClient("item-service")
 public interface ItemClient {
     @GetMapping("/items")
@@ -2300,20 +2518,22 @@ public interface ItemClient {
 - @RequestParam("ids") Collection<Long> ids ：声明请求参数
 - List<ItemDTO> ：返回值类型
 
-配置了上述信息，OpenFeign 就可以利用动态代理实现该方法，并且向 http://item-service/items 发送一个 GET 请求，携带 ids 为请求参数，并自动将返回值处理为 List<ItemDTO>。
+配置了上述信息，OpenFeign 就可以利用动态代理实现该方法，并且向 http://item-service/items 发送一个 GET 请求，携带 ids
+为请求参数，并自动将返回值处理为 List<ItemDTO>。
 然后在 service 层直接调用该接口的方法即可实现远程调用：
 
 ```java
 private final ItemClient itemClient;
 ...
+
 private void handleCartItems(List<CartVO> vos) {
-  // 1. 获取商品id
-  Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
+    // 1. 获取商品id
+    Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
   ...
-  List<ItemDTO> items = itemClient.queryItemByIds(itemIds);
-  if (CollUtils.isEmpty(items)) {
-    return;
-  }
+    List<ItemDTO> items = itemClient.queryItemByIds(itemIds);
+    if (CollUtils.isEmpty(items)) {
+        return;
+    }
   ...
 }
 ```
@@ -2321,9 +2541,11 @@ private void handleCartItems(List<CartVO> vos) {
 OpenFeign 完成了服务拉取、负载均衡、发送 http 请求的所有工作，还省去了 RestTemplate 的注册，代码十分便捷。
 
 ****
+
 #### 2. 连接池
 
-Feign 是一个声明式的 HTTP 客户端，其底层真正发起 HTTP 请求时，是依赖第三方的 HTTP 客户端库来完成的。其底层支持的 http 客户端实现包括：
+Feign 是一个声明式的 HTTP 客户端，其底层真正发起 HTTP 请求时，是依赖第三方的 HTTP 客户端库来完成的。其底层支持的 http
+客户端实现包括：
 
 - HttpURLConnection：默认实现（jdk 自带），不支持连接池
 - Apache HttpClient ：支持连接池
@@ -2336,8 +2558,8 @@ Feign 是一个声明式的 HTTP 客户端，其底层真正发起 HTTP 请求�
 ```xml
 <!--OK http 的依赖 -->
 <dependency>
-  <groupId>io.github.openfeign</groupId>
-  <artifactId>feign-okhttp</artifactId>
+    <groupId>io.github.openfeign</groupId>
+    <artifactId>feign-okhttp</artifactId>
 </dependency>
 ```
 
@@ -2350,15 +2572,18 @@ feign:
 ```
 
 ****
+
 #### 3. 抽取公共部分
 
-在拆分 item-service 和 cart-service 两个微服务时，它们里面有部分代码是与需求是一样的，如果此时还要拆分一个 trade-service，它也需要远程调用 item-service 中的根据 id 批量查询商品，
+在拆分 item-service 和 cart-service 两个微服务时，它们里面有部分代码是与需求是一样的，如果此时还要拆分一个
+trade-service，它也需要远程调用 item-service 中的根据 id 批量查询商品，
 这个功能与 cart-service 中是一样的，所以为了避免大量编写重复的代码，就需要提取它们的公共部分，例如：
 
 - 方案1：抽取到微服务之外的公共 module（即作为一个新的微服务）
 - 方案2：每个微服务自己抽取一个 module（即作为微服务的子模块）
 
-方案1抽取更加简单，工程结构也比较清晰，但缺点是整个项目耦合度偏高；方案2抽取相对麻烦，工程结构相对更复杂，但服务之间耦合度降低。在 hmall 下定义一个新的 module，
+方案1抽取更加简单，工程结构也比较清晰，但缺点是整个项目耦合度偏高；方案2抽取相对麻烦，工程结构相对更复杂，但服务之间耦合度降低。在
+hmall 下定义一个新的 module，
 命名为 hm-api，引入需要使用到的接口依赖、OpenFeign 依赖和负载均衡依赖：
 
 ```xml
@@ -2367,19 +2592,20 @@ feign:
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-openfeign</artifactId>
 </dependency>
-<!-- load balancer-->
+        <!-- load balancer-->
 <dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+<groupId>org.springframework.cloud</groupId>
+<artifactId>spring-cloud-starter-loadbalancer</artifactId>
 </dependency>
 <dependency>
-    <groupId>com.github.xiaoymin</groupId>
-    <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-    <version>4.4.0</version>
+<groupId>com.github.xiaoymin</groupId>
+<artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+<version>4.4.0</version>
 </dependency>
 ```
 
-然后把需要重复使用到的 ItemDTO 和 ItemClient 都放到该模块下，其它需要使用到远程调用功能的地方直接导入 hm-api 包即可，不过需要引入 hm-api 作为依赖：
+然后把需要重复使用到的 ItemDTO 和 ItemClient 都放到该模块下，其它需要使用到远程调用功能的地方直接导入 hm-api 包即可，不过需要引入
+hm-api 作为依赖：
 
 ```xml
 <!--feign模块-->
@@ -2390,12 +2616,14 @@ feign:
 </dependency>
 ```
 
-需要注意的是:因为 ItemClient 现在定义到了 com.hmall.api.client 包下，而 cart-service 的启动类定义在 com.hmall.cart 包下，这就导致扫描不到 ItemClient，
+需要注意的是:因为 ItemClient 现在定义到了 com.hmall.api.client 包下，而 cart-service 的启动类定义在 com.hmall.cart
+包下，这就导致扫描不到 ItemClient，
 会报错，所以需要：
 
 - 方式1：声明扫描包
 
 ```java
+
 @EnableFeignClients(basePackages = "com.hmall.api.client")
 @MapperScan("com.hmall.cart.mapper")
 @SpringBootApplication
@@ -2407,6 +2635,7 @@ public class CartApplication {
 - 方式2：声明要用的 FeignClient
 
 ```java
+
 @EnableFeignClients(clients = {ItemClient.class})
 @MapperScan("com.hmall.cart.mapper")
 @SpringBootApplication
@@ -2416,6 +2645,7 @@ public class CartApplication {
 ```
 
 ****
+
 #### 4. 日志配置
 
 OpenFeign 只会在 FeignClient 所在包的日志级别为 DEBUG 时，才会输出日志，而且其日志级别有 4 级：
@@ -2430,7 +2660,7 @@ OpenFeign 只会在 FeignClient 所在包的日志级别为 DEBUG 时，才会�
 ```java
 public class DefaultFeignConfig {
     @Bean
-    public Logger.Level feignLogLevel(){
+    public Logger.Level feignLogLevel() {
         return Logger.Level.FULL;
     }
 }
@@ -2441,16 +2671,18 @@ public class DefaultFeignConfig {
 - 局部生效：在某个 FeignClient 中配置，只对当前 FeignClient 生效：
 
 ```java
+
 @FeignClient(value = "item-service", configuration = DefaultFeignConfig.class)
 public interface ItemClient {
-  @GetMapping("/items")
-  List<ItemDTO> queryItemByIds(@RequestParam("ids") Collection<Long> ids);
+    @GetMapping("/items")
+    List<ItemDTO> queryItemByIds(@RequestParam("ids") Collection<Long> ids);
 }
 ```
 
 - 全局生效：在 @EnableFeignClients 中配置，针对所有 FeignClient 生效：
 
 ```java
+
 @EnableFeignClients(clients = {ItemClient.class}, defaultConfiguration = DefaultFeignConfig.class)
 @MapperScan("com.hmall.cart.mapper")
 @SpringBootApplication
@@ -2476,6 +2708,7 @@ public class CartApplication {
 ```
 
 ****
+
 # 四、网关路由
 
 ## 1. 网关
@@ -2500,6 +2733,7 @@ public class CartApplication {
 - Zuul
 
 ****
+
 ### 1.2 使用
 
 网关的职责是：请求转发、统一认证、安全校验、限流熔断、日志记录等跨服务通用功能，如果把这些功能混在某一个业务服务里（比如订单服务、用户服务），不仅增加耦合度，还会导致系统维护复杂。
@@ -2555,6 +2789,7 @@ spring:
 在配置文件中
 
 ****
+
 ### 1.3 路由属性
 
 路由规则的定义语法如下：
@@ -2573,6 +2808,7 @@ spring:
 其中 routes 对应的类型如下：
 
 ```java
+
 @ConfigurationProperties("spring.cloud.gateway")
 @Validated
 public class GatewayProperties {
@@ -2590,6 +2826,7 @@ public class GatewayProperties {
 routes 是一个集合，也就是说可以定义很多路由规则。而集合中的 RouteDefinition 就是具体的路由规则定义，其中常见的属性如下：
 
 ```java
+
 @Validated
 public class RouteDefinition {
     private String id;
@@ -2610,21 +2847,22 @@ public class RouteDefinition {
 
 对于 predicates，SpringCloudGateway 中支持的断言类型有很多：
 
-| 名称      | 说明                         | 示例                                                         |
-| --------- | ---------------------------- | ------------------------------------------------------------ |
-| After     | 是某个时间点后的请求         | - After=2037-01-20T17:42:47.789-07:00[America/Denver]        |
-| Before    | 是某个时间点之前的请求       | - Before=2031-04-13T15:14:47.433+08:00[Asia/Shanghai]       |
-| Between   | 是某两个时间点之前的请求     | - Between=2037-01-20T17:42:47.789-07:00[America/Denver], 2037-01-21T17:42:47.789-07:00[America/Denver] |
-| Cookie    | 请求必须包含某些cookie       | - Cookie=chocolate, ch.p                                     |
-| Header    | 请求必须包含某些header       | - Header=X-Request-Id, \d+                                   |
-| Host      | 请求必须是访问某个host（域名） | - Host=**.somehost.org,**.anotherhost.org                    |
-| Method    | 请求方式必须是指定方式       | - Method=GET,POST                                            |
-| Path      | 请求路径必须符合指定规则     | - Path=/red/{segment},/blue/**                               |
-| Query     | 请求参数必须包含指定参数     | - Query=name, Jack或者- Query=name                          |
-| RemoteAddr | 请求者的ip必须是指定范围     | - RemoteAddr=192.168.1.1/24                                  |
-| weight    | 权重处理                     |                                                              |
+| 名称         | 说明                | 示例                                                                                                     |
+|------------|-------------------|--------------------------------------------------------------------------------------------------------|
+| After      | 是某个时间点后的请求        | - After=2037-01-20T17:42:47.789-07:00[America/Denver]                                                  |
+| Before     | 是某个时间点之前的请求       | - Before=2031-04-13T15:14:47.433+08:00[Asia/Shanghai]                                                  |
+| Between    | 是某两个时间点之前的请求      | - Between=2037-01-20T17:42:47.789-07:00[America/Denver], 2037-01-21T17:42:47.789-07:00[America/Denver] |
+| Cookie     | 请求必须包含某些cookie    | - Cookie=chocolate, ch.p                                                                               |
+| Header     | 请求必须包含某些header    | - Header=X-Request-Id, \d+                                                                             |
+| Host       | 请求必须是访问某个host（域名） | - Host=**.somehost.org,**.anotherhost.org                                                              |
+| Method     | 请求方式必须是指定方式       | - Method=GET,POST                                                                                      |
+| Path       | 请求路径必须符合指定规则      | - Path=/red/{segment},/blue/**                                                                         |
+| Query      | 请求参数必须包含指定参数      | - Query=name, Jack或者- Query=name                                                                       |
+| RemoteAddr | 请求者的ip必须是指定范围     | - RemoteAddr=192.168.1.1/24                                                                            |
+| weight     | 权重处理              |                                                                                                        |
 
 ****
+
 ## 2. 网关登录校验
 
 单体架构时只需要完成一次用户登录、身份校验，就可以在所有业务中获取到用户信息。而微服务拆分后，每个微服务都独立部署，不再共享数据。也就意味着需要为每个微服务都做登录校验，
@@ -2651,20 +2889,22 @@ public class RouteDefinition {
 
 网关过滤器链中的过滤器有两种：
 
-- GatewayFilter：路由过滤器，作用范围比较灵活，可以是任意指定的路由 Route，绑定到某条路由规则上才会生效。比如 /pay-orders/** 路由的请求才需要做特殊的签名校验，那就只为这个 Route 配置一个 GatewayFilter
-- GlobalFilter：全局过滤器，作用范围是所有路由，声明后自动生效。在代码中通过实现 GlobalFilter 接口并注册为 Spring Bean 后做统一的校验，或者使用 default-filters
+- GatewayFilter：路由过滤器，作用范围比较灵活，可以是任意指定的路由 Route，绑定到某条路由规则上才会生效。比如 /pay-orders/**
+  路由的请求才需要做特殊的签名校验，那就只为这个 Route 配置一个 GatewayFilter
+- GlobalFilter：全局过滤器，作用范围是所有路由，声明后自动生效。在代码中通过实现 GlobalFilter 接口并注册为 Spring Bean
+  后做统一的校验，或者使用 default-filters
 
 常用 Gateway 中内置的 GatewayFilter 过滤器：
 
-| 过滤器名称                  | 作用说明                           |
-| ---------------------- | ------------------------------ |
-| `AddRequestHeader`     | 添加请求头                          |
-| `AddResponseHeader`    | 添加响应头                          |
-| `RemoveRequestHeader`  | 移除请求头                          |
-| `RemoveResponseHeader` | 移除响应头                          |
-| `RewritePath`          | 重写请求路径                         |
-| `SetStatus`            | 设置返回状态码                        |
-| `RedirectTo`           | 重定向                            |
+| 过滤器名称                  | 作用说明    |
+|------------------------|---------|
+| `AddRequestHeader`     | 添加请求头   |
+| `AddResponseHeader`    | 添加响应头   |
+| `RemoveRequestHeader`  | 移除请求头   |
+| `RemoveResponseHeader` | 移除响应头   |
+| `RewritePath`          | 重写请求路径  |
+| `SetStatus`            | 设置返回状态码 |
+| `RedirectTo`           | 重定向     |
 
 添加请求头：
 
@@ -2687,12 +2927,12 @@ spring:
   cloud:
     gateway:
       routes:
-      - id: test_route
-        uri: lb://test-service
-        predicates:
-          -Path=/test/**
-        filters:
-          - AddRequestHeader=key, value # 逗号之前是请求头的key，逗号之后是value
+        - id: test_route
+          uri: lb://test-service
+          predicates:
+            -Path=/test/**
+          filters:
+            - AddRequestHeader=key, value # 逗号之前是请求头的key，逗号之后是value
 ```
 
 如果需要全局配置，那就可以使用 default-filters：
@@ -2704,18 +2944,20 @@ spring:
       default-filters: # default-filters 下的过滤器可以作用于所有路由
         - AddRequestHeader=key, value
       routes:
-      - id: test_route
-        uri: lb://test-service
-        predicates:
-          -Path=/test/**
+        - id: test_route
+          uri: lb://test-service
+          predicates:
+            -Path=/test/**
 ```
 
 ****
+
 ### 2.2 自定义过滤器
 
 #### 1. 自定义 GlobalFilter
 
 ```java
+
 @Component
 public class MyGlobalFilter implements GlobalFilter, Ordered {
     @Override
@@ -2740,11 +2982,14 @@ public class MyGlobalFilter implements GlobalFilter, Ordered {
 - GatewayFilterChain：过滤器链，当前过滤器执行完后，要调用过滤器链中的下一个过滤器
 
 ****
+
 #### 2. 自定义 GatewayFilter
 
-自定义 GatewayFilter 不是直接实现 GatewayFilter，而是实现 AbstractGatewayFilterFactory，且该类的名称一定要以 GatewayFilterFactory 为后缀：
+自定义 GatewayFilter 不是直接实现 GatewayFilter，而是实现 AbstractGatewayFilterFactory，且该类的名称一定要以
+GatewayFilterFactory 为后缀：
 
 ```java
+
 @Component
 public class PrintAnyGatewayFilterFactory extends AbstractGatewayFilterFactory<Object> {
     @Override
@@ -2770,19 +3015,21 @@ public class PrintAnyGatewayFilterFactory extends AbstractGatewayFilterFactory<O
 }
 ```
 
-可以直接返回一个 GatewayFilter 过滤器内部类，也可以使用 OrderedGatewayFilter 指定优先级（因为内部类不能实现接口），然后在 yaml 配置中这样使用：
+可以直接返回一个 GatewayFilter 过滤器内部类，也可以使用 OrderedGatewayFilter 指定优先级（因为内部类不能实现接口），然后在
+yaml 配置中这样使用：
 
 ```yaml
 spring:
   cloud:
     gateway:
       default-filters:
-            - PrintAny # 此处直接以自定义的GatewayFilterFactory类名称前缀类声明过滤器
+        - PrintAny # 此处直接以自定义的GatewayFilterFactory类名称前缀类声明过滤器
 ```
 
 另外，这种过滤器还可以支持动态配置参数，不过实现起来比较复杂：
 
 ```java
+
 @Component
 public class PrintAnyGatewayFilterFactory extends AbstractGatewayFilterFactory<PrintAnyGatewayFilterFactory.Config> {
     @Override
@@ -2806,18 +3053,18 @@ public class PrintAnyGatewayFilterFactory extends AbstractGatewayFilterFactory<P
 
     // 自定义配置属性，成员变量名称很重要，下面会用到
     @Data
-    static class Config{
+    static class Config {
         private String a;
         private String b;
         private String c;
     }
-    
+
     // 将变量名称依次返回，顺序很重要，将来读取参数时需要按顺序获取
     @Override
     public List<String> shortcutFieldOrder() {
         return List.of("a", "b", "c");
     }
-    
+
     // 返回当前配置类的类型，也就是内部的 Config
     @Override
     public Class<Config> getConfigClass() {
@@ -2843,27 +3090,32 @@ spring:
   cloud:
     gateway:
       default-filters:
-            - name: PrintAny
-              args: # 手动指定参数名，无需按照参数顺序
-                a: 1
-                b: 2
-                c: 3
+        - name: PrintAny
+          args: # 手动指定参数名，无需按照参数顺序
+            a: 1
+            b: 2
+            c: 3
 ```
 
 ****
+
 ### 2.3 登录校验
 
 首先需要获取到 request，然后通过 request 获取到请求路径，通过和配置文件中设置的路径对比，看该路径是否为无需拦截的路径：
 
 ```java
-if(isExclude(request.getPath().toString())){
-  // 无需拦截，直接放行
-  return chain.filter(exchange);
+if(isExclude(request.getPath().
+
+toString())){
+        // 无需拦截，直接放行
+        return chain.
+
+filter(exchange);
 }
 
 private boolean isExclude(String antPath) {
     for (String pathPattern : authProperties.getExcludePaths()) {
-        if(antPathMatcher.match(pathPattern, antPath)){
+        if (antPathMatcher.match(pathPattern, antPath)) {
             return true;
         }
     }
@@ -2883,6 +3135,7 @@ hm:
 ```
 
 ```java
+
 @Component
 @RequiredArgsConstructor
 @EnableConfigurationProperties(AuthProperties.class)
@@ -2900,7 +3153,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         // 1. 获取 Request
         ServerHttpRequest request = exchange.getRequest();
         // 2. 判断是否不需要拦截
-        if(isExclude(request.getPath().toString())){
+        if (isExclude(request.getPath().toString())) {
             // 无需拦截，直接放行
             return chain.filter(exchange);
         }
@@ -2929,7 +3182,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     private boolean isExclude(String antPath) {
         for (String pathPattern : authProperties.getExcludePaths()) {
-            if(antPathMatcher.match(pathPattern, antPath)){
+            if (antPathMatcher.match(pathPattern, antPath)) {
                 return true;
             }
         }
@@ -2944,36 +3197,48 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 ```
 
 ****
+
 ### 2.4 微服务获取用户
 
 由于网关发送请求到微服务依然采用的是 Http 请求，所以可以将用户信息以请求头的方式传递到下游微服务，然后微服务就可以从请求头中获取登录用户信息。
-考虑到微服务内部可能很多地方都需要用到登录用户信息，因此可以利用 SpringMVC 的拦截器来实现登录用户信息获取，并存入 ThreadLocal，方便后续使用。
+考虑到微服务内部可能很多地方都需要用到登录用户信息，因此可以利用 SpringMVC 的拦截器来实现登录用户信息获取，并存入
+ThreadLocal，方便后续使用。
 
 #### 1. 保存用户到请求头
 
-ServerWebExchange 是 WebFlux 中的请求上下文对象，包含了请求 ServerHttpRequest 和响应 ServerHttpResponse，它是不可变的，如果要修改 request，
-比如添加请求头，就得调用 exchange.mutate() 来创建一个新的、可修改的构建器。然后放行时不再使用 exchange 上下文对象，而是使用修改了 request 的上下文对象。
-而 builder 是 ServerHttpRequest.Builder 对象，它是用来构建修改后的 ServerHttpRequest。`.header("user-info", userInfo)` 表示在原始请求的基础上，
-添加一个名为 user-info 的请求头，值是用户 ID（转成字符串）。需要注意的是：header() 方法是追加，不会覆盖已有的同名 header（如果存在多个值，会变成列表）
+ServerWebExchange 是 WebFlux 中的请求上下文对象，包含了请求 ServerHttpRequest 和响应 ServerHttpResponse，它是不可变的，如果要修改
+request，
+比如添加请求头，就得调用 exchange.mutate() 来创建一个新的、可修改的构建器。然后放行时不再使用 exchange 上下文对象，而是使用修改了
+request 的上下文对象。
+而 builder 是 ServerHttpRequest.Builder 对象，它是用来构建修改后的 ServerHttpRequest。`.header("user-info", userInfo)`
+表示在原始请求的基础上，
+添加一个名为 user-info 的请求头，值是用户 ID（转成字符串）。需要注意的是：header() 方法是追加，不会覆盖已有的同名
+header（如果存在多个值，会变成列表）
 
 ```java
 // 5. 如果有效，传递用户信息
-System.out.println("userId = " + userId);
+System.out.println("userId = "+userId);
+
 String userInfo = userId.toString();
 ServerWebExchange swe = exchange.mutate()
         .request(builder -> builder.header("user-info", userInfo))
         .build();
 // 6. 放行
-return chain.filter(swe);
+return chain.
+
+filter(swe);
 ```
 
-在微服务架构中，一般只有网关会直接接触到客户端发来的 JWT token。下游服务（如 user-service, trade-service）通常不再自己解析 token，而是依赖网关，
+在微服务架构中，一般只有网关会直接接触到客户端发来的 JWT token。下游服务（如 user-service, trade-service）通常不再自己解析
+token，而是依赖网关，
 网关通过请求头 header（如 "user-info"）传递给下游服务。
 
 ****
+
 #### 2. 拦截器获取用户
 
-由于每个微服务都有获取登录用户的需求，因此拦截器可以直接写在 hm-common 中，并写好自动装配，这样微服务只需要引入 hm-common 就可以直接具备拦截器功能，无需重复编写。
+由于每个微服务都有获取登录用户的需求，因此拦截器可以直接写在 hm-common 中，并写好自动装配，这样微服务只需要引入 hm-common
+就可以直接具备拦截器功能，无需重复编写。
 
 ```java
 public class UserInfoInterceptor implements HandlerInterceptor {
@@ -3001,6 +3266,7 @@ public class UserInfoInterceptor implements HandlerInterceptor {
 然后在 hm-common 模块下编写 SpringMVC 的配置类，配置登录拦截器：
 
 ```java
+
 @Configuration
 @ConditionalOnClass(DispatcherServlet.class)
 public class MvcConfig implements WebMvcConfigurer {
@@ -3011,7 +3277,8 @@ public class MvcConfig implements WebMvcConfigurer {
 }
 ```
 
-需要注意的是：这个配置类默认是不会生效的，因为它所在的包是 com.hmall.common.config，与其它微服务的扫描包不一致，无法被扫描到，因此无法生效。但基于 SpringBoot 的自动装配原理，
+需要注意的是：这个配置类默认是不会生效的，因为它所在的包是 com.hmall.common.config，与其它微服务的扫描包不一致，无法被扫描到，因此无法生效。但基于
+SpringBoot 的自动装配原理，
 只要将其添加到 resources 目录下的 META-INF/spring.factories 文件中即可被扫描到：
 
 ```factories
@@ -3021,8 +3288,10 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   com.hmall.common.config.JsonConfig
 ```
 
-即告诉 Spring Boot：当项目引入了这个模块（hm-common）时，请自动加载 MvcConfig 这个类中的配置。但在 Springboot 3.x 版本后就不再使用这种方式了，
-而是使用 org.springframework.boot.autoconfigure.AutoConfiguration.imports，即在 resources 目录下的 META-INF/spring/ 创建 org.springframework.boot.autoconfigure.AutoConfiguration.imports 文件，
+即告诉 Spring Boot：当项目引入了这个模块（hm-common）时，请自动加载 MvcConfig 这个类中的配置。但在 Springboot 3.x
+版本后就不再使用这种方式了，
+而是使用 org.springframework.boot.autoconfigure.AutoConfiguration.imports，即在 resources 目录下的 META-INF/spring/ 创建
+org.springframework.boot.autoconfigure.AutoConfiguration.imports 文件，
 然后在文件中添加：
 
 ```text
@@ -3031,41 +3300,48 @@ com.hmall.common.config.MvcConfig
 com.hmall.common.config.JsonConfig
 ```
 
-还有一点需要注意：Spring Cloud Gateway 是基于 Spring WebFlux 的响应式编程模型构建的，而 Spring MVC 是基于 Servlet API 的阻塞式编程模型，
+还有一点需要注意：Spring Cloud Gateway 是基于 Spring WebFlux 的响应式编程模型构建的，而 Spring MVC 是基于 Servlet API
+的阻塞式编程模型，
 两者不能同时存在于同一个应用程序中。而配置的拦截器 WebMvcConfig 是属于 Spring MVC 的，但网关模块中也引入了该包，所以启动时必定会报错，
-所以需要使用到一个注解：@ConditionalOnClass，它的作用就是当条件生效时该类才加载，所以可以使用 @ConditionalOnClass(DispatcherServlet.class)，
-因为微服务使用的是 SpringMVC，那就一定有这个转发请求的类存在，而网关中一定没有，所以网关模块中就不会加载 SpringMVC 的配置，从而避免发生报错。
+所以需要使用到一个注解：@ConditionalOnClass，它的作用就是当条件生效时该类才加载，所以可以使用 @ConditionalOnClass(
+DispatcherServlet.class)，
+因为微服务使用的是 SpringMVC，那就一定有这个转发请求的类存在，而网关中一定没有，所以网关模块中就不会加载 SpringMVC
+的配置，从而避免发生报错。
 
 ****
+
 ### 2.5 OpenFeign 传递用户
 
 前端发起的请求都会经过网关再到微服务，搭配过滤器和拦截器微服务可以获取登录用户信息。但是有些业务会在微服务之间调用其它微服务，也就是说这些方法的调用不会经过网关，
 那么也就无法获取到存放在请求头中的 userInfo。例如：下单的过程中，需要调用商品服务扣减库存，即调用购物车服务清理用户购物车，而清理购物车时必须知道当前登录的用户身份。
-但是，订单服务调用购物车时并没有传递用户信息，购物车服务无法知道当前用户是谁，即 SQL 中的 where userId = ? 为 null，执行肯定失败。而微服务之间调用是基于 OpenFeign 来实现的，
+但是，订单服务调用购物车时并没有传递用户信息，购物车服务无法知道当前用户是谁，即 SQL 中的 where userId = ? 为
+null，执行肯定失败。而微服务之间调用是基于 OpenFeign 来实现的，
 并不是手动发送的请求，所以要借助 Feign 中提供的一个拦截器接口：feign.RequestInterceptor：
 
 ```java
 public interface RequestInterceptor {
-  /**
-   * Called for every request. 
-   * Add data using methods on the supplied {@link RequestTemplate}.
-   */
-  void apply(RequestTemplate template);
+    /**
+     * Called for every request. 
+     * Add data using methods on the supplied {@link RequestTemplate}.
+     */
+    void apply(RequestTemplate template);
 }
 ```
 
-只需要实现这个接口并重写 apply 方法，利用 RequestTemplate 类来添加请求头，将用户信息保存到请求头中，每次 OpenFeign 发起请求的时候都会调用该方法，传递用户信息。
+只需要实现这个接口并重写 apply 方法，利用 RequestTemplate 类来添加请求头，将用户信息保存到请求头中，每次 OpenFeign
+发起请求的时候都会调用该方法，传递用户信息。
 由于 FeignClient 全部都是在 hm-api 模块，所以直接在 hm-api 模块的 com.hmall.api.config.DefaultFeignConfig 中编写这个拦截器：
 
 ```java
+
 @Bean
-public RequestInterceptor userInfoRequestInterceptor(){
+public RequestInterceptor userInfoRequestInterceptor() {
     return new RequestInterceptor() {
         @Override
         public void apply(RequestTemplate template) {
             // 获取登录用户
             Long userId = UserContext.getUser();
-            if(userId == null) {
+            if (userId == null) {
                 // 如果为空则直接跳过
                 return;
             }
@@ -3076,11 +3352,14 @@ public RequestInterceptor userInfoRequestInterceptor(){
 }
 ```
 
-RequestTemplate 就是用于组装请求信息的工具，这个 template.header(...) 就是给 OpenFeign 的这次请求添加一个请求头，底层会在实际发送请求时将添加的所有信息变成真实的 HTTP 请求。
-因为在 Controller 请求入口时，通过 Spring 拦截器就提取请求头中的用户信息，也就是一经过网关，用户信息就被读出并存在 ThreadLocal 了，在调用 Feign 请求前，
+RequestTemplate 就是用于组装请求信息的工具，这个 template.header(...) 就是给 OpenFeign
+的这次请求添加一个请求头，底层会在实际发送请求时将添加的所有信息变成真实的 HTTP 请求。
+因为在 Controller 请求入口时，通过 Spring 拦截器就提取请求头中的用户信息，也就是一经过网关，用户信息就被读出并存在
+ThreadLocal 了，在调用 Feign 请求前，
 就从 ThreadLocal 中拿出用户信息，主动添加到请求头中，转发给下一个微服务。
 
 ****
+
 ## 3. 配置管理
 
 可以把微服务共享的配置抽取到 Nacos 中统一管理，这样就不需要每个微服务都重复配置了，分为两步：
@@ -3144,10 +3423,10 @@ knife4j:
 ```yaml
 spring:
   datasource:
-      url: jdbc:mysql://${hm.db.host}:3306/hm-cart?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      username: root
-      password: ${hm.db.pw}
+    url: jdbc:mysql://${hm.db.host}:3306/hm-cart?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: ${hm.db.pw}
 ```
 
 ```yaml
@@ -3178,7 +3457,8 @@ mybatis-plus:
       id-type: auto
 ```
 
-- 数据库 ip：通过 ${hm.db.host:127.0.0.1} 配置了默认值为 127.0.0.1，同时允许通过 ${hm.db.host} 来覆盖默认值（从 SpringBoot 的 yaml 文件中获取）
+- 数据库 ip：通过 ${hm.db.host:127.0.0.1} 配置了默认值为 127.0.0.1，同时允许通过 ${hm.db.host} 来覆盖默认值（从 SpringBoot
+  的 yaml 文件中获取）
 - 数据库端口：通过 ${hm.db.port:3306} 配置了默认值为 3306，同时允许通过 ${hm.db.port} 来覆盖默认值
 - 数据库 database：可以通过 ${hm.db.database} 来设定，无默认值
 
@@ -3211,12 +3491,15 @@ knife4j:
 ```
 
 - title：接口文档标题，用 ${hm.swagger.title} 来代替，将来可以有用户手动指定
-- email：联系人邮箱，用 ${hm.swagger.email:zhanghuyi@itcast.cn}，默认值是 zhanghuyi@itcast.cn，同时允许利用 ${hm.swagger.email} 来覆盖
+- email：联系人邮箱，用 ${hm.swagger.email:zhanghuyi@itcast.cn}，默认值是 zhanghuyi@itcast.cn，同时允许利用 $
+  {hm.swagger.email} 来覆盖
 
 要在微服务拉取共享配置，就需要将拉取到的共享配置与本地的 application.yaml 配置合并，完成项目上下文的初始化。但需要注意的是，
-读取 Nacos 配置是 SpringCloud 上下文（ApplicationContext）初始化时处理的，发生在项目的引导阶段。然后才会初始化 SpringBoot 上下文，去读取 application.yaml。
+读取 Nacos 配置是 SpringCloud 上下文（ApplicationContext）初始化时处理的，发生在项目的引导阶段。然后才会初始化 SpringBoot
+上下文，去读取 application.yaml。
 也就是说在引导阶段 application.yaml 文件还没有被读取，也就无法加载 Nacaos 的地址并完成配置的合并，
-所以 SpringCloud 在初始化上下文的时候会先读取一个名为 bootstrap.yaml（或 bootstrap.properties）的文件，所以可以将 nacos 地址配置到 bootstrap.yaml 中，
+所以 SpringCloud 在初始化上下文的时候会先读取一个名为 bootstrap.yaml（或 bootstrap.properties）的文件，所以可以将 nacos
+地址配置到 bootstrap.yaml 中，
 那么在项目引导阶段就可以读取 nacos 中的配置了。微服务整合 Nacos 配置管理的步骤如下：
 
 1、引入依赖：
@@ -3227,10 +3510,10 @@ knife4j:
     <groupId>com.alibaba.cloud</groupId>
     <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
 </dependency>
-<!--读取bootstrap文件-->
+        <!--读取bootstrap文件-->
 <dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-bootstrap</artifactId>
+<groupId>org.springframework.cloud</groupId>
+<artifactId>spring-cloud-starter-bootstrap</artifactId>
 </dependency>
 ```
 
@@ -3277,6 +3560,7 @@ Ignore the empty nacos configuration and get it based on dataId[cart-service-loc
 ```
 
 ****
+
 ### 3.2 配置热更新
 
 有很多的业务相关参数，将来可能会根据实际情况临时调整。例如购物车业务，购物车数量有一个上限，默认是 10，代码如下：
@@ -3318,13 +3602,15 @@ spring:
     active: dev
 ```
 
-例如：cart-service-dev.yaml，代表指定激活 dev 的环境，所有的 Nacos 配置文件包括共享的，都是这样的命名规则，SpringBoot 会根据 active 选择对应的开发环境。
+例如：cart-service-dev.yaml，代表指定激活 dev 的环境，所有的 Nacos 配置文件包括共享的，都是这样的命名规则，SpringBoot 会根据
+active 选择对应的开发环境。
 
 - 后缀名：例如 yaml
 
 在 cart-service 中新建一个属性读取类：
 
 ```java
+
 @Data
 @Component
 @ConfigurationProperties(prefix = "hm.cart")
@@ -3334,10 +3620,13 @@ public class CartProperties {
 ```
 
 ****
+
 ### 3.3 动态路由
 
-目前网关的路由配置全部是在项目启动时加载的，并且一经加载就会缓存到内存中的路由表内，如果新增或修改了路径，就需要重启服务，如果需要实时更新的话，就可以利用 Nacos 的热更新技术，
-手动把路由更新到路由表中。在 Nacos 官网中给出了手动监听 Nacos 配置变更的 SDK：[https://nacos.io/zh-cn/docs/sdk.html](https://nacos.io/zh-cn/docs/sdk.html)。
+目前网关的路由配置全部是在项目启动时加载的，并且一经加载就会缓存到内存中的路由表内，如果新增或修改了路径，就需要重启服务，如果需要实时更新的话，就可以利用
+Nacos 的热更新技术，
+手动把路由更新到路由表中。在 Nacos 官网中给出了手动监听 Nacos 配置变更的
+SDK：[https://nacos.io/zh-cn/docs/sdk.html](https://nacos.io/zh-cn/docs/sdk.html)。
 如果希望 Nacos 推送配置变更，可以使用 Nacos 动态监听配置接口来实现：
 
 ```java
@@ -3356,21 +3645,26 @@ String dataId = "{dataId}";
 String group = "{group}";
 // 1. 创建 ConfigService，连接 Nacos
 Properties properties = new Properties();
-properties.put("serverAddr", serverAddr);
+properties.
+
+put("serverAddr",serverAddr);
+
 ConfigService configService = NacosFactory.createConfigService(properties);
 // 2. 读取配置
 String content = configService.getConfig(dataId, group, 5000);
 // 3. 添加配置监听器
-configService.addListener(dataId, group, new Listener() {
-        @Override
-        public void receiveConfigInfo(String configInfo) {
+configService.
+
+addListener(dataId, group, new Listener() {
+    @Override
+    public void receiveConfigInfo (String configInfo){
         // 配置变更的通知处理
-                System.out.println("recieve1:" + configInfo);
-        }
-        @Override
-        public Executor getExecutor() {
-                return null;
-        }
+        System.out.println("recieve1:" + configInfo);
+    }
+    @Override
+    public Executor getExecutor () {
+        return null;
+    }
 });
 ```
 
@@ -3383,47 +3677,54 @@ configService.addListener(dataId, group, new Listener() {
 因此 ConfigService 已经在 com.alibaba.cloud.nacos.NacosConfigAutoConfiguration 中自动创建好了：
 
 ```java
+
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(name = {"spring.cloud.nacos.config.enabled"}, matchIfMissing = true)
 public class NacosConfigAutoConfiguration {
-  @Bean
-  public NacosConfigManager nacosConfigManager(NacosConfigProperties nacosConfigProperties) {
-    return new NacosConfigManager(nacosConfigProperties);
-  }
+    @Bean
+    public NacosConfigManager nacosConfigManager(NacosConfigProperties nacosConfigProperties) {
+        return new NacosConfigManager(nacosConfigProperties);
+    }
 }
 ```
 
-因为 NacosConfigManager 是一个 Bean，所以它可以自动注入，并且 NacosConfigManager 是负责管理 Nacos 的 ConfigService 的，因此，只要拿到 NacosConfigManager 就等于拿到了 ConfigService，即可以连接到 Nacos 了。具体代码如下：
+因为 NacosConfigManager 是一个 Bean，所以它可以自动注入，并且 NacosConfigManager 是负责管理 Nacos 的 ConfigService
+的，因此，只要拿到 NacosConfigManager 就等于拿到了 ConfigService，即可以连接到 Nacos 了。具体代码如下：
 
 ```java
 // 配置管理器
 public class NacosConfigManager {
   ...
-  public NacosConfigManager(NacosConfigProperties nacosConfigProperties) {
-    this.nacosConfigProperties = nacosConfigProperties;
-    createConfigService(nacosConfigProperties); // 创建 configService
-  }
-  static ConfigService createConfigService(NacosConfigProperties nacosConfigProperties) {
-    ...
-    service = NacosFactory.createConfigService(nacosConfigProperties.assembleConfigServiceProperties());
-    ...
-    return service;
-  }
-  public ConfigService getConfigService() { // 读取 configService
-    if (Objects.isNull(service)) {
-      createConfigService(this.nacosConfigProperties);
+
+    public NacosConfigManager(NacosConfigProperties nacosConfigProperties) {
+        this.nacosConfigProperties = nacosConfigProperties;
+        createConfigService(nacosConfigProperties); // 创建 configService
     }
-    return service;
-  }
+
+    static ConfigService createConfigService(NacosConfigProperties nacosConfigProperties) {
+    ...
+        service = NacosFactory.createConfigService(nacosConfigProperties.assembleConfigServiceProperties());
+    ...
+        return service;
+    }
+
+    public ConfigService getConfigService() { // 读取 configService
+        if (Objects.isNull(service)) {
+            createConfigService(this.nacosConfigProperties);
+        }
+        return service;
+    }
   ...
 }
 ```
 
-第二步，编写监听器。虽然官方提供的 SDK 是 ConfigService 中的 addListener，不过项目第一次启动时不仅仅需要添加监听器，也需要读取配置，因此建议使用的 API 是这个：
+第二步，编写监听器。虽然官方提供的 SDK 是 ConfigService 中的 addListener，不过项目第一次启动时不仅仅需要添加监听器，也需要读取配置，因此建议使用的
+API 是这个：
 
 ```java
 // ConfigService 接口中的方法
 String getConfigAndSignListener(String var1, String var2, long var3, Listener var5) throws NacosException;
+
 // 实现类中的配置
 String getConfigAndSignListener(
         String dataId, // 配置文件id
@@ -3433,28 +3734,38 @@ String getConfigAndSignListener(
 ) throws NacosException;
 ```
 
-该方法既可以配置监听器，还会根据 dataId 和 group 读取配置并返回，然后就可以在项目启动时先更新一次路由，后续随着配置变更通知到监听器，完成路由更新。在 Spring Cloud Gateway 中，
-所有的路由定义最终都要写入到 RouteDefinitionRouteLocator 维护的内存路由表中，而写入这张表的接口就是 RouteDefinitionWriter，它提供了两个功能：
+该方法既可以配置监听器，还会根据 dataId 和 group 读取配置并返回，然后就可以在项目启动时先更新一次路由，后续随着配置变更通知到监听器，完成路由更新。在
+Spring Cloud Gateway 中，
+所有的路由定义最终都要写入到 RouteDefinitionRouteLocator 维护的内存路由表中，而写入这张表的接口就是
+RouteDefinitionWriter，它提供了两个功能：
 
 ```java
 public interface RouteDefinitionWriter {
-        // 更新路由到路由表，如果路由id重复，则会覆盖旧的路由
-        Mono<Void> save(Mono<RouteDefinition> route);
-        // 根据路由id删除某个路由
-        Mono<Void> delete(Mono<String> routeId);
+    // 更新路由到路由表，如果路由id重复，则会覆盖旧的路由
+    Mono<Void> save(Mono<RouteDefinition> route);
+
+    // 根据路由id删除某个路由
+    Mono<Void> delete(Mono<String> routeId);
 }
 ```
 
-因为 Spring Cloud Gateway 默认是基于配置文件静态加载路由表，而现在是要从 Nacos 配置中心动态获取路由表然后再写入内存中，所以需要手动调用该接口的两个方法。而保存到 Nacos 的配置则使用 json 的格式，
-因为动态路由机制是代码主动拉取并解析配置，而 RouteDefinitionWriter 是基于 JSON 对象模型进行解析的，它不能像 Spring Boot 一样自动解析 yaml 格式的数据。例如：
+因为 Spring Cloud Gateway 默认是基于配置文件静态加载路由表，而现在是要从 Nacos 配置中心动态获取路由表然后再写入内存中，所以需要手动调用该接口的两个方法。而保存到
+Nacos 的配置则使用 json 的格式，
+因为动态路由机制是代码主动拉取并解析配置，而 RouteDefinitionWriter 是基于 JSON 对象模型进行解析的，它不能像 Spring Boot
+一样自动解析 yaml 格式的数据。例如：
 
 ```json
 {
   "id": "item",
-  "predicates": [{
-    "name": "Path",
-    "args": {"_genkey_0":"/items/**", "_genkey_1":"/search/**"}
-  }],
+  "predicates": [
+    {
+      "name": "Path",
+      "args": {
+        "_genkey_0": "/items/**",
+        "_genkey_1": "/search/**"
+      }
+    }
+  ],
   "filters": [],
   "uri": "lb://item-service"
 }
@@ -3470,10 +3781,10 @@ public interface RouteDefinitionWriter {
     <groupId>com.alibaba.cloud</groupId>
     <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
 </dependency>
-<!--加载bootstrap-->
+        <!--加载bootstrap-->
 <dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-bootstrap</artifactId>
+<groupId>org.springframework.cloud</groupId>
+<artifactId>spring-cloud-starter-bootstrap</artifactId>
 </dependency>
 ```
 
@@ -3496,11 +3807,15 @@ spring:
 
 3、编写代码
 
-因为把 DynamicRouteLoader 写成了一个配置类，所以它在 SpringBoot 加载时就会被初始化，而 initRouteConfigListener() 被添加了 @PostConstruct 注解（Bean 初始化后会自动执行），
-所以它会在 Bean 初始化后就注册监听并拉取 Nacos 中的配置文件，然后通过 RouteDefinitionWriter 更新与删除路由表。需要注意的是：RouteDefinitionWriter 没有提供更新操作，只有新增操作，
-所以如果要保证整体路由表的实时性，需要在每次 Nacos 更新数据时，这里执行删除所有内存中路由的操作，然后再把 Nacos 中的所有路由添加进内存。
+因为把 DynamicRouteLoader 写成了一个配置类，所以它在 SpringBoot 加载时就会被初始化，而 initRouteConfigListener() 被添加了
+@PostConstruct 注解（Bean 初始化后会自动执行），
+所以它会在 Bean 初始化后就注册监听并拉取 Nacos 中的配置文件，然后通过 RouteDefinitionWriter
+更新与删除路由表。需要注意的是：RouteDefinitionWriter 没有提供更新操作，只有新增操作，
+所以如果要保证整体路由表的实时性，需要在每次 Nacos 更新数据时，这里执行删除所有内存中路由的操作，然后再把 Nacos
+中的所有路由添加进内存。
 
 ```java
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -3566,20 +3881,26 @@ public class DynamicRouteLoader {
 ```json
 // 监听到路由配置变更：
 [
-    {
-        "id": "item",
-        "predicates": [{
-            "name": "Path",
-            "args": {"_genkey_0":"/items/**", "_genkey_1":"/search/**"}
-        }],
-        "filters": [],
-        "uri": "lb://item-service"
-    },
+  {
+    "id": "item",
+    "predicates": [
+      {
+        "name": "Path",
+        "args": {
+          "_genkey_0": "/items/**",
+          "_genkey_1": "/search/**"
+        }
+      }
+    ],
+    "filters": [],
+    "uri": "lb://item-service"
+  },
   ...
 ]
 ```
 
 ****
+
 # 五、微服务保护和分布式事务
 
 ## 1. 微服务保护
@@ -3593,6 +3914,7 @@ public class DynamicRouteLoader {
 此时查询购物车业务需要查询并等待商品查询结果，从而导致查询购物车列表业务的响应时间也变长，甚至也阻塞直至无法访问。而整个微服务中，都可能存在类似的问题，最终导致整个集群不可用。
 
 ****
+
 ### 1.2 服务保护方案
 
 1、请求限流
@@ -3615,6 +3937,7 @@ public class DynamicRouteLoader {
 - 异常统计和熔断：统计服务提供方的异常比例，当比例过高表明该接口会影响到其它服务，应该拒绝调用该接口，并直接走降级逻辑
 
 ****
+
 ## 2. Sentinel
 
 ### 2.1 安装
@@ -3624,7 +3947,8 @@ Sentinel 是阿里巴巴开源的一款面向分布式服务架构的流量控�
 
 Sentinel 的使用可以分为两个部分:
 
-- 核心库（Jar包）：不依赖任何框架/库，能够运行于 Java 8 及以上的版本的运行时环境，同时对 Dubbo / Spring Cloud 等框架也有较好的支持。在项目中引入依赖即可实现服务限流、隔离、熔断等功能。
+- 核心库（Jar包）：不依赖任何框架/库，能够运行于 Java 8 及以上的版本的运行时环境，同时对 Dubbo / Spring Cloud
+  等框架也有较好的支持。在项目中引入依赖即可实现服务限流、隔离、熔断等功能。
 - 控制台（Dashboard）：Dashboard 主要负责管理推送规则、监控、管理机器信息等。
 
 具体使用步骤：
@@ -3652,7 +3976,7 @@ java "-Dserver.port=8099" "-Dcsp.sentinel.dashboard.server=localhost:8099" "-Dpr
 ```xml
 <!--sentinel-->
 <dependency>
-    <groupId>com.alibaba.cloud</groupId> 
+    <groupId>com.alibaba.cloud</groupId>
     <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
 </dependency>
 ```
@@ -3663,7 +3987,7 @@ java "-Dserver.port=8099" "-Dcsp.sentinel.dashboard.server=localhost:8099" "-Dpr
 
 ```yaml
 spring:
-  cloud: 
+  cloud:
     sentinel:
       transport:
         dashboard: localhost:8099
@@ -3673,10 +3997,13 @@ spring:
 
 重启 cart-service，然后访问查询购物车接口，sentinel 的客户端就会将服务访问的信息提交到 sentinel-dashboard 控制台，并展示出统计信息。
 
-点击簇点链路可以看到类似 controller 层的请求路径。所谓簇点链路，就是单机调用链路，是一次请求进入服务后经过的每一个被 Sentinel 监控的资源。默认情况下，
+点击簇点链路可以看到类似 controller 层的请求路径。所谓簇点链路，就是单机调用链路，是一次请求进入服务后经过的每一个被
+Sentinel 监控的资源。默认情况下，
 Sentinel 会监 控SpringMVC 的每一个 Endpoint（即 Http 接口）。所以看到的 /carts 接口路径就是其中一个簇点，可以对其进行限流、熔断、隔离等保护措施。
-不过，需要注意的是，该项目的 SpringMVC 接口是按照 Restful 风格设计，因此购物车的查询、删除、修改等接口全部都是 /carts 路径。而默认情况下，Sentinel 会把路径作为簇点资源的名称，
-无法区分路径相同但请求方式不同的接口，而查询、删除、修改等都被识别为一个簇点资源，这显然是不合适的。所以可以选择打开 Sentinel 的请求方式前缀，把请求方式 + 请求路径作为簇点资源名。
+不过，需要注意的是，该项目的 SpringMVC 接口是按照 Restful 风格设计，因此购物车的查询、删除、修改等接口全部都是 /carts
+路径。而默认情况下，Sentinel 会把路径作为簇点资源的名称，
+无法区分路径相同但请求方式不同的接口，而查询、删除、修改等都被识别为一个簇点资源，这显然是不合适的。所以可以选择打开 Sentinel
+的请求方式前缀，把请求方式 + 请求路径作为簇点资源名。
 在 cart-service 的 application.yml 中添加下面的配置：
 
 ```yaml
@@ -3689,16 +4016,21 @@ spring:
 ```
 
 ****
+
 ### 2.2 请求限流
 
-在簇点链路后面点击流控按钮，即可对其做限流配置，在弹出的菜单中的阈值类型选择 QPS，单机阈值填写 6，这样就把查询购物车列表这个簇点资源的流量限制在了每秒 6 个，也就是最大 QPS 为 6。
-利用 JMeter 进行测试，开启 1000 个线程，运行时间为 100 s，所以大概是 1 s 运行 10 次，而 GET:/carts 这个接口的通过 QPS 稳定在 6 附近，而拒绝的 QPS 在 4 附近。
+在簇点链路后面点击流控按钮，即可对其做限流配置，在弹出的菜单中的阈值类型选择 QPS，单机阈值填写 6，这样就把查询购物车列表这个簇点资源的流量限制在了每秒
+6 个，也就是最大 QPS 为 6。
+利用 JMeter 进行测试，开启 1000 个线程，运行时间为 100 s，所以大概是 1 s 运行 10 次，而 GET:/carts 这个接口的通过 QPS 稳定在
+6 附近，而拒绝的 QPS 在 4 附近。
 
 ****
+
 ### 2.3 线程隔离
 
 限流可以降低服务器压力，尽量减少因并发流量引起的服务故障的概率，但并不能完全避免服务故障，一旦某个服务出现故障，就必须隔离对这个服务的调用，避免发生雪崩。比如，查询购物车的时候需要查询商品，
-为了避免因商品服务出现故障导致购物车服务级联失败，可以把购物车业务中查询商品的部分隔离起来，限制可用的线程资源。而查询商品又调用了别的微服务的功能，它不涉及 Http 请求，
+为了避免因商品服务出现故障导致购物车服务级联失败，可以把购物车业务中查询商品的部分隔离起来，限制可用的线程资源。而查询商品又调用了别的微服务的功能，它不涉及
+Http 请求，
 所以要通过 OpenFeign 整合 Sentinel。
 
 修改 cart-service 模块的 application.yml 文件，开启 Feign 的 sentinel 功能：
@@ -3709,7 +4041,8 @@ feign:
     enabled: true # 开启feign对sentinel的支持
 ```
 
-需要注意的是，默认情况下 SpringBoot 项目的 tomcat 最大线程数是 200，允许的最大连接是 8492，单机测试很难打满。所以需要配置一下 cart-service 模块的 application.yml 文件，
+需要注意的是，默认情况下 SpringBoot 项目的 tomcat 最大线程数是 200，允许的最大连接是 8492，单机测试很难打满。所以需要配置一下
+cart-service 模块的 application.yml 文件，
 修改 tomcat 连接：
 
 ```yaml
@@ -3732,6 +4065,7 @@ GET:/carts
 需要注意的是：这里使用的 spring-cloud-alibaba 依赖不能使用 2022.x 版本的了，不然会报错，得换用 2023 版本：
 
 ```xml
+
 <dependency>
     <groupId>com.alibaba.cloud</groupId>
     <artifactId>spring-cloud-alibaba-dependencies</artifactId>
@@ -3741,16 +4075,21 @@ GET:/carts
 </dependency>
 ```
 
-点击查询商品的 FeignClient 对应的簇点资源后面的流控按钮，选择并发线程数，单机阈值填写 5，注意，这里勾选的是并发线程数限制，也就是说这个查询功能最多使用 5 个线程，
-而不是 5QPS。一个线程对应 2 个 QPS 如果查询商品的接口每秒处理 2 个请求，则 5 个线程的实际 QPS 在 10 左右，而超出的请求自然会被拒绝。利用 Jemeter 测试，创建 5000 个线程，
-运行时间 50 s，即每秒发送 100 个请求，最终测试结果：进入查询购物车的请求每秒大概在 100，但基本都拒绝九十多个请求，而在查询商品时却只剩下每秒 10 左右，符合预期。
+点击查询商品的 FeignClient 对应的簇点资源后面的流控按钮，选择并发线程数，单机阈值填写 5，注意，这里勾选的是并发线程数限制，也就是说这个查询功能最多使用
+5 个线程，
+而不是 5QPS。一个线程对应 2 个 QPS 如果查询商品的接口每秒处理 2 个请求，则 5 个线程的实际 QPS 在 10 左右，而超出的请求自然会被拒绝。利用
+Jemeter 测试，创建 5000 个线程，
+运行时间 50 s，即每秒发送 100 个请求，最终测试结果：进入查询购物车的请求每秒大概在 100，但基本都拒绝九十多个请求，而在查询商品时却只剩下每秒
+10 左右，符合预期。
 此时如果通过页面访问购物车的其它接口，例如添加购物车、修改购物车商品数量，发现不受影响，响应时间非常短，这就证明线程隔离起到了作用，尽管查询购物车这个接口并发很高，
 但是它能使用的线程资源被限制了，因此不会影响到其它接口。
 
 ****
+
 ### 2.4 服务熔断
 
-上面利用线程隔离对查询购物车业务进行隔离，保护了购物车服务的其它接口，但由于查询商品的功能耗时较高（模拟了 500 毫秒延时），再加上线程隔离限定了线程数为5，导致接口吞吐能力有限，
+上面利用线程隔离对查询购物车业务进行隔离，保护了购物车服务的其它接口，但由于查询商品的功能耗时较高（模拟了 500
+毫秒延时），再加上线程隔离限定了线程数为5，导致接口吞吐能力有限，
 最终 QPS 只有 10 左右。这就导致了几个问题：
 
 1、超出的 QPS 上限的请求就只能抛出异常，从而导致购物车的查询失败。但从业务角度来说，即便没有查询到最新的商品信息，购物车也应该展示给用户，用户体验更好。
@@ -3769,6 +4108,7 @@ GET:/carts
 1、在 hm-api 模块中给 ItemClient 定义降级处理类，实现 FallbackFactory：
 
 ```java
+
 @Slf4j
 public class ItemClientFallback implements FallbackFactory<ItemClient> {
     @Override
@@ -3780,6 +4120,7 @@ public class ItemClientFallback implements FallbackFactory<ItemClient> {
                 // 查询购物车允许失败，查询失败，返回空集合
                 return CollUtils.emptyList();
             }
+
             @Override
             public void deductStock(List<OrderDetailDTO> items) {
                 // 库存扣减业务需要触发事务回滚，查询失败，抛出异常
@@ -3793,8 +4134,9 @@ public class ItemClientFallback implements FallbackFactory<ItemClient> {
 2、在 hm-api 模块中的 com.hmall.api.config.DefaultFeignConfig 类中将 ItemClientFallback 注册为一个 Bean：
 
 ```java
+
 @Bean
-public ItemClientFallback itemClientFallback(){
+public ItemClientFallback itemClientFallback() {
     return new ItemClientFallback();
 }
 ```
@@ -3802,13 +4144,15 @@ public ItemClientFallback itemClientFallback(){
 3、在 hm-api 模块中的 ItemClient 接口中使用 ItemClientFallbackFactory：
 
 ```java
-@FeignClient(name = "item-service",configuration = DefaultFeignConfig.class, fallbackFactory = ItemClientFallback.class)
+
+@FeignClient(name = "item-service", configuration = DefaultFeignConfig.class, fallbackFactory = ItemClientFallback.class)
 public interface ItemClient {
   ...
 }
 ```
 
 ****
+
 #### 2. 服务熔断
 
 查询商品的 RT 较高（模拟的 500ms），从而导致查询购物车的RT也变的很长，这样不仅拖慢了购物车服务，消耗了购物车服务的更多资源，而且用户体验也很差。对于商品服务这种不太健康的接口，
@@ -3820,10 +4164,11 @@ Sentinel 中的断路器不仅可以统计某个接口的慢请求比例，还�
 断路器的工作状态切换有一个状态机来控制，状态机包括三个状态：
 
 - closed：关闭状态，断路器放行所有请求，并开始统计异常比例、慢请求比例。超过阈值则切换到 open 状态
-- open：打开状态，服务调用被熔断，访问被熔断服务的请求会被拒绝，快速失败，直接走降级逻辑。Open 状态持续一段时间后会进入 half-open 状态
+- open：打开状态，服务调用被熔断，访问被熔断服务的请求会被拒绝，快速失败，直接走降级逻辑。Open 状态持续一段时间后会进入
+  half-open 状态
 - half-open：半开状态，放行一次请求，根据执行结果来判断接下来的操作。
-  - 请求成功：则切换到 closed 状态
-  - 请求失败：则切换到 open 状态
+    - 请求成功：则切换到 closed 状态
+    - 请求失败：则切换到 open 状态
 
 可以在控制台通过点击簇点后的熔断按钮来配置熔断策略，在弹出的表格中填写：
 
@@ -3842,6 +4187,675 @@ Sentinel 中的断路器不仅可以统计某个接口的慢请求比例，还�
 观察 Sentinel 的实时监控，在一开始一段时间是允许访问的，后来触发熔断后，查询商品服务的接口通过 QPS 直接为 0，所有请求都被熔断了，而查询购物车的本身并没有受到影响。
 
 ****
+
+## 3. 分布式事务
+
+### 3.1 概述
+
+由于订单、购物车、商品分别在三个不同的微服务，而每个微服务都有自己独立的数据库，因此下单过程中就会跨多个数据库完成业务。而每个微服务都会执行自己的本地事务：
+
+- 交易服务：下单事务
+- 购物车服务：清理购物车事务
+- 库存服务：扣减库存事务
+
+整个业务中，各个本地事务是有关联的。因此每个微服务的本地事务，也可以称为分支事务。多个有关联的分支事务一起就组成了全局事，所以必须保证整个全局事务同时成功或失败。
+
+****
+### 3.2 Seata
+
+分布式事务产生的一个重要原因，就是参与事务的多个分支事务互相无感知，不知道彼此的执行状态，因此可以找一个统一的事务协调者，与多个分支事务通信，检测每个分支事务的执行状态，
+保证全局事务下的每一个分支事务同时成功或失败即可，大多数的分布式事务框架都是基于这个理论来实现的。Seata 也不例外，在 Seata
+的事务管理中有三个重要的角色：
+
+- TC (Transaction Coordinator) - 事务协调者：是 Seata 的服务端，维护全局和分支事务的状态，协调全局事务提交或回滚
+- TM (Transaction Manager) - 事务管理器：是发起全局事务的客户端组件，通常集成在发起服务中；定义全局事务的范围、开始全局事务、提交或回滚全局事务，告诉
+  TC 什么时候开始和结束
+- RM (Resource Manager) - 资源管理器：管理分支事务，向 TC 注册分支事务，并汇报其执行结果；接收 TC 的指令决定提交还是回滚本地事务
+
+TM 和 RM 可以理解为 Seata 的客户端部分，引入到参与事务的微服务依赖中即可。将来 TM 和 RM 就会协助微服务，实现本地分支事务与
+TC 之间交互，实现事务的提交或回滚。
+而 TC 服务则是事务协调中心，是一个独立的微服务，需要单独部署。
+
+****
+
+### 3.3 部署 TC 服务
+
+#### 1. 创建 docker 容器
+
+1、创建网络
+
+```shell
+docker network create hm-net
+```
+
+2、将 mysql 和 nacos 添加进 hm-net 网络
+
+```shell
+docker network connect hm-net mysql
+docker network connect hm-net nacos
+```
+
+3、为确保持久化的需要，选择基于数据库存储 seata，添加对应的数据库并存入数据
+
+4、进入本地磁盘的 seata 文件所在目录，然后执行如下命令，创建 seata 容器：
+
+```shell
+cd /mnt/d/docker_dataMountDirectory
+```
+
+```shell
+docker run --name seata \
+-p 8099:8099 \
+-p 7099:7099 \
+-e SEATA_IP=192.168.0.105 \
+-v ./seata:/seata-server/resources \
+--privileged=true \
+--network hm-net \
+-d \
+seataio/seata-server:1.5.2
+```
+
+****
+
+#### 2. 微服务集成 seata
+
+1、引入依赖
+
+为了方便各个微服务集成 seata，需要把 seata 配置共享到 nacos，因此 trade-service 模块不仅仅要引入 seata 依赖，还要引入 nacos
+依赖:
+
+```xml
+<!--统一配置管理-->
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+</dependency>
+        <!--读取bootstrap文件-->
+<dependency>
+<groupId>org.springframework.cloud</groupId>
+<artifactId>spring-cloud-starter-bootstrap</artifactId>
+</dependency>
+        <!--seata-->
+<dependency>
+<groupId>com.alibaba.cloud</groupId>
+<artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+</dependency>
+```
+
+2、在 nacos 上添加一个共享的 seata 配置，命名为 shared-seata.yaml：
+
+```yaml
+seata:
+  registry: # TC服务注册中心的配置，微服务根据这些信息去注册中心获取tc服务地址
+    type: nacos # 注册中心类型 nacos
+    nacos:
+      server-addr: host.docker.internal:8848 # nacos地址
+      namespace: "" # namespace，默认为空
+      group: DEFAULT_GROUP # 分组，默认是DEFAULT_GROUP
+      application: seata-server # seata服务名称
+      username: nacos
+      password: nacos
+  tx-service-group: hmall # 事务组名称
+  service:
+    vgroup-mapping: # 事务组与tc集群的映射关系
+      hmall: "default"
+```
+
+3、为 trade-service 模块添加 bootstrap.yaml 并修改 application.yaml 文件（hm-cart 和 hm-item 同理）：
+
+```yaml
+spring:
+  application:
+    name: trade-service # 服务名称
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: host.docker.internal # nacos地址
+      config:
+        file-extension: yaml # 文件后缀名
+        shared-configs: # 共享配置
+          - dataId: shared-jdbc.yaml # 共享mybatis配置
+          - dataId: shared-log.yaml # 共享日志配置
+          - dataId: shared-swagger.yaml # 共享日志配置
+          - dataId: shared-seata.yaml # 共享seata配置
+```
+
+```yaml
+server:
+  port: 8084
+feign:
+  sentinel:
+    enabled: true # 开启Feign对Sentinel的整合
+hm:
+  swagger:
+    title: 交易服务接口文档
+    package: com.hmall.trade.controller
+  db:
+    database: hm-trade
+```
+
+4、将 seata-at.sql 分别文件导入 hm-trade、hm-cart、hm-item 三个数据库中
+
+5、测试
+
+将对应微服务的 @Transactional 注解改为 Seata 提供的 @GlobalTransactional，该注解就是在标记事务的起点，将来 TM
+就会基于这个方法判断全局事务范围，初始化全局事务。
+
+****
+
+### 3.4 XA 模式
+
+XA 是一种分布式事务协议，它是一个 两阶段提交（2PC）协议，由两大角色组成：
+
+- Transaction Manager（TM）：全局事务协调者，负责协调多个本地事务的一致提交
+- Resource Manager（RM）：资源管理器，通常是数据库、消息队列等，负责执行本地事务
+
+一阶段：
+
+- 事务协调者通知每个事务参与者执行本地事务
+- 本地事务执行完成后报告事务执行状态给事务协调者，此时事务不提交，继续持有数据库锁
+
+二阶段：
+
+- 事务协调者基于一阶段的报告来判断下一步操作
+- 如果一阶段都成功，则通知所有事务参与者，提交事务
+- 如果一阶段任意一个参与者失败，则通知所有事务参与者回滚事务
+
+而 Seata 对原始的 XA 模式做了简单的封装和改造，以适应自己的事务模型：
+
+RM 一阶段的工作：
+
+1. 注册分支事务到 TC
+2. 执行分支业务 sql 但不提交
+3. 报告执行状态到 TC
+
+TC 二阶段的工作：
+
+1. TC 检测各分支事务执行状态
+    1. 如果都成功，通知所有 RM 提交事务
+    2. 如果有失败，通知所有 RM 回滚事务
+
+RM 二阶段的工作：
+
+- 接收 TC 指令，提交或回滚事务
+
+优点：
+
+- 事务的强一致性，满足 ACID 原则
+- 常用数据库都支持，实现简单，并且没有代码侵入
+
+缺点：
+
+- 因为一阶段需要锁定数据库资源，等待二阶段结束才释放，性能较差
+- 依赖关系型数据库实现事务
+
+实现步骤：
+
+1、在配置文件中指定要采用的分布式事务模式，可以在 Nacos 中的共享 shared-seata.yaml 配置文件中设置：
+
+```yaml
+seata:
+  data-source-proxy-mode: XA
+```
+
+2、添加 @GlobalTransactional 标记分布式事务的入口
+
+****
+
+### 3.5 AT 模式
+
+AT 模式同样是分阶段提交的事务模型，不过缺弥补了 XA 模型中资源锁定周期过长的缺陷。
+
+阶段一 RM 的工作：
+
+- 注册分支事务
+- 记录 undo-log（数据快照）
+- 执行业务 sql 并提交
+- 报告事务状态
+
+阶段二提交时 RM 的工作：
+
+- 删除 undo-log
+
+阶段二回滚时 RM 的工作：
+
+- 根据 undo-log 恢复数据到更新前
+
+实现步骤与 XA 模式一致，只需要把 Nacos 中的共享文件中的 XA 修改为 AT，而 AT 是默认的模式，所以可以不写：
+
+```yaml
+seata:
+# data-source-proxy-mode: AT
+```
+
+例如，现在有一个数据库表，记录用户余额，其中一个分支业务要执行的 SQL 为：
+
+```sql
+update tb_account
+set money = money - 10
+where id = 1
+```
+
+AT 模式下，当前分支事务执行流程如下：
+
+一阶段：
+
+1. TM 发起并注册全局事务到 TC
+2. TM 调用分支事务
+3. 分支事务准备执行业务 SQL
+4. RM 拦截业务 SQL，根据 where 条件查询原始数据，形成快照
+
+```json
+{
+  "id": 1,
+  "money": 100
+}
+```
+
+1. RM 执行业务 SQL，提交本地事务，释放数据库锁，此时 money = 90
+2. RM 报告本地事务状态给 TC
+
+二阶段：
+
+1. TM 通知 TC 事务结束
+2. TC 检查分支事务状态
+    1. 如果都成功，则立即删除快照
+    2. 如果有分支事务失败，需要回滚。读取快照数据（{"id": 1, "money": 100}），将快照恢复到数据库，此时数据库再次恢复为 100
+
+****
+
+### 3.6 AT 与 XA 的区别
+
+- XA模式一阶段不提交事务，锁定资源；AT模式一阶段直接提交，不锁定资源。
+- XA模式依赖数据库机制实现回滚；AT模式利用数据快照实现数据回滚。
+- XA模式强一致；AT模式最终一致
+
+****
+
+# 六、MQ
+
+## 1. 概述
+
+### 1.1 同步调用
+
+当前项目是基于 OpenFeign 的，所以它的调用都属于是同步调用，它属于一请求一线程，线程阻塞等待响应。这其中就存在 3 个问题：
+
+1、拓展性差
+
+目前的业务相对简单，但是随着业务规模扩大，后续肯定会新增很多功能，但是基于同步调用的机制，新增的功能可能影响原有的功能，导致现有的代码逻辑每次都会随着功能的迭代而更新，
+这就违背了开闭原则。
+
+2、性能下降
+
+由于采用了同步调用，调用者需要等待服务提供者执行完返回结果后，才能继续向下执行，也就是说每次远程调用，调用者都是阻塞等待状态。最终整个业务的响应时长就是每次远程调用的执行时长之和。
+如果每个微服务的执行时长都是 50ms，则最终整个业务的耗时可能高达上百毫秒，性能很差。
+
+3、级联失败
+
+由于是基于 OpenFeign 来调用交易服务、通知服务。当交易服务、通知服务出现故障时，整个事务都会回滚，交易失败。但涉及到支付功能时，如果通知支付成功的接口发生故障，此时就会回滚所有事务，
+但用户可能已经完成支付，这就造成钱扣了而支付记录不存在，这样是不合理的。
+
+****
+
+### 1.2 异步调用
+
+异步调用方式就是基于消息通知的方式，一般包含三个角色：
+
+- 消息发送者：投递消息的人，就是原来的调用方
+- 消息 Broker：管理、暂存、转发消息，你可以把它理解成微信服务器
+- 消息接收者：接收和处理消息的人，就是原来的服务提供方
+
+在异步调用中，发送者不再直接同步调用接收者的业务接口，而是发送一条消息投递给消息 Broker，然后接收者根据自己的需求从消息
+Broker 那里订阅消息。每当发送方发送消息后，
+接受者都能获取消息并处理，这样发送消息的人和接收消息的人就完全解耦了。而对于扩展新功能来说，也只需要让原有的功能调用完成后发送消息给
+Broker，再让性功能接收 Broker 的消息即可，
+而整个流程耗时的只是这三个角色的时间，也就是说不管有多少功能，它们都只耗时发送消息时间+更新数据时间+接收消息时间。
+
+****
+
+### 1.3 技术选型
+
+对于消息 Broker 来说，目前常见的实现方案就是消息队列（MessageQueue），简称为 MQ。目比较常见的MQ实现：
+
+- ActiveMQ
+- RabbitMQ
+- RocketMQ
+- Kafka
+
+RabbitMQ：
+
+由 Rabbit 公司 / 社区维护，采用 Erlang 语言开发，支持多种协议，可用性高，消息延迟达微秒级，消息可靠性高（发送消息后确保消费者至少消费一次），但单机吞吐量表现一般，
+适用于对可靠性要求高、对吞吐量要求不是极致的场景，比如金融交易的消息通知等。
+
+ActiveMQ：
+
+属于 Apache 社区，基于 Java 开发，协议支持丰富，不过可用性一般，单机吞吐量差，消息延迟为毫秒级，消息可靠性一般，在一些传统企业应用中可能会有使用，
+但逐渐被其他更优的消息队列替代。
+
+RocketMQ：
+
+由阿里开发（后捐赠给 Apache），使用 Java 语言，采用自定义协议，可用性高，单机吞吐量高，消息延迟毫秒级，消息可靠性高，适合大规模分布式系统、高吞吐量的业务场景，
+像电商的订单交易、物流信息推送等场景常用。
+
+Kafka：
+
+归属于 Apache 社区，基于 Scala 和 Java 开发，自定义协议，可用性高，单机吞吐量非常高，消息延迟能控制在毫秒以内，不过消息可靠性一般，常用于大数据流式处理、
+日志采集等对吞吐量要求极高、对可靠性要求相对没那么严苛的场景，例如实时日志分析系统。
+
+| 对比维度  | RabbitMQ             | ActiveMQ                      | RocketMQ | Kafka      |
+|-------|----------------------|-------------------------------|----------|------------|
+| 公司/社区 | Rabbit               | Apache                        | 阿里       | Apache     |
+| 开发语言  | Erlang               | Java                          | Java     | Scala&Java |
+| 协议支持  | AMQP，XMPP，SMTP，STOMP | OpenWire，STOMP，REST，XMPP，AMQP | 自定义协议    | 自定义协议      |
+| 可用性   | 高                    | 一般                            | 高        | 高          |
+| 单机吞吐量 | 一般（每秒十万）             | 差                             | 高        | 非常高（每秒百万）  |
+| 消息延迟  | 微秒级                  | 毫秒级                           | 毫秒级      | 毫秒以内       |
+| 消息可靠性 | 高                    | 一般                            | 高        | 一般         | 
+
+****
+## 2. RabbitMQ
+
+### 2.1 安装
+
+```shell
+docker run \
+ -e RABBITMQ_DEFAULT_USER=rabbitmq \
+ -e RABBITMQ_DEFAULT_PASS=rabbitmq \
+ -v mq-plugins:/plugins \
+ --name mq \
+ --hostname mq \
+ -p 15672:15672 \
+ -p 5672:5672 \
+ --network hm-net\
+ -d \
+ rabbitmq:4.1.0-management
+```
+
+两个映射的端口：
+
+- 15672：RabbitMQ 提供的管理控制台的端口
+- 5672：RabbitMQ 的消息发送处理接口
+
+安装完成后，访问 http://localhost:15672 即可看到管理控制台，首次访问需要登录，默认的用户名和密码在配置文件中已经指定了。
+
+关于 RabbitMQ，它有五个核心角色：
+
+1、生产者（Publisher）
+
+它是发送消息的一方，负责产生消息。比如在电商系统中，订单创建服务就可以作为生产者，当有新订单创建时，它将订单相关消息发送给 RabbitMQ。
+
+2、消费者（Consumer）
+
+它是接收并处理消息的一方，在电商系统中，库存服务可以作为消费者，接收订单创建服务发送的消息，从而更新库存信息。
+
+3、队列（Queue）
+
+队列用于存储消息，生产者发送的消息会暂时存放在队列中，等待消费者来获取和处理。一个队列可以有多个消费者，并且消息一旦被消费，通常会从队列中移除（默认情况，可配置持久化等策略）。
+例如在一个日志收集系统中，日志产生的消息会被发送到对应的队列中，由日志处理服务从队列里读取消息然后进行分析处理。
+
+4、交换机（Exchange）
+
+负责消息的路由。生产者将消息发送到交换机，交换机根据特定的路由规则（绑定关系），决定将消息投递到一个或多个队列中。RabbitMQ 支持多种类型的交换机，比如：
+
+- Direct Exchange（直连交换机）：根据消息携带的路由键（Routing Key）进行路由，只有当路由键完全匹配时，消息才会被投递到对应的队列 
+- Fanout Exchange（扇形交换机）：会将接收到的消息广播到所有绑定的队列，不考虑路由键
+- Topic Exchange（主题交换机）：根据路由键和绑定键的匹配规则进行路由，支持通配符，例如使用 "*" 匹配一个单词，"#" 匹配零个或多个单词
+- Headers Exchange（头交换机）：基于消息的头部属性进行路由，但使用相对较少
+
+5、虚拟主机（Virtual Host）
+
+起到数据隔离的作用，相当于一个独立的小型 RabbitMQ 服务器，每个虚拟主机都有自己独立的交换机、队列、绑定关系等，不同虚拟主机之间相互隔离，互不影响。可以用于多租户场景，
+或者在开发、测试、生产环境之间进行隔离 。
+
+****
+### 2.2 收发消息
+
+#### 1. 交换机
+
+打开 Exchanges 选项卡，可以看到已经存在很多交换机：
+
+| Virtual host | Name                  | Type    | Features | Message rate in | Message rate out |
+|--------------|-----------------------|---------|----------|-----------------|------------------|
+| /            | (AMQP default)        | direct  | D        |                 |                  |
+| /            | amq.direct            | direct  | D        |                 |                  |
+| /            | amq.fanout            | fanout  | D        |                 |                  |
+| /            | amq.headers           | headers | D        |                 |                  |
+| /            | amq.match             | headers | D        |                 |                  |
+| /            | amq.rabbitmq.trace    | topic   | D、I      |                 |                  |
+| /            | amq.topic             | topic   | D        |                 |                  | 
+
+- **Virtual host**：虚拟主机，用于在 RabbitMQ 中实现资源隔离，这里均为根虚拟主机 `/` 
+- **Name**：交换机名称，`(AMQP default)` 是默认直连交换机等，`amq.` 开头的多为 RabbitMQ 内置的交换机
+- **Type**：交换机类型，`direct`（直连）、`fanout`（扇形/广播）、`headers`（头匹配）、`topic`（主题），不同类型决定消息路由规则
+- **Features**：功能标识，`D` 一般代表可持久化（durable），`I` 可能是与内部（internal）相关特性（如 `amq.rabbitmq.trace` 用于消息追踪相关内部功能）
+- **Message rate in**：进入交换机的消息速率，图中暂未显示具体数值
+- **Message rate out**：从交换机出去的消息速率，图中也暂未显示具体数值
+
+然后点击任意交换机，就可以进入交换机详情页面，这里会利用控制台中的 publish message 发送一条消息：
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ Publish message                                             │
+├─────────────────────────────────────────────────────────────┤
+│ Routing key: [________________________]                     │
+│ Headers: ? [________________________] = [________________]  │  [String ▼]
+│ Properties: ? [_____________________] = [_______________]   │
+│ Payload:                                                    │
+│（在这填写消息体）                                              │
+│ [________________________________________________________]  │
+│                                                             │
+│ Payload encoding: String (default) ▼                        │
+│                                                             │
+│ [Publish message]                                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+这里是由控制台模拟了生产者发送的消息，由于没有消费者存在，最终消息就会丢失，这样也可以说明交换机没有存储消息的能力。
+
+****
+#### 2. 队列
+
+打开 Queues 选项卡，新建一个队列，命名为 hello.queue1，再以相同的方式，创建一个队列，命名为 hello.queue2。最终队列列表如下：
+
+| Overview    |          |          |          |          | Messages    |          |          | Message rates   |          |          |
+|-------------|----------|----------|----------|----------|-------------|----------|----------|-----------------|----------|----------|
+| Virtual host| Name     | Type     | Features | State    | Ready       | Unacked  | Total    | incoming        | deliver / get | ack      |
+| /           | hello.queue1 | classic | D、Args | running  | 0           | 0        | 0        |                 |               |          |
+| /           | hello.queue2 | classic | D、Args | running  | 0           | 0        | 0        |                 |               |          |
+
+此时向 amq.fanout 交换机发送一条消息，会发现消息依然没有到达队列，因为发送到交换机的消息只会路由到与其绑定的队列，所以只创建队列是不够的，还需要将其与交换机绑定。
+进入交换机页面，点击 Exchanges 选项卡，点击 amq.fanout 交换机，进入交换机详情页，然后点击 Bindings 菜单，在表单中填写要绑定的队列名称，然后再发送消息，可以发现消息发送成功。
+
+****
+### 2.3 数据隔离
+
+#### 1. 用户管理
+
+点击 Admin 选项卡，会看到 RabbitMQ 控制台的用户管理界面，这里的用户都是 RabbitMQ 的管理或运维人员，目前只有安装 RabbitMQ 时添加的 rabbitmq 这个用户。
+关于用户表格中的字段：
+
+- Name：rabbitmq，也就是用户名
+- Tags：administrator，说明 rabbitmq 用户是超级管理员，拥有所有权限
+- Can access virtual host：/，路径代表可以访问的 virtual host，这里的 / 是默认的 virtual host
+
+对于小型企业而言，出于成本考虑，他们通常只会搭建一套 MQ 集群，公司内的多个不同项目同时使用。为了避免互相干扰，他们会利用 virtual host 的隔离特性，将不同项目隔离。
+一般会做两件事情：
+
+- 给每个项目创建独立的运维账号，将管理权限分离
+- 给每个项目创建不同的virtual host，将每个项目的数据隔离
+
+比如给黑马商城创建一个新的用户，点击 Add a user 并命名为 hmall，此时可以发现 hmall 用户没有任何 virtual host 的访问权限：
+
+| Name     | Tags           | Can access virtual hosts  | Has password  |
+|----------|----------------|---------------------------|---------------|
+| hmall    | administrator  | No access（无访问权限）          | • （表示存在密码）    |
+| rabbitmq | administrator  | /（可访问根虚拟主机 ）              | • （表示存在密码）    |
+
+****
+#### 2. virtual host
+
+先退出登录，然后登录刚刚创建的 hmall，然后点击 Virtual Hosts 菜单，进入 virtual host 管理页，然后就可以看到目前只有一个默认的 virtual host，为 /：
+
+以下是对该表格内容及各列含义的整理，用 Markdown 表格呈现并附带详细解释：
+
+| Overview |          |          | Messages |          |          | Network |          | Message rates |          |
+| ---------------- | -------- | -------- | -------------------- | -------- | -------- | -------------------- | -------- | ------------------------- | -------- |
+| Name             | Users    | State    | Ready                | Unacked  | Total    | From client          | To client | publish                  | deliver / get |
+| /                | rabbitmq | running  | 0                    | 0        | 0        |                      |          |                           |          |
+
+此时点击 Add a new virtual host 给黑马商城项目创建一个单独的 virtual host，而不是使用默认的 /。由于目前登录的是 hmall 账户后创建的 virtual host，
+所以回到 users 菜单，可以发现当前用户已经具备了对 /hmall 这个 virtual host 的访问权限了：
+
+| Name     | Tags           | Can access virtual hosts  | Has password  |
+|----------|----------------|---------------------------|---------------|
+| hmall    | administrator  | No access（无访问权限）          | • （表示存在密码）    |
+| rabbitmq | administrator  | /（可访问根虚拟主机 ）              | • （表示存在密码）    |
+
+此时，点击页面右上角的 virtual host 下拉菜单，切换 virtual host 为 /hmall，然后查看 queues 选项卡，会发现之前的队列已经看不到了，这就是基于 virtual host 的隔离效果。
+
+****
+## 3. SpringAMQP
+
+### 3.1 概述
+
+未来开发业务功能的时候肯定不会在控制台收发消息，而是应该基于编程的方式，因为 RabbitMQ 采用了 AMQP 协议，所以它具备跨语言的特性。任何语言只要遵循 AMQP 协议收发消息，
+都可以与 RabbitMQ 交互，并且 RabbitMQ 官方也提供了各种不同语言的客户端。而 Spring 官方刚好基于 RabbitMQ 提供了这样一套消息收发的模板工具：SpringAMQP，
+并且还基于 SpringBoot 对其实现了自动装配。SpringAMQP  提供了三个功能：
+
+- 自动声明队列、交换机及其绑定关系
+- 基于注解的监听器模式，异步接收消息
+- 封装了 RabbitTemplate 工具，用于发送消息
+
+****
+### 3.2 基本使用
+
+在控制台新建一个 /hmall 下的队列：simple.queue，
+
+#### 1. 消息发送
+
+1、配置 MQ 地址，在 publisher 服务的 application.yml 中添加配置
+
+```yaml
+spring:
+  rabbitmq:
+    host: 127.0.0.1 # 你的虚拟机IP
+    port: 5672 # 端口
+    virtual-host: /hmall # 虚拟主机
+    username: hmall # 用户名
+    password: 123 # 密码
+```
+
+2、在 publisher 服务中编写测试类 SpringAmqpTest，并利用 RabbitTemplat e实现消息发送
+
+```java
+@Autowired
+private RabbitTemplate rabbitTemplate;
+
+@Test
+public void testSimpleQueue() {
+  // 队列名称
+  String queueName = "simple.queue";
+  // 消息
+  String message = "hello, spring amqp!";
+  // 发送消息
+  rabbitTemplate.convertAndSend(queueName, message);
+}
+```
+
+3、打开控制台，查看消息是否发送到队列中
+
+****
+#### 2. 消息接收
+
+1、配置 MQ 地址，在 consumer 服务的 application.yml 中添加配置：
+
+```yaml
+spring:
+  rabbitmq:
+    host: 127.0.0.1 # 虚拟机IP
+    port: 5672 # 端口
+    virtual-host: /hmall # 虚拟主机
+    username: hmall # 用户名
+    password: 123 # 密码
+```
+
+2、在 consumer 服务的 com.itheima.consumer.listener 包中新建一个类 SpringRabbitListener
+
+```java
+@Component
+public class SpringRabbitListener {
+    // 利用 RabbitListener 来声明要监听的队列信息
+    // 将来一旦监听的队列中有了消息，就会推送给当前服务，调用当前方法，处理消息
+    // 可以看到方法体中接收的就是消息体的内容
+    @RabbitListener(queues = "simple.queue")
+    public void listenSimpleQueueMessage(String msg) {
+        System.out.println("spring 消费者接收到消息：[" + msg + "]");
+    }
+}
+```
+
+****
+### 3.3 WorkQueues 模型
+
+Work queues 任务模型，简单来说就是让多个消费者绑定到一个队列，共同消费队列中的消息。一般情况下，都是一个消费者处理一个队列的，但是当消息处理较久时，可能生产消息的速度会远远大于消费的速度，
+时间久了消息就会堆积越来越多，导致无法及时处理。此时就可以使用 Work queues 模型，让多个消费者共同处理消息处理，消息处理的速度就能大大提高了。
+
+利用循环发送消息模拟大量消息堆积现象：
+
+```java
+@Test
+public void testWorkQueue() throws InterruptedException {
+    // 队列名称
+    String queueName = "work.queue";
+    // 消息
+    String message = "hello, message_";
+    for (int i = 0; i < 50; i++) {
+        // 发送消息，每20毫秒发送一次，相当于每秒发送50条消息
+        rabbitTemplate.convertAndSend(queueName, message + i);
+        Thread.sleep(20);
+    }
+}
+```
+
+在 consumer 服务的 SpringRabbitListener 中添加 2 个新的方法:
+
+```java
+@RabbitListener(queues = "work.queue")
+public void listenWorkQueue1(String msg) throws InterruptedException {
+  System.out.println("消费者1接收到消息：[" + msg + "]" + LocalTime.now());
+  Thread.sleep(20);
+}
+
+@RabbitListener(queues = "work.queue")
+public void listenWorkQueue2(String msg) throws InterruptedException {
+  System.err.println("消费者2........接收到消息：[" + msg + "]" + LocalTime.now());
+  Thread.sleep(200);
+}
+```
+
+这两消费者，都设置了 Thead.sleep，模拟任务耗时：
+
+- 消费者1 sleep 了 20 毫秒，相当于每秒钟处理 50 个消息
+- 消费者2 sleep 了 200 毫秒，相当于每秒处理 5 个消息
+
+根据最后的打印结果来看，这两个消费者处理的信息条数一致，当消费者1 处理完 25 个消息后，就不再接收消息了。RabbitMQ 在不做特别配置时，消息的分发策略是简单轮询，每次来一条消息，
+就交替推送给每个消费者，而不考虑它们的处理能力，最终两个消费者各自获得一半的消息。如果需要启用 "能者多劳" 模式的话，就要进行相关配置：
+
+```yaml
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        prefetch: 1 # 每次只能获取一条消息，处理完成才能获取下一个消息
+```
+
+****
+
+
+
+
+
 
 
 

@@ -16,7 +16,7 @@ spring:
   cloud:
     sentinel:
       transport:
-        dashboard: localhost:8099
+        dashboard: localhost:8091
       http-method-specify: true # 开启请求方式前缀
 
 feign:
