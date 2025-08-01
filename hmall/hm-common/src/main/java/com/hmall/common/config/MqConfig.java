@@ -1,19 +1,14 @@
-package com.itheima.consumer;
+package com.hmall.common.config;
 
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-@SpringBootApplication
-public class ConsumerApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(ConsumerApplication.class, args);
-    }
-
+@Configuration
+public class MqConfig {
     @Bean
-    public MessageConverter messageConverter(){
+    public MessageConverter messageConverter() {
         // 1. 定义消息转换器
         Jackson2JsonMessageConverter jackson2JsonMessageConverter = new Jackson2JsonMessageConverter();
         // 2. 配置自动创建消息 id，用于识别不同消息，也可以在业务中基于 ID 判断是否是重复消息

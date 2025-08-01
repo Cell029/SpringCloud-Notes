@@ -4204,16 +4204,13 @@ Sentinel 中的断路器不仅可以统计某个接口的慢请求比例，还�
 ### 3.2 Seata
 
 分布式事务产生的一个重要原因，就是参与事务的多个分支事务互相无感知，不知道彼此的执行状态，因此可以找一个统一的事务协调者，与多个分支事务通信，检测每个分支事务的执行状态，
-保证全局事务下的每一个分支事务同时成功或失败即可，大多数的分布式事务框架都是基于这个理论来实现的。Seata 也不例外，在 Seata
-的事务管理中有三个重要的角色：
+保证全局事务下的每一个分支事务同时成功或失败即可，大多数的分布式事务框架都是基于这个理论来实现的。Seata 也不例外，在 Seata 的事务管理中有三个重要的角色：
 
 - TC (Transaction Coordinator) - 事务协调者：是 Seata 的服务端，维护全局和分支事务的状态，协调全局事务提交或回滚
-- TM (Transaction Manager) - 事务管理器：是发起全局事务的客户端组件，通常集成在发起服务中；定义全局事务的范围、开始全局事务、提交或回滚全局事务，告诉
-  TC 什么时候开始和结束
+- TM (Transaction Manager) - 事务管理器：是发起全局事务的客户端组件，通常集成在发起服务中；定义全局事务的范围、开始全局事务、提交或回滚全局事务，告诉 TC 什么时候开始和结束
 - RM (Resource Manager) - 资源管理器：管理分支事务，向 TC 注册分支事务，并汇报其执行结果；接收 TC 的指令决定提交还是回滚本地事务
 
-TM 和 RM 可以理解为 Seata 的客户端部分，引入到参与事务的微服务依赖中即可。将来 TM 和 RM 就会协助微服务，实现本地分支事务与
-TC 之间交互，实现事务的提交或回滚。
+TM 和 RM 可以理解为 Seata 的客户端部分，引入到参与事务的微服务依赖中即可。将来 TM 和 RM 就会协助微服务，实现本地分支事务与 TC 之间交互，实现事务的提交或回滚。
 而 TC 服务则是事务协调中心，是一个独立的微服务，需要单独部署。
 
 ****
@@ -4256,13 +4253,11 @@ seataio/seata-server:1.5.2
 ```
 
 ****
-
 #### 2. 微服务集成 seata
 
 1、引入依赖
 
-为了方便各个微服务集成 seata，需要把 seata 配置共享到 nacos，因此 trade-service 模块不仅仅要引入 seata 依赖，还要引入 nacos
-依赖:
+为了方便各个微服务集成 seata，需要把 seata 配置共享到 nacos，因此 trade-service 模块不仅仅要引入 seata 依赖，还要引入 nacos 依赖:
 
 ```xml
 <!--统一配置管理-->
@@ -4339,11 +4334,9 @@ hm:
 
 5、测试
 
-将对应微服务的 @Transactional 注解改为 Seata 提供的 @GlobalTransactional，该注解就是在标记事务的起点，将来 TM
-就会基于这个方法判断全局事务范围，初始化全局事务。
+将对应微服务的 @Transactional 注解改为 Seata 提供的 @GlobalTransactional，该注解就是在标记事务的起点，将来 TM 就会基于这个方法判断全局事务范围，初始化全局事务。
 
 ****
-
 ### 3.4 XA 模式
 
 XA 是一种分布式事务协议，它是一个 两阶段提交（2PC）协议，由两大角色组成：
@@ -4483,8 +4476,7 @@ AT 模式下，当前分支事务执行流程如下：
 
 1、拓展性差
 
-目前的业务相对简单，但是随着业务规模扩大，后续肯定会新增很多功能，但是基于同步调用的机制，新增的功能可能影响原有的功能，导致现有的代码逻辑每次都会随着功能的迭代而更新，
-这就违背了开闭原则。
+目前的业务相对简单，但是随着业务规模扩大，后续肯定会新增很多功能，但是基于同步调用的机制，新增的功能可能影响原有的功能，导致现有的代码逻辑每次都会随着功能的迭代而更新，这就违背了开闭原则。
 
 2、性能下降
 
@@ -4506,10 +4498,8 @@ AT 模式下，当前分支事务执行流程如下：
 - 消息 Broker：管理、暂存、转发消息，你可以把它理解成微信服务器
 - 消息接收者：接收和处理消息的人，就是原来的服务提供方
 
-在异步调用中，发送者不再直接同步调用接收者的业务接口，而是发送一条消息投递给消息 Broker，然后接收者根据自己的需求从消息
-Broker 那里订阅消息。每当发送方发送消息后，
-接受者都能获取消息并处理，这样发送消息的人和接收消息的人就完全解耦了。而对于扩展新功能来说，也只需要让原有的功能调用完成后发送消息给
-Broker，再让性功能接收 Broker 的消息即可，
+在异步调用中，发送者不再直接同步调用接收者的业务接口，而是发送一条消息投递给消息 Broker，然后接收者根据自己的需求从消息 Broker 那里订阅消息。每当发送方发送消息后，
+接受者都能获取消息并处理，这样发送消息的人和接收消息的人就完全解耦了。而对于扩展新功能来说，也只需要让原有的功能调用完成后发送消息给 Broker，再让性功能接收 Broker 的消息即可，
 而整个流程耗时的只是这三个角色的时间，也就是说不管有多少功能，它们都只耗时发送消息时间+更新数据时间+接收消息时间。
 
 ****
@@ -4851,6 +4841,948 @@ spring:
 ```
 
 ****
+### 3.4 Fanout 交换机
+
+在上面的测试中，没有用到交换机，而是直接把消息发送到队列，而交换机的类型有四种：
+
+- Fanout：广播，将消息交给所有绑定到交换机的队列。我们最早在控制台使用的正是 Fanout 交换机
+- Direct：订阅，基于 RoutingKey（路由 key）发送给订阅了消息的队列
+- Topic：通配符订阅，与 Direct 类似，只不过 RoutingKey 可以使用通配符
+- Headers：头匹配，基于 MQ 的消息头匹配，用的较少
+
+在广播模式下，消息发送流程是这样的：
+
+- 1）可以有多个队列
+- 2）每个队列都要绑定到 Exchange（交换机）
+- 3）生产者发送的消息，只能发送到交换机
+- 4）交换机把消息发送给绑定过的所有队列
+- 5）订阅队列的消费者都能拿到消息
+
+在控制台创建队列 fanout.queue1 和 fanout.queue2，然后再创建一个交换机 hmall.fanout 并绑定这两个队列，然后添加消息发送测试方法：
+
+```java
+@Test
+public void testFanoutExchange() {
+    // 交换机名称
+    String exchangeName = "hmall.fanout";
+    // 消息
+    String message = "hello, everyone!";
+    rabbitTemplate.convertAndSend(exchangeName, "", message); // 第一个参数为交换机，第二个为 Routing Key，第三个为消息
+}
+```
+
+添加消息消费者：
+
+```java
+@RabbitListener(queues = "fanout.queue1")
+public void listenFanoutQueue1(String msg) {
+    System.out.println("消费者1接收到Fanout消息：[" + msg + "]");
+}
+
+@RabbitListener(queues = "fanout.queue2")
+public void listenFanoutQueue2(String msg) {
+    System.out.println("消费者2接收到Fanout消息：[" + msg + "]");
+}
+```
+
+当生产者将消息发送到 Fanout 类型的交换机时，交换机不会考虑消息的 Routing Key，它会无条件地将消息复制并投递到所有与它绑定的队列中，也就是说只要有队列绑定到这个 Fanout 交换机，
+就会收到消息副本。而交换机的作用就是：
+
+- 接收 publisher 发送的消息
+- 将消息按照规则路由到与之绑定的队列
+- 不能缓存消息，路由失败，消息丢失
+- FanoutExchange 的会将消息路由到每个绑定的队列
+
+****
+### 3.5 Direct 交换机
+
+在 Fanout 模式中，一条消息会被所有订阅的队列都消费。但是在某些场景下，不同的消息应该被不同的队列消费，这时就要用到 Direct 类型的 Exchange。在 Direct 模型下：
+
+- 队列与交换机的绑定不能再是任意绑定的了，而是要指定一个 Routing Key（路由 key）
+- 消息的发送方在 向 Exchange 发送消息时，也必须指定消息的 Routing Key。
+- Exchange 不再把消息交给每一个绑定的队列，而是根据消息的 Routing Key 进行判断，只有队列的 Routing Key 与消息的 Routing Key 完全一致，才会接收到消息
+
+例如：
+
+1. 声明一个名为 hmall.direct 的交换机
+2. 声明队列 direct.queue1，绑定 hmall.direct，Routing Key 为 blue 和 red
+3. 声明队列 direct.queue2，绑定 hmall.direct，Routing Key 为 yellow 和 red
+4. 在 consumer 服务中，编写两个消费者方法，分别监听 direct.queue1 和 direct.queue2
+5. 在 publisher 中编写测试方法，向 hmall.direct 发送消息 
+
+消息发送：
+
+```java
+@Test
+public void testSendDirectExchange() {
+    // 交换机名称
+    String exchangeName = "hmall.direct";
+    // 消息
+    String message = "红色警报！日本乱排核废水，导致海洋生物变异，惊现哥斯拉！";
+    // 发送消息
+    rabbitTemplate.convertAndSend(exchangeName, "red", message);
+}
+```
+
+消息接收：
+
+```java
+@RabbitListener(queues = "direct.queue1")
+public void listenDirectQueue1(String msg) {
+    System.out.println("消费者1接收到direct.queue1的消息：[" + msg + "]");
+}
+
+@RabbitListener(queues = "direct.queue2")
+public void listenDirectQueue2(String msg) {
+    System.out.println("消费者2接收到direct.queue2的消息：[" + msg + "]");
+}
+```
+
+因为发送消息时制定了 Routing Key 为 red，所以只有为 red 的队列可以接收到消息，而创建的这两个队列的 Routing Key 都是 red，所以它们都能接收到消息：
+
+```text
+消费者 1 接收到 direct.queue1 的消息：[红色警报！日本乱排核废水，导致海洋生物变异，惊现哥斯拉！]
+消费者 2 接收到 direct.queue2 的消息：[红色警报！日本乱排核废水，导致海洋生物变异，惊现哥斯拉！]
+```
+
+如果更换 Routing Key 为 blue，那就只有 direct.queue1 可以接收到消息：
+
+```text
+消费者 1 接收到 direct.queue1 的消息：[蓝色警报！日本拒绝承认造成海洋污染！]
+```
+
+Direct 与 Fanout 的差异
+
+- Fanout 交换机将消息路由给每一个与之绑定的队列
+- Direct 交换机根据 Routing Key 判断路由给哪个队列
+- 如果多个队列具有相同的 Routing Key，则与 Fanout 功能类似
+
+****
+### 3.6 Topic 交换机
+
+Topic 与 Direct 类似，都是可以根据 RoutingKey 把消息路由到不同的队列，只不过 Topic 可以让队列在绑定 Routing Key 的时候使用通配符，Routing Key 一般都是有一个或多个单词组成，
+多个单词之间以 "." 分割，例如： item.insert。通配符规则：
+
+- #：匹配一个或多个词
+- *：匹配不多不少恰好 1 个词
+
+例如：
+
+- item.#：能够匹配 item.spu.insert 或者 item.spu
+- item.*：只能匹配 item.spu
+
+假如此时 publisher 发送的消息使用的 Routing Key 共有四种：
+
+- china.news 代表有中国的新闻消息
+- china.weather 代表中国的天气消息
+- japan.news 则代表日本新闻
+- japan.weather 代表日本的天气消息
+
+创建两个队列 topic.queue1 和 topic.queue2
+
+- topic.queue1：绑定的是 china.# ，凡是以 china. 开头的 routing key 都会被匹配到，包括：
+  - china.news
+  - china.weather
+- topic.queue2：绑定的是 #.news ，凡是以 .news 结尾的 routing key 都会被匹配，包括:
+  - china.news
+  - japan.news
+
+消息发送：
+
+```java
+@Test
+public void testSendTopicExchange() {
+    // 交换机名称
+    String exchangeName = "hmall.topic";
+    // 消息
+    String message = "喜报！孙悟空大战哥斯拉，胜!";
+    // 发送消息
+    rabbitTemplate.convertAndSend(exchangeName, "china.news", message);
+}
+```
+
+消息接收：
+
+```java
+@RabbitListener(queues = "topic.queue1")
+public void listenTopicQueue1(String msg){
+  System.out.println("消费者 1 接收到 topic.queue1 的消息：[" + msg + "]");
+}
+
+@RabbitListener(queues = "topic.queue2")
+public void listenTopicQueue2(String msg){
+  System.out.println("消费者 2 接收到 topic.queue2 的消息：[" + msg + "]");
+}
+```
+
+这两个队列都能接收到 china.news 的消息：
+
+```text
+消费者 2 接收到 topic.queue2 的消息：[喜报！孙悟空大战哥斯拉，胜!]
+消费者 1 接收到 topic.queue1 的消息：[喜报！孙悟空大战哥斯拉，胜!]
+```
+
+****
+### 3.7 SpringBoot 声明队列和交换机
+
+#### 1. 基于配置类
+
+目前都是基于 RabbitMQ 控制台来创建队列、交换机，但是在实际开发时，队列和交换机是程序员定义的，将来项目上线，又要交给运维去创建。那么程序员就需要把程序中运行的所有队列和交换机都写下来，
+交给运维，但是在这个过程中是很容易出现错误的，因此推荐的做法是由程序启动时检查队列和交换机是否存在，如果不存在自动创建。
+
+SpringAMQP 提供了一个 Queue 类，用来创建队列；SpringAMQP 还提供了一个 Exchange 接口，来表示所有不同类型的交换机。可以通过这些接口自己创建队列和交换机，
+不过 SpringAMQP 还提供了 ExchangeBuilder 来简化这个过程。而在绑定队列和交换机时，则需要使用 BindingBuilder 来创建 Binding 对象，用于声明队列和交换机的绑定关系。
+
+以 Fanout 交换机为例，在 consumer 模块创建。[Direct](./src/main/java/com/itheima/consumer/config/DirectConfig.java) 交换机同理：
+
+```java
+@Configuration
+public class FanoutConfig {
+
+    // 声明交换机
+    @Bean
+    public FanoutExchange fanoutExchange(){
+        // return new FanoutExchange("hmall.fanout");
+        return ExchangeBuilder.fanoutExchange("hmall.fanout").build();
+    }
+
+    @Bean
+    public Queue fanoutQueue1(){
+        // 默认开启持久化，即在磁盘储存
+        return new Queue("fanout.queue1");
+        // return QeueBuilder.durable("fanout.queue1").build();
+    }
+
+    // 绑定队列和交换机
+    @Bean
+    public Binding bindingQueue1(Queue fanoutQueue1, FanoutExchange fanoutExchange){
+        return BindingBuilder.bind(fanoutQueue1).to(fanoutExchange);
+    }
+
+    @Bean
+    public Queue fanoutQueue2(){
+        return new Queue("fanout.queue2");
+    }
+    
+    @Bean
+    public Binding bindingQueue2(Queue fanoutQueue2, FanoutExchange fanoutExchange){
+        return BindingBuilder.bind(fanoutQueue2).to(fanoutExchange);
+    }
+}
+```
+
+****
+#### 2. 基于注解
+
+基于配置类的方式声明队列和交换机比较麻烦，Spring 还提供了基于注解方式来声明，以 Direct 为例：
+
+```java
+@RabbitListener(bindings = @QueueBinding(
+        value = @Queue(name = "direct.queue1"),
+        exchange = @Exchange(name = "hmall.direct", type = ExchangeTypes.DIRECT),
+        key = {"red", "blue"}
+))
+public void listenDirectQueue1ByAnnotation(String msg){
+  System.out.println("消费者 1 接收到 direct.queue1 的消息：[" + msg + "]");
+}
+
+@RabbitListener(bindings = @QueueBinding(
+        value = @Queue(name = "direct.queue2"),
+        exchange = @Exchange(name = "hmall.direct", type = ExchangeTypes.DIRECT),
+        key = {"red", "yellow"}
+))
+public void listenDirectQueue2ByAnnotation(String msg){
+  System.out.println("消费者 2 接收到 direct.queue2 的消息：[" + msg + "]");
+}
+```
+
+****
+### 3.8 消息转换器
+
+Spring 的消息发送代码接收的消息体是一个 Object，也就是说可以发送任意的消息对象：
+
+```java
+public void convertAndSend(String exchange, String routingKey, Object object) throws AmqpException {
+    this.convertAndSend(exchange, routingKey, object, (CorrelationData)null);
+}
+```
+
+而它是依赖网络传输的，所以数据传输时它会把发送的消息序列化为字节再发送给 MQ，接收消息的时候，还会把字节反序列化为 Java 对象。只不过默认情况下 Spring 采用的序列化方式是 JDK 序列化，
+而 JDK 序列化存在下列问题：
+
+- 数据体积过大
+- 有安全漏洞
+- 可读性差
+
+#### 1. 测试默认转换器
+
+1、在 consumer 服务中声明一个新的配置类：
+
+先不给这个队列添加消费者，查看一下消息体的格式。
+
+```java
+@Configuration
+public class MessageConfig {
+    @Bean
+    public Queue objectQueue() {
+        return new Queue("object.queue");
+    }
+}
+```
+
+2、发送消息
+
+```java
+@Test
+public void testSendMap() throws InterruptedException {
+    // 准备消息
+    Map<String,Object> msg = new HashMap<>();
+    msg.put("name", "jack");
+    msg.put("age", 21);
+    // 发送消息
+    rabbitTemplate.convertAndSend("object.queue", msg);
+}
+```
+
+3、发送消息后查看控制台
+
+```text
+rO0ABXNyABFqYXZhLnV0aWwuSGFzaE1hcAUH2sHDFmDRAwACRgAKbG9hZEZhY3RvckkACXRocmVzaG9sZHhwP0AAAAAAAAx3CAAAABAAAAACdAAEbmFtZXQA
+Buafs+WyqXQAA2FnZXNyABFqYXZhLmxhbmcuSW50ZWdlchLioKT3gYc4AgABSQAFdmFsdWV4cgAQamF2YS5sYW5nLk51bWJlcoaslR0LlOCLAgAAeHAAAAAV
+eA==
+```
+
+在上面的 convertAndSend 方法中，它会继续进入：
+
+```java
+public void convertAndSend(String exchange, String routingKey, Object object, @Nullable CorrelationData correlationData) throws AmqpException {
+    this.send(exchange, routingKey, this.convertMessageIfNecessary(object), correlationData);
+}
+```
+
+```java
+protected Message convertMessageIfNecessary(Object object) {
+    if (object instanceof Message msg) {
+        return msg;
+    } else {
+        return this.getRequiredMessageConverter().toMessage(object, new MessageProperties());
+    }
+}
+```
+
+然后就可以找到它默认使用的是一个 SimpleMessageConverter 消息转换器：
+
+```java
+private MessageConverter messageConverter = new SimpleMessageConverter();
+```
+
+继续跟入 toMessage() 方法，最终进入 SimpleMessageConverter 的 createMessage() 方法：
+
+```java
+protected Message createMessage(Object object, MessageProperties messageProperties) throws MessageConversionException {
+    if (object instanceof byte[] bytes) {
+        messageProperties.setContentType("application/octet-stream");
+    } else if (object instanceof String) {
+        try {
+            bytes = ((String)object).getBytes(this.defaultCharset);
+        } catch (UnsupportedEncodingException e) {
+            throw new MessageConversionException("failed to convert to Message content", e);
+        }
+
+        messageProperties.setContentType("text/plain");
+        messageProperties.setContentEncoding(this.defaultCharset);
+    } else if (object instanceof Serializable) {
+        try {
+            bytes = SerializationUtils.serialize(object);
+        } catch (IllegalArgumentException e) {
+            throw new MessageConversionException("failed to convert to serialized Message content", e);
+        }
+
+        messageProperties.setContentType("application/x-java-serialized-object");
+    }
+
+    if (bytes != null) {
+        messageProperties.setContentLength((long)bytes.length);
+        return new Message(bytes, messageProperties);
+    } else {
+        String var10002 = this.getClass().getSimpleName();
+        throw new IllegalArgumentException(var10002 + " only supports String, byte[] and Serializable payloads, received: " + object.getClass().getName());
+    }
+}
+```
+
+它的作用就是：把常见类型的对象（String、byte[]、Serializable）转换成消息（Message）:
+
+```java
+if (object instanceof byte[] bytes) {
+    messageProperties.setContentType("application/octet-stream");
+} else if (object instanceof String) {
+    try {
+        bytes = ((String)object).getBytes(this.defaultCharset);
+    } catch (UnsupportedEncodingException e) {
+        throw new MessageConversionException("failed to convert to Message content", e);
+    }
+
+    messageProperties.setContentType("text/plain");
+    messageProperties.setContentEncoding(this.defaultCharset);
+}
+```
+
+如果原本就是字节数组，不做处理，直接用；如果是 String 类型，则转为字节数组，需要注意的是，它这里设置了默认的编码：messageProperties.setContentEncoding(this.defaultCharset);
+也就是说，前端在请求头中看到了编码为 UTF-8，则会自动将字节数组转换成 String，所以为什么传递 String 的时候在 RabbitMQ 控制台仍然能看到正常的内容；
+如果是对象类型：
+
+```java
+else if (object instanceof Serializable) {
+    try {
+        bytes = SerializationUtils.serialize(object);
+    } catch (IllegalArgumentException e) {
+        throw new MessageConversionException("failed to convert to serialized Message content", e);
+    }
+
+    messageProperties.setContentType("application/x-java-serialized-object");
+}
+```
+
+就对该对象进行序列化，而序列化的本质就是把对象转换成字节数组，便于网络传输。而在 RabbitMQ 页面也可以看到请求头的格式：
+
+```text
+headers:	
+content_type:	application/x-java-serialized-object
+```
+
+****
+#### 2. 配置 JSON 转换器
+
+默认的 JDK 序列化方式并不合适发送字符串以外的类型，如果希望消息体的体积更小、可读性更高，就应该使用 JSON 方式来做序列化和反序列化。在 publisher 和 consumer 两个服务中都引入依赖：
+
+```xml
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-json</artifactId>
+</dependency>
+<dependency>
+  <groupId>com.fasterxml.jackson.dataformat</groupId>
+  <artifactId>jackson-dataformat-xml</artifactId>
+</dependency>
+```
+
+配置消息转换器，在 publisher 和 consumer 两个服务的启动类中添加一个 Bean 即可：
+
+```java
+@Bean
+public MessageConverter messageConverter(){
+    // 1. 定义消息转换器
+    Jackson2JsonMessageConverter jackson2JsonMessageConverter = new Jackson2JsonMessageConverter();
+    // 2. 配置自动创建消息 id，用于识别不同消息，也可以在业务中基于 ID 判断是否是重复消息
+    jackson2JsonMessageConverter.setCreateMessageIds(true); // 底层使用 UUID 可以判断后续消费者是否重复消费一条消息
+    return jackson2JsonMessageConverter;
+}
+```
+
+控制页面正常显示 Json 内容：
+
+```text
+headers:	
+__ContentTypeId__:	java.lang.Object
+__KeyTypeId__:	java.lang.Object
+__TypeId__:	java.util.HashMap
+content_encoding:	UTF-8
+content_type:	application/json
+```
+
+```json
+{"name":"jack","age":21}
+```
+
+****
+## 4. 使用 RabbitMQ 改造业务
+
+原始业务流程：
+
+```text
+[客户端] --> [支付服务] --> [订单服务]  --> 返回响应
+```
+
+使用 MQ 后：
+
+```text
+[客户端] --> [支付服务] ---MQ---> [订单服务]
+```
+
+1、配置 MQ
+
+为生产者和消费者添加依赖并配置 MQ 地址：
+
+```xml
+<!--消息发送-->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-amqp</artifactId>
+</dependency>
+```
+
+```yaml
+spring:
+  rabbitmq:
+    host: 127.0.0.1 # 虚拟机IP
+    port: 5672 # 端口
+    virtual-host: /hmall # 虚拟主机
+    username: hmall # 用户名
+    password: 123 # 密码
+```
+
+2、添加消息转换器
+
+在 hm-common 模块下新建 MqConfig 配置类配置消息转换器，并把它归纳进 org.springframework.boot.autoconfigure.AutoConfiguration.imports 文件中：
+
+```java
+@Configuration
+public class MqConfig {
+    @Bean
+    public MessageConverter messageConverter() {
+        // 1. 定义消息转换器    
+        Jackson2JsonMessageConverter jackson2JsonMessageConverter = new Jackson2JsonMessageConverter();
+        // 2. 配置自动创建消息 id，用于识别不同消息，也可以在业务中基于 ID 判断是否是重复消息    
+        jackson2JsonMessageConverter.setCreateMessageIds(true);
+        return jackson2JsonMessageConverter;
+    }
+}
+```
+
+3、接收消息
+
+在 trade-service 模块中添加消息监听类，当监听到消息时就触发下单成功功能：
+
+```java
+@Component
+@RequiredArgsConstructor
+public class listenerPayStatusListener {
+    private final IOrderService orderService;
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(name = "trade.pay.success.queue", durable = "true"),
+            exchange = @Exchange(name = "pay.topic"),
+            key = "pay.success"
+    ))
+    public void listenPaySuccess(Long orderId){
+        orderService.markOrderPaySuccess(orderId);
+    }
+}
+```
+
+4、发送消息
+
+修改 pay-service 服务下的 PayOrderServiceImpl 类中的 tryPayOrderByBalance 方法：
+
+```java
+private final RabbitTemplate rabbitTemplate;
+
+@Override
+@Transactional
+public void tryPayOrderByBalance(PayOrderDTO payOrderDTO) {
+    // 1.查询支付单
+    PayOrder po = getById(payOrderDTO.getId());
+    // 2.判断状态
+    if(!PayStatus.WAIT_BUYER_PAY.equalsValue(po.getStatus())){
+        // 订单不是未支付，状态异常
+        throw new BizIllegalException("交易已支付或关闭！");
+    }
+    // 3.尝试扣减余额
+    userClient.deductMoney(payOrderDTO.getPw(), po.getAmount());
+    // 4.修改支付单状态
+    boolean success = markPayOrderSuccess(payOrderDTO.getId(), LocalDateTime.now());
+    if (!success) {
+        throw new BizIllegalException("交易已支付或关闭！");
+    }
+    // 5.修改订单状态
+    // tradeClient.markOrderPaySuccess(po.getBizOrderNo());
+    try {
+        rabbitTemplate.convertAndSend("pay.direct", "pay.success", po.getBizOrderNo());
+    } catch (Exception e) {
+        log.error("支付成功的消息发送失败，支付单id：{}， 交易单id：{}", po.getId(), po.getBizOrderNo(), e);
+    }
+}
+```
+
+这里不再是通过 OpenFeign 远程调用别的微服务了，而是把自己的订单 id 作为消息转发给订单微服务。
+
+****
+# 七、MQ 高级
+
+在上面的功能改造中，在支付成功后利用 RabbitMQ 通知交易服务，然后更新业务订单状态为已支付，但是如果 MQ 通知失败，也就是完成了支付功能，而订单修改功能未执行，
+就会出现数据不一致的现象，而查询订单的请求也无法查看到刚刚支付成功的订单。所以，为了保证 MQ 消息的可靠性，必须要确保发送的消息至少被消费一次。
+
+## 1. 发送者的可靠性
+
+消息从生产者到消费者的每一步都可能导致消息丢失：
+
+- 发送消息时丢失：
+  - 生产者发送消息时连接 MQ 失败
+  - 生产者发送消息到达 MQ 后未找到 Exchange
+  - 生产者发送消息到达 MQ 的 Exchange 后，未找到合适的 Queue
+  - 消息到达 MQ 后，处理消息的进程发生异常
+  
+- MQ 导致消息丢失：
+  - 消息到达 MQ，保存到队列后，尚未消费就突然宕机
+  
+- 消费者处理消息时：
+  - 消息接收后尚未处理突然宕机
+  - 消息接收后处理过程中抛出异常
+
+所以为了保证可靠性，就必须确保：
+
+- 确保生产者一定把消息发送到 MQ
+- 确保 MQ 不会将消息弄丢
+- 确保消费者一定要处理消息
+
+#### 1. 生产者重试机制
+
+首先第一种情况，就是生产者发送消息时出现了网络故障，导致与 MQ 的连接中断。而 SpringAMQP 提供了消息发送时的重试机制，即当 RabbitTemplate 与 MQ 连接超时后，多次重试。
+修改 publisher 模块的 application.yaml 文件，添加下面的内容：
+
+```yaml
+spring:
+  rabbitmq:
+    connection-timeout: 1s # 设置MQ的连接超时时间
+    template:
+      retry:
+        enabled: true # 开启超时重试机制
+        initial-interval: 1000ms # 失败后的初始等待时间
+        multiplier: 1 # 失败后下次的等待时长倍数，下次等待时长 = initial-interval * multiplier
+        max-attempts: 3 # 最大重试次数
+```
+
+用 Docker 关闭 mq 后再执行发送消息，它会进行三次尝试，每次等待 1 s。但需要注意的是：当网络不稳定的时候，利用重试机制可以有效提高消息发送的成功率，
+但 SpringAMQP 提供的重试机制是阻塞式的重试，也就是说多次重试等待的过程中，当前线程是被阻塞的。如果对于业务性能有要求，建议禁用重试机制，如果一定要使用，
+需要合理配置等待时长和重试次数，当然也可以考虑使用异步线程来执行发送消息的代码。
+
+****
+#### 2. 生产者确认机制
+
+一般情况下，只要生产者与 MQ 之间的网路连接顺畅，基本不会出现发送消息丢失的情况，因此大多数情况下无需考虑这种问题。但偶尔也会出现消息发送到MQ之后丢失的现象，比如：
+
+- MQ 内部处理消息的进程发生了异常
+- 生产者发送消息到达 MQ 后未找到 Exchange
+- 生产者发送消息到达 MQ 的 Exchange 后，未找到合适的 Queue，因此无法路由
+
+针对上述情况，RabbitMQ 提供了生产者消息确认机制，包括 Publisher Confirm 和 Publisher Return 两种。在开启确认机制的情况下，当生产者发送消息给 MQ 后，
+MQ 会根据消息处理的情况返回不同的回执：
+
+- 当消息投递到 MQ，但是路由失败时，通过 Publisher Return 返回异常信息，同时返回 ack 的确认信息，代表投递成功
+- 临时消息投递到了 MQ，并且入队成功，返回 ACK，告知投递成功
+- 持久消息投递到了 MQ，并且入队完成持久化，返回 ACK，告知投递成功
+- 其它情况都会返回 NACK，告知投递失败
+
+其中 ack 和 nack 属于 Publisher Confirm 机制，ack 是投递成功；nack 是投递失败，而 return 则属于 Publisher Return 的机制。在 RabbitMQ 中，生产者将消息发送到交换机，
+如果该交换机找不到对应的队列，就会发生消息被退回（Return）的情况，默认情况下，RabbitMQ 会直接丢弃这类消息，不通知生产者，为了避免消息丢失，
+可以通过配置文件 + ReturnsCallback 来接收这些 "退回" 的消息。
+
+RabbitMQ 的消息从生产者到消费者之间分为多个阶段，其中生产者投递阶段重点包括：
+
+1. 消息是否成功到达交换机（Exchange） -> 通过 Publisher Confirm（ACK / NACK）检测
+2. 消息是否成功路由到队列（Queue） -> 通过 ReturnCallback 检测
+
+##### 2.1 定义 ReturnCallback
+
+在 publisher 模块的 application.yaml 中添加配置，开启生产者确认：
+
+```yaml
+spring:
+  rabbitmq:
+    publisher-confirm-type: correlated # 开启publisher confirm机制，并设置confirm类型
+    publisher-returns: true # 开启publisher return机制
+```
+
+publisher-confirm-type 有三种模式可选：
+
+- none：关闭 confirm 机制
+- simple：同步阻塞等待 MQ 的回执
+- correlated：MQ 异步回调返回回执
+
+或者使用 rabbitTemplate.setMandatory(true)，如果写了配置文件，则会自动注册 Mandatory。每个 RabbitTemplate 只能配置一个 ReturnCallback，
+因此可以在配置类中统一设置，由 SpringBoot 启动时自动注入，在 publisher 模块定义一个配置类：
+
+```java
+@Slf4j
+@AllArgsConstructor
+@Configuration
+public class MqConfig {
+    private final RabbitTemplate rabbitTemplate;
+    @PostConstruct
+    public void init(){
+        // rabbitTemplate.setMandatory(true); // 开启“路由失败”回调机制
+
+        // 注册 ReturnCallback 回调
+        rabbitTemplate.setReturnsCallback(new RabbitTemplate.ReturnsCallback() {
+            @Override
+            public void returnedMessage(ReturnedMessage returned) {
+                log.error("触发 return callback,");
+                log.debug("exchange: {}", returned.getExchange());
+                log.debug("routingKey: {}", returned.getRoutingKey());
+                log.debug("message: {}", returned.getMessage());
+                log.debug("replyCode: {}", returned.getReplyCode());
+                log.debug("replyText: {}", returned.getReplyText());
+            }
+        });
+    }
+}
+```
+
+- `rabbitTemplate.setReturnsCallback(...)`：设置一个回调函数，如果 RabbitMQ 无法路由消息到任何队列，就会执行这里的代码
+- `replyCode`：RabbitMQ 返回的拒收码，常见的是 312，表示 NO_ROUTE
+- `replyText`：拒收原因说明，通常是 "NO_ROUTE" 表示无匹配路由
+
+****
+##### 2.2 定义 ConfirmCallback
+
+每次调用 RabbitTemplate.convertAndSend(...) 方法发送消息时，可以通过传入 CorrelationData 来为这条消息绑定一个唯一 ID 和一个回执的异步处理器（CompletableFuture），
+用于接收 RabbitMQ 的确认回执：
+
+```java
+convertAndSend(String exchange, String routingKey, Object message, CorrelationData correlationData);
+```
+
+其中，CorrelationData 是 Spring AMQP 提供的一个对象，用来标识一条消息的唯一性，并且承载消息的回执信息（Future 对象），其中包含两个核心内容：
+
+- id：消息的唯一标识，RabbitMQ 将基于此字段返回相应的 ack/nack 回执（之前定义 MqConfig 时设置的 jackson2JsonMessageConverter.setCreateMessageIds(true);）
+- CompletableFuture<CorrelationData.Confirm>：用于异步接收 MQ 回执结果
+
+并且可以使用 CompletableFuture.whenComplete(...) 给其添加回调来处理消息的投递确认（SpringBoot 3.x/Spring 6.x 启用的），这个方法的两个参数：
+
+- confirm: 是 RabbitMQ 的异步确认结果（类型是 CorrelationData.Confirm）
+- ex: 是如果发生异常（如网络问题等），则会带上异常对象 
+- confirm.isAck() == true：说明 RabbitMQ 已成功收到并确认该消息，打印 debug 成功日志
+- confirm.isAck() == false：说明 RabbitMQ 拒收或失败，需要查看 confirm.getReason() 获取失败原因
+```java
+@Test
+void testPublisherConfirm() {
+  // 1. 创建 CorrelationData
+  CorrelationData cd = new CorrelationData();
+  // 2. 给 CompletableFuture 添加回调
+  cd.getFuture().whenComplete((confirm, ex) -> {
+    if (ex != null) {
+      // Future 发生异常（基本不会发生）
+      log.error("send message fail", ex);
+    } else {
+      if (confirm != null && confirm.isAck()) {
+        log.debug("发送消息成功，收到 ack!");
+      } else {
+        log.error("发送消息失败，收到 nack, reason: {}", confirm != null ? confirm.getReason() : "null confirm");
+      }
+    }
+  });
+  // 3. 发送消息
+  rabbitTemplate.convertAndSend("hmall.direct", "wrong", "hello", cd);
+}
+```
+
+这里绑定了一个不存在的 Routing Key，模拟找不到队列：
+
+```text
+触发 return callback,
+发送消息成功，收到 ack!
+exchange: hmall.direct
+routingKey: wrong
+message: (Body:'"hello"' MessageProperties [headers={spring_returned_message_correlation=92ac7289-7c21-4afc-8acb-e4e113864f1d, __TypeId__=java.lang.String}, messageId=e43dd3c8-1c55-401e-9948-64852231b601, contentType=application/json, contentEncoding=UTF-8, contentLength=0, receivedDeliveryMode=PERSISTENT, priority=0, deliveryTag=0])
+replyCode: 312
+replyText: NO_ROUTE
+```
+
+最终打印结果只输出了 "触发 return callback,"，而定义在 MqConfig 中的其它信息没有打印，证明发送消息失败。如果绑定正确的 Routing Key：
+
+```text
+消费者 1 接收到 direct.queue1 的消息：[hello]
+------------------------------------------
+发送消息成功，收到 ack!
+```
+
+可以看到，由于传递的 Routing Key 是错误的，路由失败后，触发了 return callback，同时也收到了 ack。当修改为正确的 Routing Key 以后，就不会触发 return callback 了，
+只收到 ack，而如果连交换机都是错误的，则只会收到 nack。
+
+需要注意的是：开启生产者确认比较消耗 MQ 性能，一般不建议开启。
+
+- 路由失败：一般是因为 Routing Key 错误导致，往往是编程导致
+- 交换机名称错误：同样是编程错误导致
+- MQ 内部故障：这种需要处理，但概率往往较低，因此只有对消息可靠性要求非常高的业务才需要开启，所以只需要开启 ConfirmCallback 处理 nack 就可以了
+
+| 功能                  | 描述                  | 性能影响 | 是否推荐             |
+|---------------------| ------------------- | ---- | ---------------- |
+| `Publisher Confirm` | 用于检测消息是否到达 Exchange | 高    | 仅推荐对可靠性要求高的业务开启  |
+| `ReturnCallback`    | 检测是否成功路由到 Queue     | 较小   | 可视情况开启（调试阶段非常有用） |
+
+****
+## 2. MQ 的可靠性
+
+### 2.1 数据持久化
+
+为了提升性能，默认情况下 MQ 的数据都是在内存存储的临时数据，重启后就会消失。为了保证数据的可靠性，必须配置数据持久化，包括：
+
+- 交换机持久化
+- 队列持久化
+- 消息持久化
+
+在控制台的 Exchanges 页面，添加交换机时可以配置交换机的 Durability 参数，设置为 Durable 就是持久化模式，交换机会被持久化到磁盘，在 RabbitMQ 重启后依然存在，
+Transient 就是临时模式，重启后失效；在控制台的 Queues 页面，添加队列时同样可以配置队列的 Durability 参数；在控制台发送消息的时候，可以添加很多参数，
+deliveryMode 属性用来控制持久化，deliveryMode = 2（持久化）、deliveryMode = 1（非持久化）。
+
+需要注意的是，在程序中发送的消息默认是持久化的，如果需要开启非持久化，就需要手动创建 Message：
+
+```java
+@Test
+void testSendMessage() {
+    // 自定义构建消息
+    MessageBuilder.withBody("hello world!".getBytes(StandardCharsets.UTF_8)).setDeliveryMode(MessageDeliveryMode.NON_PERSISTENT);
+    // 发送消息
+    for (int i = 0; i < 1000000; i++) {
+        rabbitTemplate.convertAndSend("hmall.direct", "red", "hello world!");
+    }
+}
+```
+
+非持久化消息通常传输效率更高，但当消息堆积导致内存耗尽时，RabbitMQ 可能会把非持久化消息存到磁盘临时保存，这时反而导致性能下降甚至阻塞。持久化消息从一开始就需要写磁盘，
+因此性能天然就比非持久化消息低，但可靠性高。
+
+在开启持久化机制以后，如果同时还开启了生产者确认，那么 MQ 会在消息持久化以后才发送 ACK 回执，进一步确保消息的可靠性。
+不过出于性能考虑，为了减少 IO 次数，发送到 MQ 的消息并不是逐条持久化到数据库的，而是每隔一段时间批量持久化，一般间隔在 100 毫秒左右，这就会导致 ACK 有一定的延迟，
+因此建议生产者确认全部采用异步方式，防止发送线程阻塞等待 ACK。而发送消息 convertAndSend 方法是非阻塞的，消息发送后立即返回，所以上面的 ConfirmCallback 本质上就是异步的。
+
+****
+### 2.2 LazyQueue
+
+在默认情况下，RabbitMQ 会将接收到的信息保存在内存中以降低消息收发的延迟。但在某些特殊情况下，这会导致消息积压，比如：
+
+- 消费者宕机或出现网络故障
+- 消息发送量激增，超过了消费者处理速度
+- 消费者处理业务发生阻塞
+
+一旦出现消息堆积问题，RabbitMQ 的内存占用就会越来越高，直到触发内存预警上限。此时 RabbitMQ 会将内存消息刷到磁盘上，这个行为成为 PageOut，PageOut 会耗费一段时间，
+并且会阻塞队列进程，因此在这个过程中 RabbitMQ 不会再处理新的消息，生产者的所有请求都会被阻塞。从 RabbitMQ 的3.6.0 版本开始，就增加了 Lazy Queues 的模式，
+也就是惰性队列，而在 3.12 版本之后，LazyQueue 已经成为所有队列的默认格式：
+
+- 接收到消息后直接存入磁盘而非内存
+- 消费者要消费消息时才会从磁盘中读取并加载到内存（也就是懒加载）
+- 支持数百万条的消息存储
+
+在添加队列的时候，在 Arguments 处添加 x-queue-mod=lazy 参数即可设置队列为 Lazy 模式，在利用 SpringAMQP 声明队列的时候，
+添加 x-queue-mod=lazy 参数也可设置队列为 Lazy 模式：
+
+```java
+@Bean
+public Queue lazyQueue(){
+    return QueueBuilder
+            .durable("lazy.queue")
+            .lazy() // 开启Lazy模式
+            .build();
+}
+```
+
+也可以基于注解来声明队列并设置为 Lazy 模式:
+
+```java
+@RabbitListener(queuesToDeclare = @Queue(
+        name = "lazy.queue",
+        durable = "true",
+        arguments = @Argument(name = "x-queue-mode", value = "lazy")
+))
+public void listenLazyQueue(String msg){
+    log.info("接收到 lazy.queue的消息：{}", msg);
+}
+```
+
+对于已经存在的队列，也可以配置为 lazy 模式，但是要通过设置 policy 实现，可以基于命令行设置 policy：
+
+```shell
+rabbitmqctl set_policy Lazy "^lazy-queue$" '{"queue-mode":"lazy"}' --apply-to queues  
+```
+
+- rabbitmqctl ：RabbitMQ 的命令行工具
+- set_policy ：添加一个策略
+- Lazy ：策略名称，可以自定义
+- "^lazy-queue$" ：用正则表达式匹配队列的名字，只作用于名为 lazy-queue 的队列，使用 ".*" 作用域所有队列
+- '{"queue-mode":"lazy"}' ：设置队列模式为 lazy 模式
+- --apply-to queues：策略的作用对象，是所有的队列
+
+因为是在 Docker 中安装的，所以要进入 Docker 的容器：
+
+```shell
+docker exec -it rabbitmq bash
+rabbitmqctl set_policy Lazy "^lazy-queue$" '{"queue-mode":"lazy"}' --apply-to queues
+```
+
+也可以在控制台配置 policy，进入在控制台的 Admin 页面，点击 Policies，即可添加配置
+
+****
+### 2.3 消费者的可靠性
+
+当 RabbitMQ 向消费者投递消息以后，需要知道消费者的处理状态如何。因为消息投递给消费者并不代表就一定被正确消费了，可能出现的故障有很多，比如：
+
+- 消息投递的过程中出现了网络故障
+- 消费者接收到消息后突然宕机
+- 消费者接收到消息后，因处理不当导致异常
+
+#### 1. 消费者确认机制
+
+为了确认消费者是否成功处理消息，RabbitMQ 提供了消费者确认机制（Consumer Acknowledgement）。即：当消费者处理消息结束后，应该向 RabbitMQ 发送一个回执，
+告知 RabbitMQ 消息处理的状态，回执有三种可选值：
+
+- ack：成功处理消息，RabbitMQ 从队列中删除该消息
+- nack：消息处理失败，RabbitMQ 需要再次投递消息
+- reject：消息处理失败并拒绝该消息，RabbitMQ 从队列中删除该消息
+
+一般 reject 方式用的较少，除非是消息格式有问题，否则就是开发问题了。所以大多数情况下需要将消息处理的代码通过 try catch 机制捕获，消息处理成功时返回 ack，
+处理失败时返回 nack。由于消息回执的处理代码比较统一，所以 SpringAMQP 实现了消息确认，并允许通过配置文件设置 ACK 处理方式，有三种模式：
+
+- none：不处理。即消息投递给消费者后立刻返回 ack，消息会立刻从 MQ 删除，非常不安全，不建议使用
+- manual：手动模式。需要手动在业务代码中调用 api，发送 ack 或 reject，虽然存在业务入侵，但更灵活
+- auto：自动模式。SpringAMQP 利用 AOP 对消息处理逻辑做了环绕增强，当业务正常执行时则自动返回 ack；当业务出现异常时，根据异常判断返回不同结果：
+  - 如果是业务异常，会自动返回 nack
+  - 如果是消息处理或校验异常，自动返回 reject
+
+```yaml
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        acknowledge-mode: none # 不做处理，也是默认机制
+```
+
+修改 consumer 服务的 SpringRabbitListener 类中的方法，模拟一个消息处理的异常：
+
+```java
+@RabbitListener(queues = "simple.queue")
+public void listenSimpleQueueMessage(String msg) throws InterruptedException {
+    log.info("spring 消费者接收到消息：[{}]", msg);
+    if (true) {
+      throw new MessageConversionException("故意的");
+    }
+    log.info("消息处理完成");
+}
+```
+
+当消息处理发生异常时，消息被 RabbitMQ 删除了，查看 RabbitMQ 控制台，点击获取消息，会显示队列为空。
+
+```text
+spring 消费者接收到消息：[hello, spring amqp!]
+Caused by: org.springframework.amqp.support.converter.MessageConversionException: 故意的
+```
+
+****
+#### 2. 失败重试机制
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

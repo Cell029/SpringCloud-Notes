@@ -1,7 +1,8 @@
 logging:
   pattern:
     dateformat: MM-dd HH:mm:ss:SSS
-
+  level:
+    com.itheima: debug
 spring:
   rabbitmq:
     host: 127.0.0.1 # 虚拟机IP
@@ -12,3 +13,5 @@ spring:
     listener:
       simple:
         prefetch: 1 # 每次只能获取一条消息，处理完成才能获取下一个消息
+        acknowledge-mode: none # ack不做处理
+
