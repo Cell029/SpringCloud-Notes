@@ -17,3 +17,4 @@ spring:
     virtual-host: /hmall # 虚拟主机
     username: hmall # 用户名
     password: 123 # 密码
+

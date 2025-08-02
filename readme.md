@@ -5,14 +5,15 @@
 为了简化单表 CRUD，MybatisPlus 提供了一个基础的 BaseMapper<T> 接口，它是 MyBatis-Plus 提供的通用 Mapper 接口，
 其中的 T 表示操作的实体类类型（比如 User、Product 等），它已经默认实现了大量常用方法，比如：
 
-| 方法名                                | 说明         |
-|------------------------------------|------------|
-| `insert(T entity)`                 | 插入记录       |
-| `deleteById(Serializable id)`      | 根据主键删除     |
-| `updateById(T entity)`             | 根据主键更新记录   |
-| `selectById(Serializable id)`      | 根据主键查询     |
-| `selectList(QueryWrapper<T>)`      | 根据条件查询列表   |
-| `selectCount(QueryWrapper<T>)`     | 查询总记录数     |
+
+| 方法名                             | 说明                 |
+| ---------------------------------- | -------------------- |
+| `insert(T entity)`                 | 插入记录             |
+| `deleteById(Serializable id)`      | 根据主键删除         |
+| `updateById(T entity)`             | 根据主键更新记录     |
+| `selectById(Serializable id)`      | 根据主键查询         |
+| `selectList(QueryWrapper<T>)`      | 根据条件查询列表     |
+| `selectCount(QueryWrapper<T>)`     | 查询总记录数         |
 | `selectByMap(Map<String, Object>)` | 根据字段精确匹配查询 |
 
 因此自定义的 Mapper 只要实现了这个 BaseMapper<T> 接口，就无需自己实现单表 CRUD 了。修改 mp-demo 中的 com.itheima.mp.mapper
@@ -96,7 +97,7 @@ void testDeleteUser() {
 }
 ```
 
-****
+---
 
 ## 2. 常见注解
 
@@ -124,14 +125,15 @@ public class User {
 
 TableName 注解除了指定表名以外，还可以指定很多其它属性：
 
-| 属性               | 类型       | 必须指定 | 默认值   | 描述                                                            |
-|------------------|----------|------|-------|---------------------------------------------------------------|
-| value            | String   | 否    | ""    | 表名                                                            |
-| schema           | String   | 否    | ""    | 指定数据库的 schema（模式）                                             |
-| keepGlobalPrefix | boolean  | 否    | false | 是否保留全局配置中的表前缀 tablePrefix 的值（当全局 tablePrefix 生效时）             |
-| resultMap        | String   | 否    | ""    | xml 中 resultMap 的 id（用于满足特定类型的实体类对象绑定）                        |
-| autoResultMap    | boolean  | 否    | false | 是否自动构建 resultMap 并使用（如果设置 resultMap 则不会进行 resultMap 的自动构建与注入） |
-| excludeProperty  | String[] | 否    | {}    | 需要排除的属性名 @since 3.3.1                                         |
+
+| 属性             | 类型     | 必须指定 | 默认值 | 描述                                                                                      |
+| ---------------- | -------- | -------- | ------ | ----------------------------------------------------------------------------------------- |
+| value            | String   | 否       | ""     | 表名                                                                                      |
+| schema           | String   | 否       | ""     | 指定数据库的 schema（模式）                                                               |
+| keepGlobalPrefix | boolean  | 否       | false  | 是否保留全局配置中的表前缀 tablePrefix 的值（当全局 tablePrefix 生效时）                  |
+| resultMap        | String   | 否       | ""     | xml 中 resultMap 的 id（用于满足特定类型的实体类对象绑定）                                |
+| autoResultMap    | boolean  | 否       | false  | 是否自动构建 resultMap 并使用（如果设置 resultMap 则不会进行 resultMap 的自动构建与注入） |
+| excludeProperty  | String[] | 否       | {}     | 需要排除的属性名 @since 3.3.1                                                             |
 
 2、@TableId：用于指定主键及主键策略
 
@@ -145,10 +147,11 @@ public class User {
 }
 ```
 
-| 属性    | 类型     | 必须指定 | 默认值         | 描述     |
-|-------|--------|------|-------------|--------|
-| value | String | 否    | ""          | 表名     |
-| type  | Enum   | 否    | IdType.NONE | 指定主键类型 |
+
+| 属性  | 类型   | 必须指定 | 默认值      | 描述         |
+| ----- | ------ | -------- | ----------- | ------------ |
+| value | String | 否       | ""          | 表名         |
+| type  | Enum   | 否       | IdType.NONE | 指定主键类型 |
 
 IdType 支持的常用类型：
 
@@ -164,7 +167,7 @@ IdType 支持的常用类型：
 - 成员变量是以 isXXX 命名，按照 JavaBean 的规范，MybatisPlus 识别字段时会把is去除，这就导致与数据库不符。
 - 成员变量名与数据库一致，但是与数据库的关键字冲突。使用 @TableField 注解给字段名添加转义字符：``
 
-****
+---
 
 ## 3. 常见配置
 
@@ -189,7 +192,7 @@ mybatis-plus:
 需要注意的是，MyBatisPlus 也支持手写 SQL 的，而 mapper 文件的读取地址可以配置，默认值是 classpath*:/mapper/**/*.xml，
 也就是说只要把 mapper.xml 文件放置这个目录下就一定会被加载。
 
-****
+---
 
 ## 4. 核心功能
 
@@ -241,7 +244,7 @@ void testUpdateByQueryWrapper() {
 }
 ```
 
-****
+---
 
 #### 2. UpdateWrapper
 
@@ -273,7 +276,7 @@ void testUpdateWrapper() {
 像之前的 update() 方法，它是依赖创建一个实体对象，然后给需要更新的字段进行赋值，MyBatisPlus 会根据哪些字段不为空进行对应的更新操作，
 而这里则不需要再创建对象并赋值字段，直接创建一个条件，然后更新这个数据。
 
-****
+---
 
 #### 3. LambdaQueryWrapper
 
@@ -303,7 +306,7 @@ void testLambdaQueryWrapper() {
 }
 ```
 
-****
+---
 
 ### 4.2 自定义 SQL
 
@@ -398,7 +401,7 @@ FROM user u
 select>
 ```
 
-****
+---
 
 ### 4.3 Service 接口
 
@@ -469,13 +472,14 @@ knife4j:
 
 使用 IService 接口基于 Restful 风格实现下列接口：
 
-| 编号 | 接口       | 请求方式   | 请求路径                          | 请求参数      | 返回值    |
-|----|----------|--------|-------------------------------|-----------|--------|
-| 1  | 新增用户     | POST   | /users                        | 用户表单实体    | 无      |
-| 2  | 删除用户     | DELETE | /users/{id}                   | 用户id      | 无      |
-| 3  | 根据id查询用户 | GET    | /users/{id}                   | 用户id      | 用户VO   |
-| 4  | 根据id批量查询 | GET    | /users                        | 用户id集合    | 用户VO集合 |
-| 5  | 根据id扣减余额 | PUT    | /users/{id}/deduction/{money} | 用户id、扣减金额 | 无      |
+
+| 编号 | 接口           | 请求方式 | 请求路径                      | 请求参数         | 返回值     |
+| ---- | -------------- | -------- | ----------------------------- | ---------------- | ---------- |
+| 1    | 新增用户       | POST     | /users                        | 用户表单实体     | 无         |
+| 2    | 删除用户       | DELETE   | /users/{id}                   | 用户id           | 无         |
+| 3    | 根据id查询用户 | GET      | /users/{id}                   | 用户id           | 用户VO     |
+| 4    | 根据id批量查询 | GET      | /users                        | 用户id集合       | 用户VO集合 |
+| 5    | 根据id扣减余额 | PUT      | /users/{id}/deduction/{money} | 用户id、扣减金额 | 无         |
 
 1、新增用户
 
@@ -578,7 +582,7 @@ Mapper 层：
 void deductMoneyById(@Param("id") Long id, @Param("money") Integer money);
 ```
 
-****
+---
 
 #### 2. Lambda 查询与修改
 
@@ -663,7 +667,7 @@ public void deductBalance(Long id, Integer money) {
 }
 ```
 
-****
+---
 
 #### 3. 批量新增
 
@@ -709,7 +713,7 @@ MySQL 的客户端连接参数中有这样的一个参数：rewriteBatchedStatem
 false，将其配置为 true 即代表开启批处理模式，
 开启后可以保证最终只执行 100 次插入。
 
-****
+---
 
 ## 5. 扩展功能
 
@@ -719,7 +723,7 @@ false，将其配置为 true 即代表开启批处理模式，
 POJO、Mapper、Service 等相关代码，
 只不过代码生成器同样要编码使用。所以更推荐使用一款 MybatisPlus 的插件，它可以基于图形化界面完成 MybatisPlus 的代码生成。
 
-****
+---
 
 ### 5.2 静态工具
 
@@ -760,7 +764,7 @@ userService.
 getById(id);
 ```
 
-****
+---
 
 ### 5.3 逻辑删除
 
@@ -821,7 +825,7 @@ FROM address
 WHERE deleted = 0
 ```
 
-****
+---
 
 ### 5.4 通用枚举
 
@@ -894,7 +898,7 @@ private final String desc;
 }
 ```
 
-****
+---
 
 ### 5.5 JSON 处理器
 
@@ -943,7 +947,7 @@ public class User {
 }
 ```
 
-****
+---
 
 ## 6. 插件功能
 
@@ -1010,7 +1014,7 @@ SELECT id,
 FROM user LIMIT ?,?
 ```
 
-****
+---
 
 ### 6.2 通用分页实体
 
@@ -1244,7 +1248,7 @@ length() -2)+"**");
 
 这里就是将 userName 的最后两个字符变为 **。
 
-****
+---
 
 # 二、Docker
 
@@ -1273,16 +1277,16 @@ docker run -d \
 - docker run -d ：创建并运行一个容器，-d 则是让容器以后台进程运行
 - --name mysql  : 给容器起个名字叫 mysql
 - -p 3306:3306 : 设置端口映射
-    - 容器是隔离环境，外界不可访问，但是可以将宿主机（即 Docker 所在的 Linux 系统）端口映射到容器内端口，当访问宿主机指定端口时，就是在访问容器内的端口。
-    - 容器内端口往往是由容器内的进程决定，例如 MySQL 进程默认端口是 3306，因此容器内端口就是
-      3306；而宿主机端口则可以任意指定，一般与容器内保持一致。
-    - 格式： -p 宿主机端口:容器内端口，该命令就是将宿主机的 3306 映射到容器内的 3306 端口
+  - 容器是隔离环境，外界不可访问，但是可以将宿主机（即 Docker 所在的 Linux 系统）端口映射到容器内端口，当访问宿主机指定端口时，就是在访问容器内的端口。
+  - 容器内端口往往是由容器内的进程决定，例如 MySQL 进程默认端口是 3306，因此容器内端口就是
+    3306；而宿主机端口则可以任意指定，一般与容器内保持一致。
+  - 格式： -p 宿主机端口:容器内端口，该命令就是将宿主机的 3306 映射到容器内的 3306 端口
 - -e TZ=Asia/Shanghai : 配置容器内进程运行时的一些参数
-    - 格式：-e KEY=VALUE，KEY 和 VALUE 都由容器内进程决定
-    - 案例中，TZ=Asia/Shanghai 是设置时区；MYSQL_ROOT_PASSWORD=123 是设置 MySQL 的默认密码
+  - 格式：-e KEY=VALUE，KEY 和 VALUE 都由容器内进程决定
+  - 案例中，TZ=Asia/Shanghai 是设置时区；MYSQL_ROOT_PASSWORD=123 是设置 MySQL 的默认密码
 - mysql : 设置镜像名称，Docker 会根据这个名字搜索并下载镜像
-    - 格式：REPOSITORY:TAG，例如 mysql:8.0，其中 REPOSITORY 可以理解为镜像名，TAG 是版本号
-    - 在未指定 TAG 的情况下，默认是最新版本，也就是 mysql:latest
+  - 格式：REPOSITORY:TAG，例如 mysql:8.0，其中 REPOSITORY 可以理解为镜像名，TAG 是版本号
+  - 在未指定 TAG 的情况下，默认是最新版本，也就是 mysql:latest
 
 执行命令后，Docker 就会自动搜索并下载 MySQL，然后会自动运行 MySQL。而且，这种安装方式不用考虑运行的操作系统环境，它不仅可以在
 CentOS 系统这样安装，
@@ -1295,7 +1299,7 @@ Docker
 官方提供了一个专门管理、存储镜像的网站，并对外开放了镜像上传、下载的权利：[https://hub.docker.com/](https://hub.docker.com/)。
 DockerHub 网站是官方仓库，阿里云、华为云会提供一些第三方仓库，也可以自己搭建私有的镜像仓库。
 
-****
+---
 
 ## 2. Docker 基础
 
@@ -1303,23 +1307,24 @@ DockerHub 网站是官方仓库，阿里云、华为云会提供一些第三方�
 
 ### 2.1 常见命令
 
-| 命令             | 说明                  | 文档地址                                                                            |
-|----------------|---------------------|---------------------------------------------------------------------------------|
-| docker pull    | 拉取镜像                | [docker pull](https://docs.docker.com/engine/reference/commandline/pull/)       |
-| docker push    | 推送镜像到DockerRegistry | [docker push](https://docs.docker.com/engine/reference/commandline/push/)       |
-| docker images  | 查看本地镜像              | [docker images](https://docs.docker.com/engine/reference/commandline/images/)   |
-| docker rmi     | 删除本地镜像              | [docker rmi](https://docs.docker.com/engine/reference/commandline/rmi/)         |
-| docker run     | 创建并运行容器（不能重复创建）     | [docker run](https://docs.docker.com/engine/reference/commandline/run/)         |
-| docker stop    | 停止指定容器              | [docker stop](https://docs.docker.com/engine/reference/commandline/stop/)       |
-| docker start   | 启动指定容器              | [docker start](https://docs.docker.com/engine/reference/commandline/start/)     |
-| docker restart | 重新启动容器              | [docker restart](https://docs.docker.com/engine/reference/commandline/restart/) |
-| docker rm      | 删除指定容器              | [docker rm](https://docs.docker.com/engine/reference/commandline/rm/)           |
-| docker ps      | 查看容器                | [docker ps](https://docs.docker.com/engine/reference/commandline/ps/)           |
-| docker logs    | 查看容器运行日志            | [docker logs](https://docs.docker.com/engine/reference/commandline/logs/)       |
-| docker exec    | 进入容器                | [docker exec](https://docs.docker.com/engine/reference/commandline/exec/)       |
+
+| 命令           | 说明                           | 文档地址                                                                        |
+| -------------- | ------------------------------ | ------------------------------------------------------------------------------- |
+| docker pull    | 拉取镜像                       | [docker pull](https://docs.docker.com/engine/reference/commandline/pull/)       |
+| docker push    | 推送镜像到DockerRegistry       | [docker push](https://docs.docker.com/engine/reference/commandline/push/)       |
+| docker images  | 查看本地镜像                   | [docker images](https://docs.docker.com/engine/reference/commandline/images/)   |
+| docker rmi     | 删除本地镜像                   | [docker rmi](https://docs.docker.com/engine/reference/commandline/rmi/)         |
+| docker run     | 创建并运行容器（不能重复创建） | [docker run](https://docs.docker.com/engine/reference/commandline/run/)         |
+| docker stop    | 停止指定容器                   | [docker stop](https://docs.docker.com/engine/reference/commandline/stop/)       |
+| docker start   | 启动指定容器                   | [docker start](https://docs.docker.com/engine/reference/commandline/start/)     |
+| docker restart | 重新启动容器                   | [docker restart](https://docs.docker.com/engine/reference/commandline/restart/) |
+| docker rm      | 删除指定容器                   | [docker rm](https://docs.docker.com/engine/reference/commandline/rm/)           |
+| docker ps      | 查看容器                       | [docker ps](https://docs.docker.com/engine/reference/commandline/ps/)           |
+| docker logs    | 查看容器运行日志               | [docker logs](https://docs.docker.com/engine/reference/commandline/logs/)       |
+| docker exec    | 进入容器                       | [docker exec](https://docs.docker.com/engine/reference/commandline/exec/)       |
 | docker save    | 保存镜像到本地压缩文件         | [docker save](https://docs.docker.com/engine/reference/commandline/save/)       |
 | docker load    | 加载本地压缩文件到镜像         | [docker load](https://docs.docker.com/engine/reference/commandline/load/)       |
-| docker inspect | 查看容器详细信息            | [docker inspect](https://docs.docker.com/engine/reference/commandline/inspect/) | 
+| docker inspect | 查看容器详细信息               | [docker inspect](https://docs.docker.com/engine/reference/commandline/inspect/) |
 
 Docker 的核心命令可以划分为三个主要环节：镜像构建与管理、镜像仓库交互、容器生命周期管理：
 
@@ -1466,7 +1471,7 @@ fi
 source /root/.bashrc
 ```
 
-****
+---
 
 ### 2.2 数据卷
 
@@ -1482,17 +1487,18 @@ source /root/.bashrc
 
 相关命令：
 
-| 命令                    | 说明         | 文档地址                                                                                          |
-|-----------------------|------------|-----------------------------------------------------------------------------------------------|
-| docker volume create  | 创建数据卷      | [docker volume create](https://docs.docker.com/engine/reference/commandline/volume_create/)   |
-| docker volume ls      | 查看所有数据卷    | [docker volume ls](https://docs.docker.com/engine/reference/commandline/volume_ls/)           |
-| docker volume rm      | 删除指定数据卷    | [docker volume rm](https://docs.docker.com/engine/reference/commandline/volume_rm/)           |
+
+| 命令                  | 说明                 | 文档地址                                                                                      |
+| --------------------- | -------------------- | --------------------------------------------------------------------------------------------- |
+| docker volume create  | 创建数据卷           | [docker volume create](https://docs.docker.com/engine/reference/commandline/volume_create/)   |
+| docker volume ls      | 查看所有数据卷       | [docker volume ls](https://docs.docker.com/engine/reference/commandline/volume_ls/)           |
+| docker volume rm      | 删除指定数据卷       | [docker volume rm](https://docs.docker.com/engine/reference/commandline/volume_rm/)           |
 | docker volume inspect | 查看某个数据卷的详情 | [docker volume inspect](https://docs.docker.com/engine/reference/commandline/volume_inspect/) |
-| docker volume prune   | 清除数据卷      | [docker volume prune](https://docs.docker.com/engine/reference/commandline/volume_prune/)     | 
+| docker volume prune   | 清除数据卷           | [docker volume prune](https://docs.docker.com/engine/reference/commandline/volume_prune/)     |
 
 注意：容器与数据卷的挂载要在创建容器时配置，对于创建好的容器，是不能设置数据卷的，而且创建容器的过程中，数据卷会自动创建。
 
-****
+---
 
 #### 1. 挂载数据卷
 
@@ -1551,7 +1557,7 @@ cd /var/lib/docker/volumes/html/_data
 vi index.html
 ```
 
-****
+---
 
 #### 2. 匿名数据卷
 
@@ -1617,7 +1623,7 @@ VOLUME /var/lib/mysql
 ls -l /var/lib/docker/volumes/278e740c8.../_data
 ```
 
-****
+---
 
 #### 3. 挂载本地目录或文件
 
@@ -1751,7 +1757,7 @@ show databases;
 所有的文件操作，都会映射到宿主机的挂载路径上；
 同理，只要使用这些本地目录进行挂载，那么就可以达到数据恢复的操作。
 
-****
+---
 
 ### 2.3 镜像
 
@@ -1787,16 +1793,17 @@ Dockerfile，它是一个包含了一系列命令的脚本，这些命令按照�
 
 常用命令：
 
-| 指令         | 说明                         | 示例                          |
-|------------|----------------------------|-----------------------------|
-| FROM       | 指定基础镜像                     | FROM centos:6               |
-| ENV        | 设置环境变量，可在后面指令使用            | ENV key value               |
-| COPY       | 拷贝本地文件到镜像的指定目录             | COPY ./xx.jar /tmp/app.jar  |
-| RUN        | 执行Linux的shell命令，一般是安装过程的命令 | RUN yum install gcc         |
-| EXPOSE     | 指定容器运行时监听的端口，是给镜像使用者看的     | EXPOSE 8080                 |
+
+| 指令       | 说明                                         | 示例                        |
+| ---------- | -------------------------------------------- | --------------------------- |
+| FROM       | 指定基础镜像                                 | FROM centos:6               |
+| ENV        | 设置环境变量，可在后面指令使用               | ENV key value               |
+| COPY       | 拷贝本地文件到镜像的指定目录                 | COPY ./xx.jar /tmp/app.jar  |
+| RUN        | 执行Linux的shell命令，一般是安装过程的命令   | RUN yum install gcc         |
+| EXPOSE     | 指定容器运行时监听的端口，是给镜像使用者看的 | EXPOSE 8080                 |
 | ENTRYPOINT | 镜像中应用的启动命令，容器运行时调用         | ENTRYPOINT java -jar xx.jar |
 
-****
+---
 
 #### 2. 自定义镜像
 
@@ -1859,7 +1866,7 @@ curl localhost:8080/hello/count
 <h5>欢迎访问黑马商城, 这是您第6次访问<h5>
 ```
 
-****
+---
 
 ### 2.4 网络
 
@@ -1901,15 +1908,16 @@ ping 172.17.0.3
 但是，容器的网络 IP 其实是一个虚拟的 IP，其值并不固定与某一个容器绑定，如果在开发时写死某个 IP，而在部署时很可能 MySQL 容器的
 IP 会发生变化，连接会失败。常见 Docker 网络的命令：
 
-| 命令                        | 说明           | 文档地址                                                                                                  |
-|---------------------------|--------------|-------------------------------------------------------------------------------------------------------|
-| docker network create     | 创建一个网络       | [docker network create](https://docs.docker.com/engine/reference/commandline/network_create/)         |
-| docker network ls         | 查看所有网络       | [docker network ls](https://docs.docker.com/engine/reference/commandline/network_ls/)                 |
-| docker network rm         | 删除指定网络       | [docker network rm](https://docs.docker.com/engine/reference/commandline/network_rm/)                 |
-| docker network prune      | 清除未使用的网络     | [docker network prune](https://docs.docker.com/engine/reference/commandline/network_prune/)           |
+
+| 命令                      | 说明                     | 文档地址                                                                                              |
+| ------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| docker network create     | 创建一个网络             | [docker network create](https://docs.docker.com/engine/reference/commandline/network_create/)         |
+| docker network ls         | 查看所有网络             | [docker network ls](https://docs.docker.com/engine/reference/commandline/network_ls/)                 |
+| docker network rm         | 删除指定网络             | [docker network rm](https://docs.docker.com/engine/reference/commandline/network_rm/)                 |
+| docker network prune      | 清除未使用的网络         | [docker network prune](https://docs.docker.com/engine/reference/commandline/network_prune/)           |
 | docker network connect    | 使指定容器连接加入某网络 | [docker network connect](https://docs.docker.com/engine/reference/commandline/network_connect/)       |
 | docker network disconnect | 使指定容器连接离开某网络 | [docker network disconnect](https://docs.docker.com/engine/reference/commandline/network_disconnect/) |
-| docker network inspect    | 查看网络详细信息     | [docker network inspect](https://docs.docker.com/engine/reference/commandline/network_inspect/)       | 
+| docker network inspect    | 查看网络详细信息         | [docker network inspect](https://docs.docker.com/engine/reference/commandline/network_inspect/)       |
 
 自定义 bridge 网络：
 
@@ -1986,7 +1994,7 @@ ping mysql2
 - 在自定义网络中，可以给容器起多个别名，默认的别名是容器名本身
 - 在同一个自定义网络中的容器，可以通过别名互相访问
 
-****
+---
 
 ## 3. 项目部署
 
@@ -2019,7 +2027,7 @@ cd /mnt/d/docker_dataMountDirectory/hmall
 docker build -t hmall .
 ```
 
-****
+---
 
 ### 3.3 DockerCompose
 
@@ -2076,15 +2084,16 @@ networks:
 
 对比如下：
 
-| docker run 参数 | docker compose 指令 | 说明    |
-|:-------------:|:-----------------:|-------|
-|    --name     |  container_name   | 容器名称  |
-|      -p       |       ports       | 端口映射  |
-|      -e       |    environment    | 环境变量  |
-|      -v       |      volumes      | 数据卷配置 |
-|   --network   |     networks      | 网络    |
 
-****
+| docker run 参数 | docker compose 指令 | 说明       |
+| :-------------: | :-----------------: | ---------- |
+|     --name     |   container_name   | 容器名称   |
+|       -p       |        ports        | 端口映射   |
+|       -e       |     environment     | 环境变量   |
+|       -v       |       volumes       | 数据卷配置 |
+|    --network    |      networks      | 网络       |
+
+---
 
 #### 3.2 基础命令
 
@@ -2094,21 +2103,22 @@ docker compose [OPTIONS] [COMMAND]
 
 其中，OPTIONS 和 COMMAND 都是可选参数，比较常见的有：
 
-| 类型       | 参数或指令   | 说明                                                     |
-|----------|---------|--------------------------------------------------------|
-| Options  | -f      | 指定compose文件的路径和名称                                      |
-| Options  | -p      | 指定project名称。project就是当前compose文件中设置的多个service的集合，是逻辑概念 |
-| Commands | up      | 创建并启动所有service容器                                       |
-| Commands | down    | 停止并移除所有容器、网络                                           |
-| Commands | ps      | 列出所有启动的容器                                              |
-| Commands | logs    | 查看指定容器的日志                                              |
-| Commands | stop    | 停止容器                                                   |
-| Commands | start   | 启动容器                                                   |
-| Commands | restart | 重启容器                                                   |
-| Commands | top     | 查看运行的进程                                                |
-| Commands | exec    | 在指定的运行中容器中执行命令                                         |
 
-****
+| 类型     | 参数或指令 | 说明                                                                             |
+| -------- | ---------- | -------------------------------------------------------------------------------- |
+| Options  | -f         | 指定compose文件的路径和名称                                                      |
+| Options  | -p         | 指定project名称。project就是当前compose文件中设置的多个service的集合，是逻辑概念 |
+| Commands | up         | 创建并启动所有service容器                                                        |
+| Commands | down       | 停止并移除所有容器、网络                                                         |
+| Commands | ps         | 列出所有启动的容器                                                               |
+| Commands | logs       | 查看指定容器的日志                                                               |
+| Commands | stop       | 停止容器                                                                         |
+| Commands | start      | 启动容器                                                                         |
+| Commands | restart    | 重启容器                                                                         |
+| Commands | top        | 查看运行的进程                                                                   |
+| Commands | exec       | 在指定的运行中容器中执行命令                                                     |
+
+---
 
 # 三、微服务
 
@@ -2133,7 +2143,7 @@ docker compose [OPTIONS] [COMMAND]
 接口称为一个并发较高的热点接口，他就会抢占大量资源，最终会有越来越多请求积压，直至Tomcat资源耗尽。
 其它本来正常的接口（例如/search/list）也都会被拖慢，甚至因超时而无法访问了。
 
-****
+---
 
 ### 1.2 微服务
 
@@ -2149,7 +2159,7 @@ docker compose [OPTIONS] [COMMAND]
 - 每个服务都是独立部署，当有某个服务有代码变更时，只需要打包部署该服务即可
 - 每个服务独立部署，并且做好服务隔离，使用自己的服务器资源，不会影响到其它服务。
 
-****
+---
 
 ## 2. 微服务拆分
 
@@ -2164,7 +2174,7 @@ docker compose [OPTIONS] [COMMAND]
 但是，这么做的问题就在于后期做服务拆分时，可能会遇到很多代码耦合带来的问题，拆分比较困难（前易后难）。而对于一些大型项目，在立项之初目的就很明确，为了长远考虑，
 在架构设计时就直接选择微服务架构。虽然前期投入较多，但后期就少了拆分服务的烦恼（前难后易）。
 
-****
+---
 
 #### 2. 怎么拆
 
@@ -2194,25 +2204,26 @@ docker compose [OPTIONS] [COMMAND]
 - 购物车服务
 - 支付服务
 
-****
+---
 
 ### 2.2 拆分购物车、商品服务
 
 一般微服务项目有两种不同的工程结构：
 
 - 完全解耦：每一个微服务都创建为一个独立的工程，甚至可以使用不同的开发语言来开发，项目完全解耦。
-    - 优点：服务之间耦合度低
-    - 缺点：每个项目都有自己的独立仓库，管理起来比较麻烦
 
+  - 优点：服务之间耦合度低
+  - 缺点：每个项目都有自己的独立仓库，管理起来比较麻烦
 - Maven 聚合：整个项目为一个 Project，然后每个微服务是其中的一个 Module
-    - 优点：项目代码集中，管理和运维方便
-    - 缺点：服务之间耦合，编译时间较长
+
+  - 优点：项目代码集中，管理和运维方便
+  - 缺点：服务之间耦合，编译时间较长
 
 在 hmall 父工程之中已经提前定义了 SpringBoot、SpringCloud 的依赖版本，所以可以直接在这个项目中创建微服务 module。购物车对应
 cart-service，商品服务对应 item-service。
 分别导入 controller、service 和 mapper。
 
-****
+---
 
 ### 2.3 服务调用
 
@@ -2315,7 +2326,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 }
 ```
 
-****
+---
 
 ## 3. 服务治理
 
@@ -2340,7 +2351,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 - 当服务有新实例启动时，会发送注册服务请求，其信息会被记录在注册中心的服务实例列表
 - 当注册中心服务列表变更时，会主动通知微服务，更新本地服务列表
 
-****
+---
 
 ### 3.2 Nacos 注册中心
 
@@ -2392,7 +2403,7 @@ nacos/nacos-server:v2.1.0-slim
 
 启动完成后，访问下面地址：http://192.168.0.105:8848/nacos/ ，首次访问会跳转到登录页，账号密码都是 nacos。
 
-****
+---
 
 ### 3.3 服务注册
 
@@ -2421,10 +2432,11 @@ spring:
 
 启动服务实例后，访问 nacos 控制台，可以发现服务注册成功：
 
-| 服务名          | 分组名称          | 集群数目 | 实例数 | 健康实例数 | 触发保护阈值 | 操作                      |
-|--------------|---------------|------|-----|-------|--------|-------------------------|
-| cart-service | DEFAULT_GROUP | 1    | 1   | 1     | false  | 详情 \| 示例代码 \| 订阅者 \| 删除 |
-| item-service | DEFAULT_GROUP | 1    | 1   | 1     | false  | 详情 \| 示例代码 \| 订阅者 \| 删除 |
+
+| 服务名       | 分组名称      | 集群数目 | 实例数 | 健康实例数 | 触发保护阈值 | 操作                              |
+| ------------ | ------------- | -------- | ------ | ---------- | ------------ | --------------------------------- |
+| cart-service | DEFAULT_GROUP | 1        | 1      | 1          | false        | 详情\| 示例代码 \| 订阅者 \| 删除 |
+| item-service | DEFAULT_GROUP | 1        | 1      | 1          | false        | 详情\| 示例代码 \| 订阅者 \| 删除 |
 
 然后服务调用者 cart-service 就可以去订阅 item-service 服务了，不过 item-service
 可能有多个实例，而真正发起调用时只需要知道一个实例的地址。所以服务调用者必须利用负载均衡从多个实例中挑选一个去访问。
@@ -2456,7 +2468,7 @@ private void handleCartItems(List<CartVO> vos) {
 }
 ```
 
-****
+---
 
 ### 3.4 OpenFeign
 
@@ -2540,7 +2552,7 @@ private void handleCartItems(List<CartVO> vos) {
 
 OpenFeign 完成了服务拉取、负载均衡、发送 http 请求的所有工作，还省去了 RestTemplate 的注册，代码十分便捷。
 
-****
+---
 
 #### 2. 连接池
 
@@ -2571,7 +2583,7 @@ feign:
     enabled: true # 开启 OKHttp 功能
 ```
 
-****
+---
 
 #### 3. 抽取公共部分
 
@@ -2644,7 +2656,7 @@ public class CartApplication {
 }
 ```
 
-****
+---
 
 #### 4. 日志配置
 
@@ -2707,7 +2719,7 @@ public class CartApplication {
 [ItemClient#queryItemByIds] <--- END HTTP (369-byte body)
 ```
 
-****
+---
 
 # 四、网关路由
 
@@ -2732,7 +2744,7 @@ public class CartApplication {
 - Spring Cloud Gateway
 - Zuul
 
-****
+---
 
 ### 1.2 使用
 
@@ -2788,7 +2800,7 @@ spring:
 
 在配置文件中
 
-****
+---
 
 ### 1.3 路由属性
 
@@ -2847,21 +2859,22 @@ public class RouteDefinition {
 
 对于 predicates，SpringCloudGateway 中支持的断言类型有很多：
 
-| 名称         | 说明                | 示例                                                                                                     |
-|------------|-------------------|--------------------------------------------------------------------------------------------------------|
-| After      | 是某个时间点后的请求        | - After=2037-01-20T17:42:47.789-07:00[America/Denver]                                                  |
-| Before     | 是某个时间点之前的请求       | - Before=2031-04-13T15:14:47.433+08:00[Asia/Shanghai]                                                  |
-| Between    | 是某两个时间点之前的请求      | - Between=2037-01-20T17:42:47.789-07:00[America/Denver], 2037-01-21T17:42:47.789-07:00[America/Denver] |
-| Cookie     | 请求必须包含某些cookie    | - Cookie=chocolate, ch.p                                                                               |
-| Header     | 请求必须包含某些header    | - Header=X-Request-Id, \d+                                                                             |
-| Host       | 请求必须是访问某个host（域名） | - Host=**.somehost.org,**.anotherhost.org                                                              |
-| Method     | 请求方式必须是指定方式       | - Method=GET,POST                                                                                      |
-| Path       | 请求路径必须符合指定规则      | - Path=/red/{segment},/blue/**                                                                         |
-| Query      | 请求参数必须包含指定参数      | - Query=name, Jack或者- Query=name                                                                       |
-| RemoteAddr | 请求者的ip必须是指定范围     | - RemoteAddr=192.168.1.1/24                                                                            |
-| weight     | 权重处理              |                                                                                                        |
 
-****
+| 名称       | 说明                           | 示例                                                                                                   |
+| ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| After      | 是某个时间点后的请求           | - After=2037-01-20T17:42:47.789-07:00[America/Denver]                                                  |
+| Before     | 是某个时间点之前的请求         | - Before=2031-04-13T15:14:47.433+08:00[Asia/Shanghai]                                                  |
+| Between    | 是某两个时间点之前的请求       | - Between=2037-01-20T17:42:47.789-07:00[America/Denver], 2037-01-21T17:42:47.789-07:00[America/Denver] |
+| Cookie     | 请求必须包含某些cookie         | - Cookie=chocolate, ch.p                                                                               |
+| Header     | 请求必须包含某些header         | - Header=X-Request-Id, \d+                                                                             |
+| Host       | 请求必须是访问某个host（域名） | - Host=**.somehost.org,**.anotherhost.org                                                              |
+| Method     | 请求方式必须是指定方式         | - Method=GET,POST                                                                                      |
+| Path       | 请求路径必须符合指定规则       | - Path=/red/{segment},/blue/**                                                                         |
+| Query      | 请求参数必须包含指定参数       | - Query=name, Jack或者- Query=name                                                                     |
+| RemoteAddr | 请求者的ip必须是指定范围       | - RemoteAddr=192.168.1.1/24                                                                            |
+| weight     | 权重处理                       |                                                                                                        |
+
+---
 
 ## 2. 网关登录校验
 
@@ -2896,15 +2909,16 @@ public class RouteDefinition {
 
 常用 Gateway 中内置的 GatewayFilter 过滤器：
 
-| 过滤器名称                  | 作用说明    |
-|------------------------|---------|
-| `AddRequestHeader`     | 添加请求头   |
-| `AddResponseHeader`    | 添加响应头   |
-| `RemoveRequestHeader`  | 移除请求头   |
-| `RemoveResponseHeader` | 移除响应头   |
-| `RewritePath`          | 重写请求路径  |
+
+| 过滤器名称             | 作用说明       |
+| ---------------------- | -------------- |
+| `AddRequestHeader`     | 添加请求头     |
+| `AddResponseHeader`    | 添加响应头     |
+| `RemoveRequestHeader`  | 移除请求头     |
+| `RemoveResponseHeader` | 移除响应头     |
+| `RewritePath`          | 重写请求路径   |
 | `SetStatus`            | 设置返回状态码 |
-| `RedirectTo`           | 重定向     |
+| `RedirectTo`           | 重定向         |
 
 添加请求头：
 
@@ -2950,7 +2964,7 @@ spring:
             -Path=/test/**
 ```
 
-****
+---
 
 ### 2.2 自定义过滤器
 
@@ -2981,7 +2995,7 @@ public class MyGlobalFilter implements GlobalFilter, Ordered {
 - ServerWebExchange：请求上下文，包含整个过滤器，例如 request、response
 - GatewayFilterChain：过滤器链，当前过滤器执行完后，要调用过滤器链中的下一个过滤器
 
-****
+---
 
 #### 2. 自定义 GatewayFilter
 
@@ -3097,7 +3111,7 @@ spring:
             c: 3
 ```
 
-****
+---
 
 ### 2.3 登录校验
 
@@ -3196,7 +3210,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 }
 ```
 
-****
+---
 
 ### 2.4 微服务获取用户
 
@@ -3233,7 +3247,7 @@ filter(swe);
 token，而是依赖网关，
 网关通过请求头 header（如 "user-info"）传递给下游服务。
 
-****
+---
 
 #### 2. 拦截器获取用户
 
@@ -3308,7 +3322,7 @@ DispatcherServlet.class)，
 因为微服务使用的是 SpringMVC，那就一定有这个转发请求的类存在，而网关中一定没有，所以网关模块中就不会加载 SpringMVC
 的配置，从而避免发生报错。
 
-****
+---
 
 ### 2.5 OpenFeign 传递用户
 
@@ -3358,7 +3372,7 @@ RequestTemplate 就是用于组装请求信息的工具，这个 template.header
 ThreadLocal 了，在调用 Feign 请求前，
 就从 ThreadLocal 中拿出用户信息，主动添加到请求头中，转发给下一个微服务。
 
-****
+---
 
 ## 3. 配置管理
 
@@ -3559,7 +3573,7 @@ Ignore the empty nacos configuration and get it based on dataId[cart-service.yam
 Ignore the empty nacos configuration and get it based on dataId[cart-service-local.yaml] & group[DEFAULT_GROUP]
 ```
 
-****
+---
 
 ### 3.2 配置热更新
 
@@ -3619,7 +3633,7 @@ public class CartProperties {
 }
 ```
 
-****
+---
 
 ### 3.3 动态路由
 
@@ -3899,7 +3913,7 @@ public class DynamicRouteLoader {
 ]
 ```
 
-****
+---
 
 # 五、微服务保护和分布式事务
 
@@ -3913,7 +3927,7 @@ public class DynamicRouteLoader {
 还是查询购物车的业务，假如商品服务业务并发较高，占用过多 Tomcat 连接。可能会导致商品服务的所有接口响应时间增加，延迟变高，甚至是长时间阻塞直至查询失败。
 此时查询购物车业务需要查询并等待商品查询结果，从而导致查询购物车列表业务的响应时间也变长，甚至也阻塞直至无法访问。而整个微服务中，都可能存在类似的问题，最终导致整个集群不可用。
 
-****
+---
 
 ### 1.2 服务保护方案
 
@@ -3936,7 +3950,7 @@ public class DynamicRouteLoader {
 - 编写服务降级逻辑：就是服务调用失败后的处理逻辑，根据业务场景，可以抛出异常，也可以返回提示或默认数据
 - 异常统计和熔断：统计服务提供方的异常比例，当比例过高表明该接口会影响到其它服务，应该拒绝调用该接口，并直接走降级逻辑
 
-****
+---
 
 ## 2. Sentinel
 
@@ -4015,7 +4029,7 @@ spring:
       http-method-specify: true # 开启请求方式前缀
 ```
 
-****
+---
 
 ### 2.2 请求限流
 
@@ -4024,7 +4038,7 @@ spring:
 利用 JMeter 进行测试，开启 1000 个线程，运行时间为 100 s，所以大概是 1 s 运行 10 次，而 GET:/carts 这个接口的通过 QPS 稳定在
 6 附近，而拒绝的 QPS 在 4 附近。
 
-****
+---
 
 ### 2.3 线程隔离
 
@@ -4084,7 +4098,7 @@ Jemeter 测试，创建 5000 个线程，
 此时如果通过页面访问购物车的其它接口，例如添加购物车、修改购物车商品数量，发现不受影响，响应时间非常短，这就证明线程隔离起到了作用，尽管查询购物车这个接口并发很高，
 但是它能使用的线程资源被限制了，因此不会影响到其它接口。
 
-****
+---
 
 ### 2.4 服务熔断
 
@@ -4151,7 +4165,7 @@ public interface ItemClient {
 }
 ```
 
-****
+---
 
 #### 2. 服务熔断
 
@@ -4167,8 +4181,8 @@ Sentinel 中的断路器不仅可以统计某个接口的慢请求比例，还�
 - open：打开状态，服务调用被熔断，访问被熔断服务的请求会被拒绝，快速失败，直接走降级逻辑。Open 状态持续一段时间后会进入
   half-open 状态
 - half-open：半开状态，放行一次请求，根据执行结果来判断接下来的操作。
-    - 请求成功：则切换到 closed 状态
-    - 请求失败：则切换到 open 状态
+  - 请求成功：则切换到 closed 状态
+  - 请求失败：则切换到 open 状态
 
 可以在控制台通过点击簇点后的熔断按钮来配置熔断策略，在弹出的表格中填写：
 
@@ -4186,7 +4200,7 @@ Sentinel 中的断路器不仅可以统计某个接口的慢请求比例，还�
 
 观察 Sentinel 的实时监控，在一开始一段时间是允许访问的，后来触发熔断后，查询商品服务的接口通过 QPS 直接为 0，所有请求都被熔断了，而查询购物车的本身并没有受到影响。
 
-****
+---
 
 ## 3. 分布式事务
 
@@ -4200,7 +4214,8 @@ Sentinel 中的断路器不仅可以统计某个接口的慢请求比例，还�
 
 整个业务中，各个本地事务是有关联的。因此每个微服务的本地事务，也可以称为分支事务。多个有关联的分支事务一起就组成了全局事，所以必须保证整个全局事务同时成功或失败。
 
-****
+---
+
 ### 3.2 Seata
 
 分布式事务产生的一个重要原因，就是参与事务的多个分支事务互相无感知，不知道彼此的执行状态，因此可以找一个统一的事务协调者，与多个分支事务通信，检测每个分支事务的执行状态，
@@ -4213,7 +4228,7 @@ Sentinel 中的断路器不仅可以统计某个接口的慢请求比例，还�
 TM 和 RM 可以理解为 Seata 的客户端部分，引入到参与事务的微服务依赖中即可。将来 TM 和 RM 就会协助微服务，实现本地分支事务与 TC 之间交互，实现事务的提交或回滚。
 而 TC 服务则是事务协调中心，是一个独立的微服务，需要单独部署。
 
-****
+---
 
 ### 3.3 部署 TC 服务
 
@@ -4252,7 +4267,8 @@ docker run --name seata \
 seataio/seata-server:1.5.2
 ```
 
-****
+---
+
 #### 2. 微服务集成 seata
 
 1、引入依赖
@@ -4284,7 +4300,7 @@ seata:
   registry: # TC服务注册中心的配置，微服务根据这些信息去注册中心获取tc服务地址
     type: nacos # 注册中心类型 nacos
     nacos:
-      server-addr: host.docker.internal:8848 # nacos地址
+      server-addr: 127.0.0.1:8848 # nacos地址
       namespace: "" # namespace，默认为空
       group: DEFAULT_GROUP # 分组，默认是DEFAULT_GROUP
       application: seata-server # seata服务名称
@@ -4306,7 +4322,7 @@ spring:
     active: dev
   cloud:
     nacos:
-      server-addr: host.docker.internal # nacos地址
+      server-addr: 127.0.0.1 # nacos地址
       config:
         file-extension: yaml # 文件后缀名
         shared-configs: # 共享配置
@@ -4336,7 +4352,8 @@ hm:
 
 将对应微服务的 @Transactional 注解改为 Seata 提供的 @GlobalTransactional，该注解就是在标记事务的起点，将来 TM 就会基于这个方法判断全局事务范围，初始化全局事务。
 
-****
+---
+
 ### 3.4 XA 模式
 
 XA 是一种分布式事务协议，它是一个 两阶段提交（2PC）协议，由两大角色组成：
@@ -4366,8 +4383,8 @@ RM 一阶段的工作：
 TC 二阶段的工作：
 
 1. TC 检测各分支事务执行状态
-    1. 如果都成功，通知所有 RM 提交事务
-    2. 如果有失败，通知所有 RM 回滚事务
+   1. 如果都成功，通知所有 RM 提交事务
+   2. 如果有失败，通知所有 RM 回滚事务
 
 RM 二阶段的工作：
 
@@ -4394,7 +4411,7 @@ seata:
 
 2、添加 @GlobalTransactional 标记分布式事务的入口
 
-****
+---
 
 ### 3.5 AT 模式
 
@@ -4453,10 +4470,10 @@ AT 模式下，当前分支事务执行流程如下：
 
 1. TM 通知 TC 事务结束
 2. TC 检查分支事务状态
-    1. 如果都成功，则立即删除快照
-    2. 如果有分支事务失败，需要回滚。读取快照数据（{"id": 1, "money": 100}），将快照恢复到数据库，此时数据库再次恢复为 100
+   1. 如果都成功，则立即删除快照
+   2. 如果有分支事务失败，需要回滚。读取快照数据（{"id": 1, "money": 100}），将快照恢复到数据库，此时数据库再次恢复为 100
 
-****
+---
 
 ### 3.6 AT 与 XA 的区别
 
@@ -4464,7 +4481,7 @@ AT 模式下，当前分支事务执行流程如下：
 - XA模式依赖数据库机制实现回滚；AT模式利用数据快照实现数据回滚。
 - XA模式强一致；AT模式最终一致
 
-****
+---
 
 # 六、MQ
 
@@ -4488,7 +4505,7 @@ AT 模式下，当前分支事务执行流程如下：
 由于是基于 OpenFeign 来调用交易服务、通知服务。当交易服务、通知服务出现故障时，整个事务都会回滚，交易失败。但涉及到支付功能时，如果通知支付成功的接口发生故障，此时就会回滚所有事务，
 但用户可能已经完成支付，这就造成钱扣了而支付记录不存在，这样是不合理的。
 
-****
+---
 
 ### 1.2 异步调用
 
@@ -4502,7 +4519,7 @@ AT 模式下，当前分支事务执行流程如下：
 接受者都能获取消息并处理，这样发送消息的人和接收消息的人就完全解耦了。而对于扩展新功能来说，也只需要让原有的功能调用完成后发送消息给 Broker，再让性功能接收 Broker 的消息即可，
 而整个流程耗时的只是这三个角色的时间，也就是说不管有多少功能，它们都只耗时发送消息时间+更新数据时间+接收消息时间。
 
-****
+---
 
 ### 1.3 技术选型
 
@@ -4533,17 +4550,19 @@ Kafka：
 归属于 Apache 社区，基于 Scala 和 Java 开发，自定义协议，可用性高，单机吞吐量非常高，消息延迟能控制在毫秒以内，不过消息可靠性一般，常用于大数据流式处理、
 日志采集等对吞吐量要求极高、对可靠性要求相对没那么严苛的场景，例如实时日志分析系统。
 
-| 对比维度  | RabbitMQ             | ActiveMQ                      | RocketMQ | Kafka      |
-|-------|----------------------|-------------------------------|----------|------------|
-| 公司/社区 | Rabbit               | Apache                        | 阿里       | Apache     |
-| 开发语言  | Erlang               | Java                          | Java     | Scala&Java |
-| 协议支持  | AMQP，XMPP，SMTP，STOMP | OpenWire，STOMP，REST，XMPP，AMQP | 自定义协议    | 自定义协议      |
-| 可用性   | 高                    | 一般                            | 高        | 高          |
-| 单机吞吐量 | 一般（每秒十万）             | 差                             | 高        | 非常高（每秒百万）  |
-| 消息延迟  | 微秒级                  | 毫秒级                           | 毫秒级      | 毫秒以内       |
-| 消息可靠性 | 高                    | 一般                            | 高        | 一般         | 
 
-****
+| 对比维度   | RabbitMQ                | ActiveMQ                          | RocketMQ   | Kafka              |
+| ---------- | ----------------------- | --------------------------------- | ---------- | ------------------ |
+| 公司/社区  | Rabbit                  | Apache                            | 阿里       | Apache             |
+| 开发语言   | Erlang                  | Java                              | Java       | Scala&Java         |
+| 协议支持   | AMQP，XMPP，SMTP，STOMP | OpenWire，STOMP，REST，XMPP，AMQP | 自定义协议 | 自定义协议         |
+| 可用性     | 高                      | 一般                              | 高         | 高                 |
+| 单机吞吐量 | 一般（每秒十万）        | 差                                | 高         | 非常高（每秒百万） |
+| 消息延迟   | 微秒级                  | 毫秒级                            | 毫秒级     | 毫秒以内           |
+| 消息可靠性 | 高                      | 一般                              | 高         | 一般               |
+
+---
+
 ## 2. RabbitMQ
 
 ### 2.1 安装
@@ -4588,7 +4607,7 @@ docker run \
 
 负责消息的路由。生产者将消息发送到交换机，交换机根据特定的路由规则（绑定关系），决定将消息投递到一个或多个队列中。RabbitMQ 支持多种类型的交换机，比如：
 
-- Direct Exchange（直连交换机）：根据消息携带的路由键（Routing Key）进行路由，只有当路由键完全匹配时，消息才会被投递到对应的队列 
+- Direct Exchange（直连交换机）：根据消息携带的路由键（Routing Key）进行路由，只有当路由键完全匹配时，消息才会被投递到对应的队列
 - Fanout Exchange（扇形交换机）：会将接收到的消息广播到所有绑定的队列，不考虑路由键
 - Topic Exchange（主题交换机）：根据路由键和绑定键的匹配规则进行路由，支持通配符，例如使用 "*" 匹配一个单词，"#" 匹配零个或多个单词
 - Headers Exchange（头交换机）：基于消息的头部属性进行路由，但使用相对较少
@@ -4598,24 +4617,26 @@ docker run \
 起到数据隔离的作用，相当于一个独立的小型 RabbitMQ 服务器，每个虚拟主机都有自己独立的交换机、队列、绑定关系等，不同虚拟主机之间相互隔离，互不影响。可以用于多租户场景，
 或者在开发、测试、生产环境之间进行隔离 。
 
-****
+---
+
 ### 2.2 收发消息
 
 #### 1. 交换机
 
 打开 Exchanges 选项卡，可以看到已经存在很多交换机：
 
-| Virtual host | Name                  | Type    | Features | Message rate in | Message rate out |
-|--------------|-----------------------|---------|----------|-----------------|------------------|
-| /            | (AMQP default)        | direct  | D        |                 |                  |
-| /            | amq.direct            | direct  | D        |                 |                  |
-| /            | amq.fanout            | fanout  | D        |                 |                  |
-| /            | amq.headers           | headers | D        |                 |                  |
-| /            | amq.match             | headers | D        |                 |                  |
-| /            | amq.rabbitmq.trace    | topic   | D、I      |                 |                  |
-| /            | amq.topic             | topic   | D        |                 |                  | 
 
-- **Virtual host**：虚拟主机，用于在 RabbitMQ 中实现资源隔离，这里均为根虚拟主机 `/` 
+| Virtual host | Name               | Type    | Features | Message rate in | Message rate out |
+| ------------ | ------------------ | ------- | -------- | --------------- | ---------------- |
+| /            | (AMQP default)     | direct  | D        |                 |                  |
+| /            | amq.direct         | direct  | D        |                 |                  |
+| /            | amq.fanout         | fanout  | D        |                 |                  |
+| /            | amq.headers        | headers | D        |                 |                  |
+| /            | amq.match          | headers | D        |                 |                  |
+| /            | amq.rabbitmq.trace | topic   | D、I     |                 |                  |
+| /            | amq.topic          | topic   | D        |                 |                  |
+
+- **Virtual host**：虚拟主机，用于在 RabbitMQ 中实现资源隔离，这里均为根虚拟主机 `/`
 - **Name**：交换机名称，`(AMQP default)` 是默认直连交换机等，`amq.` 开头的多为 RabbitMQ 内置的交换机
 - **Type**：交换机类型，`direct`（直连）、`fanout`（扇形/广播）、`headers`（头匹配）、`topic`（主题），不同类型决定消息路由规则
 - **Features**：功能标识，`D` 一般代表可持久化（durable），`I` 可能是与内部（internal）相关特性（如 `amq.rabbitmq.trace` 用于消息追踪相关内部功能）
@@ -4643,21 +4664,24 @@ docker run \
 
 这里是由控制台模拟了生产者发送的消息，由于没有消费者存在，最终消息就会丢失，这样也可以说明交换机没有存储消息的能力。
 
-****
+---
+
 #### 2. 队列
 
 打开 Queues 选项卡，新建一个队列，命名为 hello.queue1，再以相同的方式，创建一个队列，命名为 hello.queue2。最终队列列表如下：
 
-| Overview    |          |          |          |          | Messages    |          |          | Message rates   |          |          |
-|-------------|----------|----------|----------|----------|-------------|----------|----------|-----------------|----------|----------|
-| Virtual host| Name     | Type     | Features | State    | Ready       | Unacked  | Total    | incoming        | deliver / get | ack      |
-| /           | hello.queue1 | classic | D、Args | running  | 0           | 0        | 0        |                 |               |          |
-| /           | hello.queue2 | classic | D、Args | running  | 0           | 0        | 0        |                 |               |          |
+
+| Overview     |              |         |          |         | Messages |         |       | Message rates |               |     |
+| ------------ | ------------ | ------- | -------- | ------- | -------- | ------- | ----- | ------------- | ------------- | --- |
+| Virtual host | Name         | Type    | Features | State   | Ready    | Unacked | Total | incoming      | deliver / get | ack |
+| /            | hello.queue1 | classic | D、Args  | running | 0        | 0       | 0     |               |               |     |
+| /            | hello.queue2 | classic | D、Args  | running | 0        | 0       | 0     |               |               |     |
 
 此时向 amq.fanout 交换机发送一条消息，会发现消息依然没有到达队列，因为发送到交换机的消息只会路由到与其绑定的队列，所以只创建队列是不够的，还需要将其与交换机绑定。
 进入交换机页面，点击 Exchanges 选项卡，点击 amq.fanout 交换机，进入交换机详情页，然后点击 Bindings 菜单，在表单中填写要绑定的队列名称，然后再发送消息，可以发现消息发送成功。
 
-****
+---
+
 ### 2.3 数据隔离
 
 #### 1. 用户管理
@@ -4677,34 +4701,39 @@ docker run \
 
 比如给黑马商城创建一个新的用户，点击 Add a user 并命名为 hmall，此时可以发现 hmall 用户没有任何 virtual host 的访问权限：
 
-| Name     | Tags           | Can access virtual hosts  | Has password  |
-|----------|----------------|---------------------------|---------------|
-| hmall    | administrator  | No access（无访问权限）          | • （表示存在密码）    |
-| rabbitmq | administrator  | /（可访问根虚拟主机 ）              | • （表示存在密码）    |
 
-****
+| Name     | Tags          | Can access virtual hosts | Has password        |
+| -------- | ------------- | ------------------------ | ------------------- |
+| hmall    | administrator | No access（无访问权限）  | • （表示存在密码） |
+| rabbitmq | administrator | /（可访问根虚拟主机 ）   | • （表示存在密码） |
+
+---
+
 #### 2. virtual host
 
 先退出登录，然后登录刚刚创建的 hmall，然后点击 Virtual Hosts 菜单，进入 virtual host 管理页，然后就可以看到目前只有一个默认的 virtual host，为 /：
 
 以下是对该表格内容及各列含义的整理，用 Markdown 表格呈现并附带详细解释：
 
-| Overview |          |          | Messages |          |          | Network |          | Message rates |          |
-| ---------------- | -------- | -------- | -------------------- | -------- | -------- | -------------------- | -------- | ------------------------- | -------- |
-| Name             | Users    | State    | Ready                | Unacked  | Total    | From client          | To client | publish                  | deliver / get |
-| /                | rabbitmq | running  | 0                    | 0        | 0        |                      |          |                           |          |
+
+| Overview |          |         | Messages |         |       | Network     |           | Message rates |               |
+| -------- | -------- | ------- | -------- | ------- | ----- | ----------- | --------- | ------------- | ------------- |
+| Name     | Users    | State   | Ready    | Unacked | Total | From client | To client | publish       | deliver / get |
+| /        | rabbitmq | running | 0        | 0       | 0     |             |           |               |               |
 
 此时点击 Add a new virtual host 给黑马商城项目创建一个单独的 virtual host，而不是使用默认的 /。由于目前登录的是 hmall 账户后创建的 virtual host，
 所以回到 users 菜单，可以发现当前用户已经具备了对 /hmall 这个 virtual host 的访问权限了：
 
-| Name     | Tags           | Can access virtual hosts  | Has password  |
-|----------|----------------|---------------------------|---------------|
-| hmall    | administrator  | No access（无访问权限）          | • （表示存在密码）    |
-| rabbitmq | administrator  | /（可访问根虚拟主机 ）              | • （表示存在密码）    |
+
+| Name     | Tags          | Can access virtual hosts | Has password        |
+| -------- | ------------- | ------------------------ | ------------------- |
+| hmall    | administrator | No access（无访问权限）  | • （表示存在密码） |
+| rabbitmq | administrator | /（可访问根虚拟主机 ）   | • （表示存在密码） |
 
 此时，点击页面右上角的 virtual host 下拉菜单，切换 virtual host 为 /hmall，然后查看 queues 选项卡，会发现之前的队列已经看不到了，这就是基于 virtual host 的隔离效果。
 
-****
+---
+
 ## 3. SpringAMQP
 
 ### 3.1 概述
@@ -4717,7 +4746,8 @@ docker run \
 - 基于注解的监听器模式，异步接收消息
 - 封装了 RabbitTemplate 工具，用于发送消息
 
-****
+---
+
 ### 3.2 基本使用
 
 在控制台新建一个 /hmall 下的队列：simple.queue，
@@ -4755,7 +4785,8 @@ public void testSimpleQueue() {
 
 3、打开控制台，查看消息是否发送到队列中
 
-****
+---
+
 #### 2. 消息接收
 
 1、配置 MQ 地址，在 consumer 服务的 application.yml 中添加配置：
@@ -4785,7 +4816,8 @@ public class SpringRabbitListener {
 }
 ```
 
-****
+---
+
 ### 3.3 WorkQueues 模型
 
 Work queues 任务模型，简单来说就是让多个消费者绑定到一个队列，共同消费队列中的消息。一般情况下，都是一个消费者处理一个队列的，但是当消息处理较久时，可能生产消息的速度会远远大于消费的速度，
@@ -4840,7 +4872,8 @@ spring:
         prefetch: 1 # 每次只能获取一条消息，处理完成才能获取下一个消息
 ```
 
-****
+---
+
 ### 3.4 Fanout 交换机
 
 在上面的测试中，没有用到交换机，而是直接把消息发送到队列，而交换机的类型有四种：
@@ -4893,7 +4926,8 @@ public void listenFanoutQueue2(String msg) {
 - 不能缓存消息，路由失败，消息丢失
 - FanoutExchange 的会将消息路由到每个绑定的队列
 
-****
+---
+
 ### 3.5 Direct 交换机
 
 在 Fanout 模式中，一条消息会被所有订阅的队列都消费。但是在某些场景下，不同的消息应该被不同的队列消费，这时就要用到 Direct 类型的 Exchange。在 Direct 模型下：
@@ -4908,7 +4942,7 @@ public void listenFanoutQueue2(String msg) {
 2. 声明队列 direct.queue1，绑定 hmall.direct，Routing Key 为 blue 和 red
 3. 声明队列 direct.queue2，绑定 hmall.direct，Routing Key 为 yellow 和 red
 4. 在 consumer 服务中，编写两个消费者方法，分别监听 direct.queue1 和 direct.queue2
-5. 在 publisher 中编写测试方法，向 hmall.direct 发送消息 
+5. 在 publisher 中编写测试方法，向 hmall.direct 发送消息
 
 消息发送：
 
@@ -4957,7 +4991,8 @@ Direct 与 Fanout 的差异
 - Direct 交换机根据 Routing Key 判断路由给哪个队列
 - 如果多个队列具有相同的 Routing Key，则与 Fanout 功能类似
 
-****
+---
+
 ### 3.6 Topic 交换机
 
 Topic 与 Direct 类似，都是可以根据 RoutingKey 把消息路由到不同的队列，只不过 Topic 可以让队列在绑定 Routing Key 的时候使用通配符，Routing Key 一般都是有一个或多个单词组成，
@@ -5022,7 +5057,8 @@ public void listenTopicQueue2(String msg){
 消费者 1 接收到 topic.queue1 的消息：[喜报！孙悟空大战哥斯拉，胜!]
 ```
 
-****
+---
+
 ### 3.7 SpringBoot 声明队列和交换机
 
 #### 1. 基于配置类
@@ -5063,7 +5099,7 @@ public class FanoutConfig {
     public Queue fanoutQueue2(){
         return new Queue("fanout.queue2");
     }
-    
+  
     @Bean
     public Binding bindingQueue2(Queue fanoutQueue2, FanoutExchange fanoutExchange){
         return BindingBuilder.bind(fanoutQueue2).to(fanoutExchange);
@@ -5071,7 +5107,8 @@ public class FanoutConfig {
 }
 ```
 
-****
+---
+
 #### 2. 基于注解
 
 基于配置类的方式声明队列和交换机比较麻烦，Spring 还提供了基于注解方式来声明，以 Direct 为例：
@@ -5096,7 +5133,8 @@ public void listenDirectQueue2ByAnnotation(String msg){
 }
 ```
 
-****
+---
+
 ### 3.8 消息转换器
 
 Spring 的消息发送代码接收的消息体是一个 Object，也就是说可以发送任意的消息对象：
@@ -5247,11 +5285,12 @@ else if (object instanceof Serializable) {
 就对该对象进行序列化，而序列化的本质就是把对象转换成字节数组，便于网络传输。而在 RabbitMQ 页面也可以看到请求头的格式：
 
 ```text
-headers:	
+headers:
 content_type:	application/x-java-serialized-object
 ```
 
-****
+---
+
 #### 2. 配置 JSON 转换器
 
 默认的 JDK 序列化方式并不合适发送字符串以外的类型，如果希望消息体的体积更小、可读性更高，就应该使用 JSON 方式来做序列化和反序列化。在 publisher 和 consumer 两个服务中都引入依赖：
@@ -5283,7 +5322,7 @@ public MessageConverter messageConverter(){
 控制页面正常显示 Json 内容：
 
 ```text
-headers:	
+headers:
 __ContentTypeId__:	java.lang.Object
 __KeyTypeId__:	java.lang.Object
 __TypeId__:	java.util.HashMap
@@ -5295,7 +5334,8 @@ content_type:	application/json
 {"name":"jack","age":21}
 ```
 
-****
+---
+
 ## 4. 使用 RabbitMQ 改造业务
 
 原始业务流程：
@@ -5341,9 +5381,9 @@ spring:
 public class MqConfig {
     @Bean
     public MessageConverter messageConverter() {
-        // 1. 定义消息转换器    
+        // 1. 定义消息转换器  
         Jackson2JsonMessageConverter jackson2JsonMessageConverter = new Jackson2JsonMessageConverter();
-        // 2. 配置自动创建消息 id，用于识别不同消息，也可以在业务中基于 ID 判断是否是重复消息    
+        // 2. 配置自动创建消息 id，用于识别不同消息，也可以在业务中基于 ID 判断是否是重复消息  
         jackson2JsonMessageConverter.setCreateMessageIds(true);
         return jackson2JsonMessageConverter;
     }
@@ -5406,7 +5446,8 @@ public void tryPayOrderByBalance(PayOrderDTO payOrderDTO) {
 
 这里不再是通过 OpenFeign 远程调用别的微服务了，而是把自己的订单 id 作为消息转发给订单微服务。
 
-****
+---
+
 # 七、MQ 高级
 
 在上面的功能改造中，在支付成功后利用 RabbitMQ 通知交易服务，然后更新业务订单状态为已支付，但是如果 MQ 通知失败，也就是完成了支付功能，而订单修改功能未执行，
@@ -5417,15 +5458,16 @@ public void tryPayOrderByBalance(PayOrderDTO payOrderDTO) {
 消息从生产者到消费者的每一步都可能导致消息丢失：
 
 - 发送消息时丢失：
+
   - 生产者发送消息时连接 MQ 失败
   - 生产者发送消息到达 MQ 后未找到 Exchange
   - 生产者发送消息到达 MQ 的 Exchange 后，未找到合适的 Queue
   - 消息到达 MQ 后，处理消息的进程发生异常
-  
 - MQ 导致消息丢失：
+
   - 消息到达 MQ，保存到队列后，尚未消费就突然宕机
-  
 - 消费者处理消息时：
+
   - 消息接收后尚未处理突然宕机
   - 消息接收后处理过程中抛出异常
 
@@ -5456,7 +5498,8 @@ spring:
 但 SpringAMQP 提供的重试机制是阻塞式的重试，也就是说多次重试等待的过程中，当前线程是被阻塞的。如果对于业务性能有要求，建议禁用重试机制，如果一定要使用，
 需要合理配置等待时长和重试次数，当然也可以考虑使用异步线程来执行发送消息的代码。
 
-****
+---
+
 #### 2. 生产者确认机制
 
 一般情况下，只要生产者与 MQ 之间的网路连接顺畅，基本不会出现发送消息丢失的情况，因此大多数情况下无需考虑这种问题。但偶尔也会出现消息发送到MQ之后丢失的现象，比如：
@@ -5532,7 +5575,8 @@ public class MqConfig {
 - `replyCode`：RabbitMQ 返回的拒收码，常见的是 312，表示 NO_ROUTE
 - `replyText`：拒收原因说明，通常是 "NO_ROUTE" 表示无匹配路由
 
-****
+---
+
 ##### 2.2 定义 ConfirmCallback
 
 每次调用 RabbitTemplate.convertAndSend(...) 方法发送消息时，可以通过传入 CorrelationData 来为这条消息绑定一个唯一 ID 和一个回执的异步处理器（CompletableFuture），
@@ -5550,9 +5594,10 @@ convertAndSend(String exchange, String routingKey, Object message, CorrelationDa
 并且可以使用 CompletableFuture.whenComplete(...) 给其添加回调来处理消息的投递确认（SpringBoot 3.x/Spring 6.x 启用的），这个方法的两个参数：
 
 - confirm: 是 RabbitMQ 的异步确认结果（类型是 CorrelationData.Confirm）
-- ex: 是如果发生异常（如网络问题等），则会带上异常对象 
+- ex: 是如果发生异常（如网络问题等），则会带上异常对象
 - confirm.isAck() == true：说明 RabbitMQ 已成功收到并确认该消息，打印 debug 成功日志
 - confirm.isAck() == false：说明 RabbitMQ 拒收或失败，需要查看 confirm.getReason() 获取失败原因
+
 ```java
 @Test
 void testPublisherConfirm() {
@@ -5605,12 +5650,14 @@ replyText: NO_ROUTE
 - 交换机名称错误：同样是编程错误导致
 - MQ 内部故障：这种需要处理，但概率往往较低，因此只有对消息可靠性要求非常高的业务才需要开启，所以只需要开启 ConfirmCallback 处理 nack 就可以了
 
-| 功能                  | 描述                  | 性能影响 | 是否推荐             |
-|---------------------| ------------------- | ---- | ---------------- |
-| `Publisher Confirm` | 用于检测消息是否到达 Exchange | 高    | 仅推荐对可靠性要求高的业务开启  |
-| `ReturnCallback`    | 检测是否成功路由到 Queue     | 较小   | 可视情况开启（调试阶段非常有用） |
 
-****
+| 功能                | 描述                          | 性能影响 | 是否推荐                         |
+| ------------------- | ----------------------------- | -------- | -------------------------------- |
+| `Publisher Confirm` | 用于检测消息是否到达 Exchange | 高       | 仅推荐对可靠性要求高的业务开启   |
+| `ReturnCallback`    | 检测是否成功路由到 Queue      | 较小     | 可视情况开启（调试阶段非常有用） |
+
+---
+
 ## 2. MQ 的可靠性
 
 ### 2.1 数据持久化
@@ -5646,7 +5693,8 @@ void testSendMessage() {
 不过出于性能考虑，为了减少 IO 次数，发送到 MQ 的消息并不是逐条持久化到数据库的，而是每隔一段时间批量持久化，一般间隔在 100 毫秒左右，这就会导致 ACK 有一定的延迟，
 因此建议生产者确认全部采用异步方式，防止发送线程阻塞等待 ACK。而发送消息 convertAndSend 方法是非阻塞的，消息发送后立即返回，所以上面的 ConfirmCallback 本质上就是异步的。
 
-****
+---
+
 ### 2.2 LazyQueue
 
 在默认情况下，RabbitMQ 会将接收到的信息保存在内存中以降低消息收发的延迟。但在某些特殊情况下，这会导致消息积压，比如：
@@ -5711,7 +5759,8 @@ rabbitmqctl set_policy Lazy "^lazy-queue$" '{"queue-mode":"lazy"}' --apply-to qu
 
 也可以在控制台配置 policy，进入在控制台的 Admin 页面，点击 Policies，即可添加配置
 
-****
+---
+
 ### 2.3 消费者的可靠性
 
 当 RabbitMQ 向消费者投递消息以后，需要知道消费者的处理状态如何。因为消息投递给消费者并不代表就一定被正确消费了，可能出现的故障有很多，比如：
@@ -5743,7 +5792,7 @@ spring:
   rabbitmq:
     listener:
       simple:
-        acknowledge-mode: none # 不做处理，也是默认机制
+        acknowledge-mode: none # 不做处理；manual，手动模式；auto，自动模式，也是默认的模式
 ```
 
 修改 consumer 服务的 SpringRabbitListener 类中的方法，模拟一个消息处理的异常：
@@ -5753,47 +5802,645 @@ spring:
 public void listenSimpleQueueMessage(String msg) throws InterruptedException {
     log.info("spring 消费者接收到消息：[{}]", msg);
     if (true) {
-      throw new MessageConversionException("故意的");
+      throw new RuntimeException("故意的");
     }
     log.info("消息处理完成");
 }
 ```
 
-当消息处理发生异常时，消息被 RabbitMQ 删除了，查看 RabbitMQ 控制台，点击获取消息，会显示队列为空。
+它会不断重试获取 ack 或 nack，直到宕机返回 nack。当消息处理抛出 MessageConversionException 异常时，消息就会被 RabbitMQ 删除，查看 RabbitMQ 控制台，
+点击获取消息，会显示队列为空。
 
 ```text
 spring 消费者接收到消息：[hello, spring amqp!]
 Caused by: org.springframework.amqp.support.converter.MessageConversionException: 故意的
 ```
 
-****
+---
+
 #### 2. 失败重试机制
 
+当消费者出现异常后，消息会不断 requeue（重入队）到队列（acknowledge-mode=auto，异常会触发 nack，但通常不会 requeue），再重新发送给消费者，如果消费者再次执行依然出错，
+消息会再次 requeue 到队列，再次投递，直到消息处理成功为止。极端情况就是消费者一直无法执行成功，那么消息 requeue 就会无限循环，导致 mq 的消息处理飙升，带来不必要的压力。
+不过这种极端情况发生的概率非常低的（“错误配置”或“没有死信队列保护”的结果），但是为了应对上述情况 Spring 又提供了消费者失败重试机制：在消费者出现异常时利用本地重试，
+而不是无限制的 requeue 到 mq 队列。
+
+```yaml
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        retry:
+          enabled: true # 开启消费者失败重试
+          initial-interval: 1000ms # 初识的失败等待时长为1秒
+          multiplier: 1 # 失败的等待时长倍数，下次等待时长 = multiplier * last-interval
+          max-attempts: 3 # 最大重试次数
+          stateless: true # true无状态；false有状态。如果业务中包含事务，这里改为false
+```
+
+重启 consumer 服务，重复之前的测试，可以发现：因为代码中一直抛异常，消息一直消费失败，导致消息被不断在本地重试，这中间会打印多次监听器接收到的消息：
+
+```text
+spring 消费者接收到消息：[hello, spring amqp!]
+spring 消费者接收到消息：[hello, spring amqp!]
+spring 消费者接收到消息：[hello, spring amqp!]
+```
+
+这并不是重入队操作，只是调用了本地的监听方法 3 次，这期间不向 RabbitMQ 发送 NACK 或 Reject，消息始终处于 “未确认” 状态，不会重新入队，
+只有当重试次数耗尽或出现 AmqpRejectAndDontRequeueException 异常时，才发送 Reject（requeue=false），消息被拒绝且不再入队并停止调用。
+
+```text
+Retries exhausted for message (Body:'"hello, spring amqp!"' MessageProperties [headers={spring_listener_return_correlation=78df6..., 
+__TypeId__=java.lang.String}, messageId=..., contentType=application/json, contentEncoding=UTF-8, contentLength=0, receivedDeliveryMode=PERSISTENT,
+priority=0, redelivered=false, receivedExchange=, receivedRoutingKey=simple.queue, deliveryTag=1, consumerTag=amq.ctag-TQVMyY-9yZx1kOLPuUytuw, 
+consumerQueue=simple.queue])
+org.springframework.amqp.rabbit.support.ListenerExecutionFailedException: Retry Policy Exhausted
+Caused by: org.springframework.amqp.AmqpRejectAndDontRequeueException: null
+```
+
+- 消费者在失败后消息没有重新回到 MQ 无限重新投递，而是在本地重试了 3 次
+- 本地重试 3 次以后，抛出了 AmqpRejectAndDontRequeueException 异常，查看 RabbitMQ 控制台，发现消息被删除了，说明最后 SpringAMQP 返回的是 reject
+
+所以开启本地重试时，如果在消息处理过程中抛出异常，不会 requeue 到队列，而是在消费者本地重试，当重试达到最大次数后（一般默认 3 次），Spring 会返回 reject，而消息会被丢弃。
+
+总结：
+
+1、开启 auto ack 模式时，监听器抛异常，会返回 nack 并不断尝试重入队，默认为 requeue=true
+
+2、开启 auto ack + Spring Retry 机制时，重试中不会返回 nack 或 reject，只有重试机会耗尽后返回 reject
+
+---
+
+#### 3. 失败处理策略
+
+在上面的测试中，本地测试达到最大重试次数后，消息会被丢弃。这在某些对于消息可靠性要求较高的业务场景下，就不太合适了。因此 Spring 允许自定义重试次数耗尽后的消息处理策略，
+这个策略是由 MessageRecovery 接口来定义的，它有 3 个不同实现：
+
+- RejectAndDontRequeueRecoverer：重试耗尽后，直接 reject，丢弃消息，默认就是这种方式
+- ImmediateRequeueMessageRecoverer：重试耗尽后，返回 nack，消息重新入队。相比未开启重试机制，它的重入队频率更低
+- RepublishMessageRecoverer：重试耗尽后，将失败消息投递到指定的交换机
+
+1、定义处理失败消息的交换机和队列
+
+```java
+@Bean
+public DirectExchange errorMessageExchange(){
+    return new DirectExchange("error.direct");
+}
+@Bean
+public Queue errorQueue(){
+    return new Queue("error.queue", true);
+}
+@Bean
+public Binding errorBinding(Queue errorQueue, DirectExchange errorMessageExchange){
+    return BindingBuilder.bind(errorQueue).to(errorMessageExchange).with("error");
+}
+```
+
+2、定义一个 RepublishMessageRecoverer，关联队列和交换机
+
+```java
+@Bean
+public MessageRecoverer republishMessageRecoverer(RabbitTemplate rabbitTemplate){
+    return new RepublishMessageRecoverer(rabbitTemplate, "error.direct", "error");
+}
+```
+
+在 RabbitMQ 控制台可以看到相关错误信息：
+
+```text
+message_id:	93e...
+priority:	0
+delivery_mode:	2
+headers:
+__TypeId__:	java.lang.String
+spring_listener_return_correlation:	7c...
+x-exception-message:	故意的
+x-exception-stacktrace:	org.springframework.amqp.rabbit.support.ListenerExecutionFailedException: Listener method 'public void
+```
+
+或者：
+
+```java
+@Bean
+public MessageRecoverer immediateRequeueMessageRecoverer(RabbitTemplate rabbitTemplate) {
+    return new ImmediateRequeueMessageRecoverer();
+}
+```
+
+---
+
+### 2.4 业务幂等性
+
+幂等是一个数学概念，用函数表达式来描述是这样的：f(x) = f(f(x))，例如求绝对值函数。在程序开发中，则是指同一个业务，执行一次或多次对业务状态的影响是一致的。例如：
+
+- 根据 id 删除数据
+- 查询数据
+- 新增数据
+
+但数据的更新往往不是幂等的，如果重复执行可能造成不一样的后果。比如：
+
+- 取消订单，恢复库存的业务，如果多次恢复就会出现库存重复增加的情况
+- 退款业务，重复退款对商家而言会有经济损失
+
+所以要尽可能避免业务被重复执行，然而在实际业务场景中，由于意外经常会出现业务被重复执行的情况，例如：
+
+- 页面卡顿时频繁刷新导致表单重复提交
+- 服务间调用的重试
+- MQ 消息的重复投递
+
+在用户支付成功后会发送 MQ 消息到交易服务，修改订单状态为已支付，就可能出现消息重复投递的情况。如果消费者不做判断，很有可能导致消息被消费多次，出现业务故障。例如：
+
+1. 假如用户刚刚支付完成，并且投递消息到交易服务，交易服务更改订单为已支付状态
+2. 由于某种原因，例如网络故障导致生产者没有得到确认，隔了一段时间后重新投递给交易服务
+3. 但是，在新投递的消息被消费之前，用户选择了退款，将订单状态改为了已退款状态
+4. 退款完成后，投递给交易服务的消息才被消费，那么订单状态会被再次改为已支付，此时业务异常
+
+这里给出两种方案：
+
+- 唯一消息 ID
+- 业务状态判断
+
+#### 1. 唯一消息 ID
+
+1. 每一条消息都生成一个唯一的 id，与消息一起投递给消费者
+2. 消费者接收到消息后处理自己的业务，业务处理成功后将消息 ID 保存到数据库
+3. 如果下次又收到相同消息，去数据库查询判断是否存在该 ID，存在则为重复消息放弃处理
+
+而 SpringAMQP 的 MessageConverter 自带了 MessageID 的功能，只要开启这个功能即可。以 Jackson 的消息转换器为例：
+
+```java
+@Bean
+public MessageConverter messageConverter(){
+    // 1. 定义消息转换器
+    Jackson2JsonMessageConverter jjmc = new Jackson2JsonMessageConverter();
+    // 2. 配置自动创建消息 id，用于识别不同消息，也可以在业务中基于 ID 判断是否是重复消息
+    jjmc.setCreateMessageIds(true);
+    return jjmc;
+}
+```
+
+---
+
+#### 2. 业务判断
+
+业务判断就是基于业务本身的逻辑或状态来判断是否是重复的请求或消息，不同的业务场景判断的思路也不一样。例如当前案例中，处理消息的业务逻辑是把订单状态从未支付修改为已支付。
+因此，就可以在执行业务时判断订单状态是否是未支付，如果不是则证明订单已经被处理过，无需重复处理。相比较而言，消息 ID 的方案需要改造原有的数据库，添加了与业务无关的逻辑，
+所以更推荐使用业务判断的方法。
+
+以支付修改订单的业务为例，修改 OrderServiceImpl#markOrderPaySuccess 方法：
+
+```java
+@Override
+public void markOrderPaySuccess(Long orderId) {
+    // 1. 查询订单
+    Order old = getById(orderId);
+    // 2. 判断订单状态
+    if (old == null || old.getStatus() != 1) {
+        // 订单不存在或者订单状态不是 1，放弃处理
+        return;
+    }
+    // 3. 尝试更新订单
+    Order order = new Order();
+    order.setId(orderId);
+    order.setStatus(2);
+    order.setPayTime(LocalDateTime.now());
+    updateById(order);
+}
+```
+
+上述代码逻辑上符合了幂等判断的需求，但是由于判断和更新是两步动作，因此可能存在线程安全问题，可以将上述操作修改为：
+
+```java
+@Override
+public void markOrderPaySuccess(Long orderId) {
+    // UPDATE `order` SET status = ? , pay_time = ? WHERE id = ? AND status = 1
+    lambdaUpdate()
+            .set(Order::getStatus, 2)
+            .set(Order::getPayTime, LocalDateTime.now())
+            .eq(Order::getId, orderId)
+            .eq(Order::getStatus, 1)
+            .update();
+}
+```
+
+在 where 条件中除了判断 id 以外，还加上了 status 必须为 1 的条件，如果条件不符（说明订单已支付）则 SQL 匹配不到数据，根本不会执行。
+
+---
+
+### 2.5 兜底方案
+
+虽然上面利用各种机制尽可能增加了消息的可靠性，但也不好说能保证消息 100% 的可靠。既然 MQ 通知不一定发送到交易服务，那么交易服务就必须自己主动去查询支付状态，
+这样即便支付服务的 MQ 通知失败，交易服务依然能通过主动查询来保证订单状态的一致。不过需要注意的是，交易服务并不知道用户会在什么时候支付，
+如果查询的时机不正确（比如查询的时候用户正在支付中），可能查询到的支付状态是不正确的。由于这个时间是无法确定的，所以可以采取利用定时任务定期查询，
+例如每隔 20 秒就查询一次并判断支付状态，如果发现订单已经支付，则立刻更新订单状态为已支付即可。
+
+如何保证支付服务与交易服务之间的订单状态的一致性
+
+- 首先，支付服务会正在用户支付成功以后利用 MQ 消息通知交易服务，完成订单状态同步
+- 其次，为了保证 MQ 消息的可靠性，我们采用了生产者确认机制、消费者确认、消费者失败重试等策略，确保消息投递的可靠性
+- 最后，还在交易服务设置了定时任务，定期查询订单支付状态，这样即便 MQ 通知失败，还可以利用定时任务作为兜底方案，确保订单支付状态的最终一致性
+
+---
+
+## 4. 延迟消息
+
+在电商的支付业务中，对于一些库存有限的商品，为了更好的用户体验，通常都会在用户下单时立刻扣减商品库存。例如电影院购票、高铁购票，下单后就会锁定座位资源，其他人无法重复购买。
+但是这样就存在一个问题，假如用户下单后一直不付款，就会一直占有库存资源，导致其他客户无法正常交易。所以应该对超过一定时间未支付的订单取消它们并释放占用的库存。
+像这种在一段时间以后才执行的任务称为延迟任务，可以利用 MQ 的延迟消息实现延迟任务。在RabbitMQ中实现延迟消息也有两种方案：
+
+- 死信交换机 + TTL
+- 延迟消息插件
+
+### 4.1 死信交换机和延迟消息
+
+#### 1. 死信交换机
+
+当一个队列中的消息满足下列情况之一时，可以称为死信（dead letter）：
+
+- 消费者使用 basic.reject 或 basic.nack 声明消费失败，并且消息的 requeue 参数设置为 false
+- 消息是一个过期消息，超时无人消费
+- 要投递的队列消息满了，无法投递
+
+如果一个队列中的消息已经成为死信，并且这个队列通过 dead-letter-exchange 属性指定了一个交换机，那么队列中的死信就会投递到这个交换机中，
+而这个交换机就称为死信交换机（Dead Letter Exchange）。死信交换机的作用：
+
+1. 收集那些因处理失败而被拒绝的消息
+2. 收集那些因队列满了而被拒绝的消息
+3. 收集因 TTL（有效期）到期的消息
+
+定义一个普通的交换机并绑定一个 Routing Key 为 "normal" 的 queue，当达到超时时间后让它进入 "dlx.direct" 死信交换机：
+
+```java
+@Configuration
+public class NormalMessageConfig {
+    @Bean
+    public DirectExchange normalMessageExchange(){
+        return new DirectExchange("normal.direct");
+    }
+    @Bean
+    public Queue normalQueue(){
+        return QueueBuilder
+                .durable("normal.queue")
+                .deadLetterExchange("dlx.direct") // 可以看作设置了 x-dead-letter-exchange
+                .build();
+    }
+    @Bean
+    public Binding normalExchangeBinding(Queue normalQueue, DirectExchange normalMessageExchange){
+        return BindingBuilder.bind(normalQueue).to(normalMessageExchange).with("normal");
+    }
+}
+```
+
+再定义一个死信交换机也绑定 Routing Key 为 "normal" 的 queue：
+
+```java
+@RabbitListener(bindings = @QueueBinding(
+        value = @Queue(name = "dlx.queue", durable = "true"),
+        exchange = @Exchange(name = "dlx.direct", type = ExchangeTypes.DIRECT),
+        key = {"normal"}
+))
+public void listenDlxQueue(String msg){
+    System.out.println("消费者接收到 dlx.queue 的消息：[" + msg + "]");
+}
+```
+
+然后发送消息，定义超时时间：
+
+```java
+@Test
+void testSendDelayMessage() {
+    rabbitTemplate.convertAndSend("normal.direct", "normal", "hello", message -> {
+        message.getMessageProperties().setExpiration("10000");
+        return message;
+    });
+}
+```
+
+---
+
+#### 2. 延迟消息
+
+可以把死信交换机当做一种消息处理的最终兜底方案，与消费者重试的 RepublishMessageRecoverer 拒绝消息处理方案作用类似。normal.direct 交换机和 normal.queue 队列绑定，
+但是 normal.queue 没有监听者，而是设定了死信交换机 dlx.direct，而队列 dlx.queue 则与死信交换机绑定，这两个队列的 Routing Key 都是 normal，
+当发送消息到 normal.direct 交换机，设置 Routing Key 为 normal 并设置有效期为 10s，消息肯定会被投递到 normal.queue 之后，由于没有消费者，因此消息无人消费。
+10s 之后消息的有效期到期，成为死信，死信被再次投递到死信交换机 dlx.direct，并沿用之前的 Routing Key，normal。由于 normal.queue 与 normal.direct 绑定的 key 是 normal，
+因此最终消息被成功路由到 dlx.queue，如果此时有消费者与 dlx.queue 绑定，也就能成功消费消息了。也就是说 publisher 发送了一条消息，但最终 consumer 在 10s 后才收到消息，
+即实现了延迟消息。
+
+需要注意的是：发送消息时绑定的 Routing Key 需要与第一个接收的队列 normal.queue 绑定的 Routing Key 一致，不然会导致队列接收不到消息，但是死信交换机可以绑定不同的 Routing Key，
+它不影响最终消费者获取到延迟消息。另外，RabbitMQ 的消息过期是基于追溯方式来实现的，也就是说当一个消息的 TTL 到期以后不一定会被移除或投递到死信交换机，
+而是在消息恰好处于队首时才会被处理，当队列中消息堆积很多的时候，过期消息可能不会被按时处理，因此设置的 TTL 时间不一定准确，它只能看作是最小等待时间。
+
+---
+
+### 4.2 DelayExchange 插件
+
+#### 1. 安装
+
+DelayExchange 插件是官方提供的解决方案，实现了基于消息属性的真正延迟投递机制，并且消息的 TTL 到期后，自动投递给目标队列，无需借助死信队列。下载地址：[https://github.com/rabbitmq/rabbitmq-delayed-message-exchange](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange)
+
+因为是基于 Docker 安装，所以需要先查看 RabbitMQ 的插件目录对应的数据卷：
+
+```shell
+# 进入 rabbitmq 容器
+docker exec -it mq /bin/bash
+# 查看插件目录内容
+ls /plugins
+```
+
+插件目录被挂载到了 mq:/plugins/ 这个目录，上传插件到该目录下。
+
+```java
+docker cp /mnt/d/docker_dataMountDirectory/delayplugin/rabbitmq_delayed_message_exchange-4.1.0.ez mq:/plugins/
+```
+
+进入容器并启用插件：
+
+```shell
+# 进入容器
+docker exec -it mq /bin/bash
+# 启用插件
+rabbitmq-plugins enable rabbitmq_delayed_message_exchange
+# 验证是否启用成功（查看是否有[E*]标记）
+rabbitmq-plugins list | grep delayed
+```
+
+重启使插件生效：
+
+```shell
+docker restart mq
+```
+
+---
+
+#### 2. 使用
+
+基于注解：
+
+```java
+@RabbitListener(bindings = @QueueBinding(
+        value = @Queue(name = "delay.queue", durable = "true"),
+        exchange = @Exchange(name = "delay.direct", delayed = "true", type = ExchangeTypes.DIRECT), // 使用 delayed 表示开启
+        key = "delay"
+))
+public void listenDelayMessage(String msg){
+    log.info("接收到 delay.queue 的延迟消息：{}", msg);
+}
+```
+
+基于 @Bean：
+
+```java
+@Slf4j
+@Configuration
+public class DelayExchangeConfig {
+    @Bean
+    public DirectExchange delayExchange(){
+        return ExchangeBuilder
+                .directExchange("delay.direct") // 指定交换机类型和名称
+                .delayed() // 设置 delay 的属性为 true
+                .durable(true) // 持久化
+                .build();
+    }
+    @Bean
+    public Queue delayedQueue(){
+        return new Queue("delay.queue");
+    }
+    @Bean
+    public Binding delayQueueBinding(){
+        return BindingBuilder.bind(delayedQueue()).to(delayExchange()).with("delay");
+    }
+}
+```
+
+发送消息时，必须通过 x-delay 属性设定延迟时间：
+
+```java
+@Test
+void testPublisherDelayMessage() {
+    // 1. 创建消息
+    String message = "hello, delayed message";
+    // 2. 发送消息，利用消息后置处理器添加消息头
+    rabbitTemplate.convertAndSend("delay.direct", "delay", message, new MessagePostProcessor() {
+        @Override
+        public Message postProcessMessage(Message message) throws AmqpException {
+          // 设置消息头 x-delay，单位是毫秒
+          message1.getMessageProperties().setHeader("x-delay", 5000);
+          return message1;
+        }
+    });
+}
+```
+
+---
+
+### 4.3 超时订单问题
+
+具体思路为：假如订单超时支付时间为 30 分钟，理论上应该在下单时发送一条延迟消息，延迟时间为 30 分钟，这样就可以在接收到消息时检验订单支付状态，关闭未支付订单。
+
+1、定义常量
+
+无论是消息发送还是接收都是在交易服务完成，因此在 trade-service 中定义一个常量类，用于记录交换机、队列、RoutingKey 等常量：
+
+```java
+public interface MQConstants {
+    String DELAY_EXCHANGE_NAME = "trade.delay.direct";
+    String DELAY_ORDER_QUEUE_NAME = "trade.delay.order.queue";
+    String DELAY_ORDER_KEY = "delay.order.query";
+}
+```
+
+2、添加 MQ 的配置
+
+```yaml
+spring:
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    virtual-host: /hmall
+    username: hmall
+    password: 123
+```
+
+3、改造下单业务，在下单完成后发送延迟消息，查询支付状态
+
+修改 OrderServiceImpl#createOrder 方法：
+
+```java
+// 5. 添加发送延迟消息，检查订单支付状态
+rabbitTemplate.convertAndSend(MQConstants.DELAY_EXCHANGE_NAME, MQConstants.DELAY_ORDER_KEY, order.getId(), message -> {
+    message.getMessageProperties().setHeader("x-delay", 10000);
+    return message;
+});
+```
 
 
 
+4、编写查询支付状态接口
 
+由于 MQ 消息处理时需要查询支付状态，所以要在 pay-service 模块定义一个这样的接口，并提供对应的 FeignClient：
 
+在 hm-api 中新增 Client 和 Fallback：
 
+```java
+@FeignClient(value = "pay-service", fallbackFactory = PayClientFallback.class)
+public interface PayClient {
+    @GetMapping("/pay-orders/biz/{id}")
+    PayOrderDTO queryPayOrderByBizOrderNo(@PathVariable("id") Long id);
+}
+```
 
+```java
+@Slf4j
+public class PayClientFallback implements FallbackFactory<PayClient> {
+    @Override
+    public PayClient create(Throwable cause) {
+        return new PayClient() {
+            @Override
+            public PayOrderDTO queryPayOrderByBizOrderNo(Long id) {
+                return null;
+            }
+        };
+    }
+}
+```
 
+pay-service 中新增控制层：
 
+```java
+@Operation(summary = "根据id查询支付单")
+@GetMapping("/biz/{id}")
+public PayOrderDTO queryPayOrderByBizOrderNo(@PathVariable("id") Long id){
+    PayOrder payOrder = payOrderService.lambdaQuery().eq(PayOrder::getBizOrderNo, id).one();
+    return BeanUtils.copyBean(payOrder, PayOrderDTO.class);
+}
+```
 
+5、监听消息，查询支付状态
 
+给 trade-service 编写监听器监听延迟消息，查询订单支付状态：
 
+```java
+@Component
+@RequiredArgsConstructor
+public class OrderDelayMessageListener {
 
+    private final IOrderService orderService;
+    private final PayClient payClient;
 
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(name = MQConstants.DELAY_ORDER_QUEUE_NAME),
+            exchange = @Exchange(name = MQConstants.DELAY_EXCHANGE_NAME, delayed = "true"),
+            key = MQConstants.DELAY_ORDER_KEY
+    ))
+    public void listenOrderDelayMessage(Long orderId){
+        // 1. 查询订单
+        Order order = orderService.getById(orderId);
+        // 2. 检测订单状态，判断是否已支付
+        if(order == null || order.getStatus() != 1){
+            // 订单不存在或者已经支付
+            return;
+        }
+        // 3. 未支付，需要查询支付流水状态
+        PayOrderDTO payOrder = payClient.queryPayOrderByBizOrderNo(orderId);
+        // 4. 判断是否支付
+        if(payOrder != null && payOrder.getStatus() == 3){
+            // 已支付，标记订单状态为已支付
+            orderService.markOrderPaySuccess(orderId);
+        }else{
+            // 未支付，取消订单，回复库存
+            orderService.cancelOrder(orderId);
+        }
+    }
+}
+```
 
+****
+# 八、Elasticsearch
 
+Elasticsearch 是由 elastic 公司开发的一套搜索引擎技术，它是 elastic 技术栈中的一部分，完整的技术栈包括：
 
+- Elasticsearch：用于数据存储、计算和搜索
+- Logstash/Beats：用于数据收集
+- Kibana：用于数据可视化
 
+整套技术栈被称为 ELK，经常用来做日志收集、系统监控和状态分析等等，它是一种搜索引擎，专门用来扩展搜索功能，用于对海量结构化或非结构化数据进行快速检索和统计分析。
 
+## 1. 安装
 
+```shell
+docker run -d \
+  --name es \
+  -e "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
+  -e "discovery.type=single-node" \
+  -v es-data:/usr/share/elasticsearch/data \
+  -v es-plugins:/usr/share/elasticsearch/plugins \
+  --privileged \
+  --network hm-net \
+  -p 9200:9200 \
+  -p 9300:9300 \
+  elasticsearch:8.14.3
+```
 
+Elasticsearch 8.x 默认开启安全，首次启动会自动生成 elastic 用户的密码，或者日志会提示需要用 elasticsearch-reset-password 来手动设置。因为从日志中找密码比较麻烦，
+所以直接重置密码：
 
+```shell
+docker exec -it es bin/elasticsearch-reset-password -u elastic --batch
 
+Password for the [elastic] user successfully reset.
+New value: 8+7U2sd9KNH33bbz30OB
+```
 
+然后访问 https://localhost:9200/ ，输入账号：elastic，密码：8+7U2sd9KNH33bbz30OB，然后可以看到如下信息：
 
+```json
+{
+  "name": "08821abb8368",
+  "cluster_name": "docker-cluster",
+  "cluster_uuid": "JQjpj7qxQLqcFqXO-TuEpw",
+  "version": {
+    "number": "8.14.3",
+    "build_flavor": "default",
+    "build_type": "docker",
+    "build_hash": "d55f984299e0e88dee72ebd8255f7ff130859ad0",
+    "build_date": "2024-07-07T22:04:49.882652950Z",
+    "build_snapshot": false,
+    "lucene_version": "9.10.0",
+    "minimum_wire_compatibility_version": "7.17.0",
+    "minimum_index_compatibility_version": "7.0.0"
+  },
+  "tagline": "You Know, for Search"
+}
+```
 
+Kibana 是 Elastic 公司推出的官方数据可视化和管理工具，它提供基于浏览器的用户界面，能够直观地展示 Elasticsearch 中的数据，所以通常还会安装 Kibana，
+通过下面的 Docker命令，即可部署 Kibana（需要与 Elasticsearch 版本一致）：
+
+```shell
+docker run -d \
+  --name kibana \
+  --network=hm-net \
+  -p 5601:5601 \
+  -e ELASTICSEARCH_HOSTS=http://es:9200 \
+  -e ELASTICSEARCH_USERNAME=elastic \
+  -e ELASTICSEARCH_PASSWORD=8+7U2sd9KNH33bbz30OB \
+  kibana:8.14.3
+  
+  
+docker run -d \
+  --name kibana \
+  --network=hm-net \
+  -p 5601:5601 \
+  -v /tmp/http_ca_cert.crt:/usr/share/kibana/config/http_ca.crt \
+  -e ELASTICSEARCH_HOSTS=https://es:9200 \
+  -e ELASTICSEARCH_USERNAME=kibana_system \
+  -e ELASTICSEARCH_PASSWORD=kibana \
+  -e ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=/usr/share/kibana/config/http_ca.crt \
+  kibana:8.14.3
+```
+
+未完成...
 
 

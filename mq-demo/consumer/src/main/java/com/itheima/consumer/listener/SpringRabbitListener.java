@@ -25,7 +25,7 @@ public class SpringRabbitListener {
     public void listenSimpleQueueMessage(String msg) throws InterruptedException {
         log.info("spring 消费者接收到消息：[{}]", msg);
         if (true) {
-            throw new MessageConversionException("故意的");
+            throw new RuntimeException("故意的");
         }
         log.info("消息处理完成");
     }
@@ -91,4 +91,23 @@ public class SpringRabbitListener {
     public void listenDirectQueue2ByAnnotation(String msg){
         System.out.println("消费者 2 接收到 direct.queue2 的消息：[" + msg + "]");
     }
+
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(name = "dlx.queue", durable = "true"),
+            exchange = @Exchange(name = "dlx.direct", type = ExchangeTypes.DIRECT),
+            key = {"unnormal"}
+    ))
+    public void listenDlxQueue(String msg){
+        System.out.println("消费者接收到 dlx.queue 的消息：[" + msg + "]" + LocalTime.now());
+    }
+
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(name = "delay.queue", durable = "true"),
+            exchange = @Exchange(name = "delay.direct", delayed = "true", type = ExchangeTypes.DIRECT), // 使用 delayed 表示开启
+            key = "delay"
+    ))
+    public void listenDelayMessage(String msg){
+        log.info("接收到 delay.queue 的延迟消息：{}", msg);
+    }
+
 }
