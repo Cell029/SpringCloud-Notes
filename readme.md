@@ -6367,7 +6367,9 @@ Elasticsearch 是由 elastic 公司开发的一套搜索引擎技术，它是 el
 
 整套技术栈被称为 ELK，经常用来做日志收集、系统监控和状态分析等等，它是一种搜索引擎，专门用来扩展搜索功能，用于对海量结构化或非结构化数据进行快速检索和统计分析。
 
-## 1. 安装
+## 1. 概述
+
+### 1.1 安装
 
 ```shell
 docker run -d \
@@ -6390,10 +6392,10 @@ Elasticsearch 8.x 默认开启安全，首次启动会自动生成 elastic 用�
 docker exec -it es bin/elasticsearch-reset-password -u elastic --batch
 
 Password for the [elastic] user successfully reset.
-New value: 8+7U2sd9KNH33bbz30OB
+New value: ixLEd4xRavGVcE=PLVrA
 ```
 
-然后访问 https://localhost:9200/ ，输入账号：elastic，密码：8+7U2sd9KNH33bbz30OB，然后可以看到如下信息：
+然后访问 http://localhost:9200/ ，输入账号：elastic，密码：ixLEd4xRavGVcE=PLVrA，然后可以看到如下信息：
 
 ```json
 {
@@ -6418,29 +6420,1319 @@ New value: 8+7U2sd9KNH33bbz30OB
 Kibana 是 Elastic 公司推出的官方数据可视化和管理工具，它提供基于浏览器的用户界面，能够直观地展示 Elasticsearch 中的数据，所以通常还会安装 Kibana，
 通过下面的 Docker命令，即可部署 Kibana（需要与 Elasticsearch 版本一致）：
 
+Kibana 8.x 不再允许使用 elastic 超级用户直接连接 Elasticsearch，需要手动创建专门的服务账户让 Kibana 和 Elasticsearch 通信：
+
+```shell
+# 进入 Elasticsearch 容器
+docker exec -it es /bin/bash
+# 创建 Kibana 服务账户和令牌
+bin/elasticsearch-service-tokens create elastic/kibana kibana-token
+# 命令执行后会返回（请保存好这个令牌）
+SERVICE_TOKEN elastic/kibana/kibana-token = AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjp0SHduQl96bVR5R3FRLWNmbFR6SzFn
+```
+
+如果需要重新生成令牌，可以先删除旧令牌再创建新的：
+
+```shell
+# 在 Elasticsearch 容器内执行
+bin/elasticsearch-service-tokens delete elastic/kibana kibana-token
+```
+
+然后使用新创建的账户令牌启动 Kibana：
+
 ```shell
 docker run -d \
   --name kibana \
   --network=hm-net \
   -p 5601:5601 \
   -e ELASTICSEARCH_HOSTS=http://es:9200 \
-  -e ELASTICSEARCH_USERNAME=elastic \
-  -e ELASTICSEARCH_PASSWORD=8+7U2sd9KNH33bbz30OB \
-  kibana:8.14.3
-  
-  
-docker run -d \
-  --name kibana \
-  --network=hm-net \
-  -p 5601:5601 \
-  -v /tmp/http_ca_cert.crt:/usr/share/kibana/config/http_ca.crt \
-  -e ELASTICSEARCH_HOSTS=https://es:9200 \
-  -e ELASTICSEARCH_USERNAME=kibana_system \
-  -e ELASTICSEARCH_PASSWORD=kibana \
-  -e ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=/usr/share/kibana/config/http_ca.crt \
-  kibana:8.14.3
+  -e ELASTICSEARCH_SERVICEACCOUNTTOKEN="AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjp0SHduQl96bVR5R3FRLWNmbFR6SzFn" \
+  -e ELASTICSEARCH_SSL_VERIFICATIONMODE=none \
+  docker.elastic.co/kibana/kibana:8.14.3
 ```
 
-未完成...
+Elasticsearch 8.x 版本默认启用 SSL 加密（HTTPS），Kibana 连接时会自动验证 Elasticsearch 的 SSL 证书是否有效，当设置为 none 时，Kibana 会跳过 SSL 证书的验证过程，
+直接建立连接。
+
+```shell
+-e ELASTICSEARCH_SSL_VERIFICATIONMODE=none \
+```
+
+Kibana 可以直接通过发送请求的方式操作 Elasticsearch，进入 Elastic 页面后打开 Dev Tools，发送一个请求：GET / 即可访问到 localhost:9200 页面的内容，
+因为在初始化容器时已经配置了该地址：-e ELASTICSEARCH_HOSTS=http://es:9200 \。
+
+****
+### 1.2 倒排索引
+
+倒排索引（Inverted Index）是一种用于全文检索系统的核心数据结构，它将 “词” 映射到包含该词的 “文档列表”，实现快速搜索。倒排索引中有两个非常重要的概念：
+
+- 文档（Document）：用来搜索的数据，其中的每一条数据就是一个文档，例如一个网页、一个商品信息
+- 词条（Term）：对文档数据或用户搜索数据，利用某种算法分词，得到的具备含义的词语就是词条。例如：小米智能手环，就可以分为：小米、智能、手环这样的几个词条。
+
+创建倒排索引则是对正向索引的一种特殊处理和应用，流程如下：
+
+- 将每一个文档的数据利用分词算法根据语义拆分，得到一个个词条
+- 创建表，每行数据包括词条、词条所在文档 id、位置等信息
+- 因为词条唯一性，可以给词条创建正向索引
+
+例如：
+
+正向索引：
+
+| id（索引）      | title     | price |
+|-------------|-----------| ----- |
+| 1           | 小米手机      | 3499  |
+| 2           | 华为手机      | 4999  |
+| 3           | 华为小米充电器   | 49    |
+| 4           | 小米手环      | 49    |
+| ...         | ...       |...   |
+
+倒排索引：
+
+| 词条（索引） | 文档 id   |
+|--------|---------|
+| 小米     | 1, 3, 4 |
+| 手机     | 1, 2    |
+| 华为     | 2, 3    |
+| 充电器    | 3       |
+| 手环     | 4       |
+| ...    | ...     |
+
+倒排索引的搜索流程：
+
+1. 用户输入条件 "华为手机" 进行搜索
+2. 对用户输入条件分词，得到词条：华为、手机
+3. 拿着词条在倒排索引中查找（由于词条有索引，查询效率很高），即可得到包含词条的文档 id：1、2、3
+4. 拿着文档 id 到正向索引中查找具体文档即可（由于 id 也有索引，查询效率也很高）
+
+虽然要先查询倒排索引，再查询倒排索引，但是无论是词条、还是文档 id 都建立了索引，查询速度非常快。
+
+- 正向索引是最传统的，根据 id 索引的方式，但根据词条查询时，必须先逐条获取每个文档，然后判断文档中是否包含所需要的词条，是根据文档找词条的过程
+- 而倒排索引则相反，是先找到用户要搜索的词条，根据词条得到保护词条的文档的 id，然后根据 id 获取文档，是根据词条找文档的过程，即利用索引找索引
+
+正向索引：
+
+- 优点：
+  - 可以给多个字段创建索引
+  - 根据索引字段搜索、排序速度非常快
+- 缺点：
+  - 根据非索引字段，或者索引字段中的部分词条查找时，只能全表扫描。
+
+倒排索引：
+
+- 优点：
+  - 根据词条搜索、模糊搜索时，速度非常快
+- 缺点：
+  - 只能给词条创建索引，而不是字段
+  - 无法根据字段做排序
+
+****
+### 1.3 词语解析
+
+1、文档和字段
+
+Elasticsearch 是面向文档（Document）存储的，可以是数据库中的一条商品数据，一个订单信息。文档数据会被序列化为 json 格式后存储在 Elasticsearch 中（看下面的内容），
+所以原来的数据库中的一行数据就是 ES 中的一个 JSON 文档。而数据库中每行数据都包含很多列，这些列就转换为 JSON 文档中的字段（Field）。
+
+2、索引和映射
+
+随着业务发展，需要在 es 中存储的文档也会越来越多，比如有商品的文档、用户的文档、订单文档等等，所有文档都散乱存放显然非常混乱，也不方便管理。所以要将类型相同的文档集中在一起管理，
+而索引（Index）在 Elasticsearch 中指的则是一组结构相同的文档集合。例如：
+
+```json
+{
+    "id": 1,
+    "title": "小米手机",
+    "price": 3499
+}
+
+{
+    "id": 2,
+    "title": "华为手机",
+    "price": 4999
+}
+
+{
+    "id": 3,
+    "title": "三星手机",
+    "price": 3999
+}
+```
+
+- 所有用户文档，就可以组织在一起，称为用户的索引
+- 所有商品的文档，可以组织在一起，称为商品的索引
+- 所有订单的文档，可以组织在一起，称为订单的索引
+
+而映射（Mapping）则可以理解为索引中文档结构的定义，类似于数据库中“表结构”，它定义了文档的字段名、字段类型、是否索引、是否分词、是否存储等规则，例如：
+
+```json
+PUT /goods
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "long"
+      },
+      "title": {
+        "type": "text",
+        "analyzer": "ik_smart"
+      },
+      "price": {
+        "type": "double"
+      }
+    }
+  }
+}
+```
+
+3、mysql 与 elasticsearch
+
+| 数据库概念        | Elasticsearch 对应   |
+|--------------| ------------------ |
+| Database     | 集群（Cluster）或逻辑命名空间 |
+| Table        | Index（索引）          |
+| Row          | Document（文档）       |
+| Column       | Field（字段）          |
+| Schema（结构定义） | Mapping（映射）        |
+
+- Mysql：擅长事务类型操作，可以确保数据的安全和一致性
+- Elasticsearch：擅长海量数据的搜索、分析、计算
+
+因此在企业中，往往是两者结合使用：
+
+- 对安全性要求较高的写操作，使用 mysql 实现
+- 对查询性能要求较高的搜索需求，使用 elasticsearch 实现
+- 两者再基于某种方式，实现数据的同步，保证一致性
+
+****
+### 1.4 IK 分词器
+
+Elasticsearch 的关键就是倒排索引，而倒排索引依赖于对文档内容的分词，而分词则需要高效、精准的分词算法，IK 分词器则是一个中文分词算法。
+
+#### 1. 安装
+
+将 IK 插件安装到 es 容器挂载插件的目录：
+
+```shell
+docker exec -it es bin/elasticsearch-plugin install https://get.infini.cloud/elasticsearch/analysis-ik/8.14.3
+```
+
+验证：
+
+```shell
+curl -u elastic:ixLEd4xRavGVcE=PLVrA -X GET http://localhost:9200/_cat/plugins?v
+
+name         component   version
+30c07e6bd13e analysis-ik 8.14.3
+```
+
+****
+#### 2. 使用
+
+IK分词器包含两种模式：
+
+- ik_smart：智能语义切分
+- ik_max_word：最细粒度切分 
+
+在 Kibana 的 Dev Tools 上测试分词器，首先测试 Elasticsearch 官方提供的标准分词器：
+
+```json
+POST /_analyze
+{
+  "analyzer": "standard",
+  "text": "hello world！"
+}
+```
+
+```json
+POST /_analyze
+{
+  "analyzer": "standard",
+  "text": "你好世界！"
+}
+```
+
+- POST /_analyze：请求方法 POST，路径 /_analyze 是一个内置的 _analyze API，用于测试分析器对输入文本的分词效果，这里省略了 http:localhost:9200
+- analyzer：表示使用哪种分析器（即分词器），standard 是 Elasticsearch 默认的标准分词器
+- text：即文本内容
+
+结果如下：
+
+```json
+{
+  "tokens": [
+    {
+      "token": "hello",
+      "start_offset": 0,
+      "end_offset": 5,
+      "type": "<ALPHANUM>",
+      "position": 0
+    },
+    {
+      "token": "world",
+      "start_offset": 6,
+      "end_offset": 11,
+      "type": "<ALPHANUM>",
+      "position": 1
+    }
+  ]
+}
+```
+
+```json
+{
+  "tokens": [
+    {
+      "token": "你",
+      "start_offset": 0,
+      "end_offset": 1,
+      "type": "<IDEOGRAPHIC>",
+      "position": 0
+    },
+    {
+      "token": "好",
+      "start_offset": 1,
+      "end_offset": 2,
+      "type": "<IDEOGRAPHIC>",
+      "position": 1
+    },
+    {
+      "token": "世",
+      "start_offset": 2,
+      "end_offset": 3,
+      "type": "<IDEOGRAPHIC>",
+      "position": 2
+    },
+    {
+      "token": "界",
+      "start_offset": 3,
+      "end_offset": 4,
+      "type": "<IDEOGRAPHIC>",
+      "position": 3
+    }
+  ]
+}
+```
+
+可以看到标准分词器只能 1 字 1 词条，无法正确对中文做分词，再测试 IK 分词器：
+
+```json
+POST /_analyze
+{
+  "analyzer": "ik_smart",
+  "text": "你好世界！"
+}
+```
+
+```json
+{
+  "tokens": [
+    {
+      "token": "你好",
+      "start_offset": 0,
+      "end_offset": 2,
+      "type": "CN_WORD",
+      "position": 0
+    },
+    {
+      "token": "世界",
+      "start_offset": 2,
+      "end_offset": 4,
+      "type": "CN_WORD",
+      "position": 1
+    }
+  ]
+}
+```
+
+****
+#### 3. 拓展词典
+
+随着互联网的发展，“造词运动”也越发的频繁，出现了很多新的网络热梗词语，这些在原有的词汇列表中并不存在。比如：“爱坤”，“小黑子” 等，IK 分词器无法对这些词汇分词，测试一下：
+
+```json
+POST /_analyze
+{
+  "analyzer": "ik_max_word",
+  "text": "我是真爱坤，不是小黑子！"
+}
+```
+
+按照常理来说应该分为 "真爱坤" 和 "小黑子" 才对，但实际没有：
+
+```json
+{
+  "tokens": [
+    {
+      "token": "我",
+      "start_offset": 0,
+      "end_offset": 1,
+      "type": "CN_CHAR",
+      "position": 0
+    },
+    {
+      "token": "是",
+      "start_offset": 1,
+      "end_offset": 2,
+      "type": "CN_CHAR",
+      "position": 1
+    },
+    {
+      "token": "真爱",
+      "start_offset": 2,
+      "end_offset": 4,
+      "type": "CN_WORD",
+      "position": 2
+    },
+    {
+      "token": "坤",
+      "start_offset": 4,
+      "end_offset": 5,
+      "type": "CN_CHAR",
+      "position": 3
+    },
+    {
+      "token": "不是",
+      "start_offset": 6,
+      "end_offset": 8,
+      "type": "CN_WORD",
+      "position": 4
+    },
+    {
+      "token": "小黑",
+      "start_offset": 8,
+      "end_offset": 10,
+      "type": "CN_WORD",
+      "position": 5
+    },
+    {
+      "token": "黑子",
+      "start_offset": 9,
+      "end_offset": 11,
+      "type": "CN_WORD",
+      "position": 6
+    }
+  ]
+}
+```
+
+所以要想正确分词，IK 分词器的词库也需要不断的更新，而 IK 分词器提供了扩展词汇的功能：
+
+1、打开 IK 分词器 config 目录
+
+2、在 IKAnalyzer.cfg.xml 配置文件内容添加：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+        <comment>IK Analyzer 扩展配置</comment>
+        <!--用户可以在这里配置自己的扩展字典 *** 添加扩展词典-->
+        <entry key="ext_dict">ext.dic</entry>
+</properties>
+```
+
+3、在 IK 分词器的 config 目录新建一个 ext.dic，可以参考 config 目录下复制一个配置文件进行修改：
+
+```text
+真爱坤
+小黑子
+```
+
+4、重启
+
+| 文件名                  | 用途说明                                         |
+| -------------------- | -------------------------------------------- |
+| `IKAnalyzer.cfg.xml` | 分词器主配置文件，定义扩展字典、停用词等配置                       |
+| `main.dic`           | 核心词典，插件内置，不建议修改                              |
+| `custom.dic`         | 用户自定义词典（可以添加新词）                              |
+| `stopword.dic`       | 停用词词典，用于过滤一些无意义的常用词（如“的”、“了”）                |
+| `surname.dic`        | 姓氏词典，用于人名识别                                  |
+| `quantifier.dic`     | 量词词典（如“个”、“只”）                               |
+| `suffix.dic`         | 后缀词典（如“公司”、“集团”）                             |
+| `preposition.dic`    | 介词词典（如“在”、“于”）                               |
+| `ext.dic`            | 扩展词典，用于配置额外的词库路径（在 `IKAnalyzer.cfg.xml` 中配置） |
+
+****
+## 2. 索引库操作
+
+### 2.1 Mapping 映射属性
+
+Index 就类似数据库表，Mapping 映射就类似表的结构，要向 es 中存储数据，就必须先创建 Index 和 Mapping。常见的 Mapping 属性包括：
+
+- type：字段数据类型，常见的简单类型有：
+  - 字符串：text（可分词的文本）、keyword（精确值，例如：品牌、国家、ip 地址）
+  - 数值：long、integer、short、byte、double、float
+  - 布尔：boolean
+  - 日期：date
+  - 对象：object
+- index：是否创建索引，默认为 true
+- analyzer：使用哪种分词器
+- properties：该字段的子字段
+
+例如：
+
+```json
+{
+    "age": 21,
+    "weight": 52.1,
+    "isMarried": false,
+    "info": "南昌街溜子",
+    "email": "nanchang@baga.com",
+    "score": [99.1, 99.5, 98.9],
+    "name": {
+        "firstName": "三",
+        "lastName": "张"
+    }
+}
+```
+
+| 字段名       | 子字段名   | 字段类型  | 类型说明                     | 是否参与搜索 | 是否参与分词 | 分词器 |
+| ------------ | ---------- | --------- | ---------------------------- |--------|--------| ------ |
+| age          | -          | integer   | 整数                         | √      | ×      | —      |
+| weight       | -          | float     | 浮点数                       | √     | ×      | —      |
+| isMarried    | -          | boolean   | 布尔                         | √     | ×      | —      |
+| info         | -          | text      | 字符串，但需要分词           | √     | √     | IK     |
+| email        | -          | keyword   | 字符串，但是不分词           | ×      | ×      | —      |
+| score        | -          | float     | 只看数组中元素类型           | √     | ×      | —      |
+| name         | firstName  | keyword   | 字符串，但是不分词           | √     | ×      | —      |
+|              | lastName   | keyword   | 字符串，但是不分词           | √     | ×      | —      |
+
+****
+### 2.2 索引库的 CRUD
+
+由于 Elasticsearch 采用的是 Restful 风格的 API，因此其请求方式和路径相对都比较规范，而且请求参数也都采用 JSON 风格。可以直接基于 Kibana 的 DevTools 来编写请求做测试。
+
+1、创建索引库和映射
+
+- 请求方式：PUT
+- 请求路径：/索引库名，可以自定义
+- 请求参数：mapping 映射
+
+```json
+PUT /索引库名称
+{
+  "mappings": {
+    "properties": {
+      "字段名":{
+        "type": "text",
+        "analyzer": "ik_smart"
+      },
+      "字段名2":{
+        "type": "keyword",
+        "index": "false"
+      },
+      "字段名3":{
+        "properties": {
+          "子字段": {
+            "type": "keyword"
+          }
+        }
+      },
+      // ...
+    }
+  }
+}
+```
+
+例如：
+
+```json
+PUT /example
+{
+  "mappings": {
+    "properties": {
+      "info":{
+        "type": "text",
+        "analyzer": "ik_smart"
+      },
+      "email":{
+        "type": "keyword",
+        "index": "false"
+      },
+      "name":{
+        "properties": {
+          "firstName": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+2、查询索引库
+
+- 请求方式：GET
+- 请求路径：/索引库名
+- 请求参数：无 
+
+```json
+GET /example
+```
+
+3、删除索引库
+
+- 请求方式：DELETE
+- 请求路径：/索引库名
+- 请求参数：无 
+
+```json
+DELETE /example
+```
+
+4、修改索引库
+
+倒排索引结构虽然不复杂，但是一旦数据结构改变（比如改变了分词器），就需要重新创建倒排索引，为了避免这种情况的发生，es 就规定索引库一旦创建，无法修改 mapping。
+虽然无法修改 mapping 中已有的字段，但是 es 允许添加新的字段到 mapping 中，因为这不会对倒排索引产生影响。所以修改索引库能做的就是向索引库中添加新字段，
+或者更新索引库的基础属性（使用了 index = false）。
+
+```json
+PUT /索引库名/_mapping
+{
+  "properties": {
+    "新字段名":{
+      "type": "integer"
+    }
+  }
+}
+```
+
+例如：
+
+```json
+PUT /example/_mapping
+{
+  "properties": {
+    "age":{
+      "type": "integer"
+    }
+  }
+}
+```
+
+```json
+{
+  "example": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "age": {
+          "type": "integer"
+        },
+        "email": {
+          "type": "keyword",
+          "index": false
+        },
+        "info": {
+          "type": "text",
+          "analyzer": "ik_smart"
+        },
+        "name": {
+          "properties": {
+            "firstName": {
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+****
+## 3. 文档操作
+
+### 3.1 新增文档
+
+```json
+POST /索引库名/_doc/文档 id
+{
+    "字段1": "值1",
+    "字段2": "值2",
+    "字段3": {
+        "子属性1": "值3",
+        "子属性2": "值4"
+    },
+}
+```
+
+例如：
+
+```json
+POST /example/_doc/1
+{
+    "info": "江西老表",
+    "email": "jx@jx.com",
+    "name": {
+        "firstName": "三",
+        "lastName": "张"
+    }
+}
+```
+
+返回结果：
+
+```json
+{
+  "_index": "example",
+  "_id": "1",
+  "_version": 1, 
+  "result": "created",
+  "_shards": {
+    "total": 2,
+    "successful": 1,
+    "failed": 0
+  },
+  "_seq_no": 0,
+  "_primary_term": 1
+}
+```
+
+****
+### 3.2 查询文档
+
+```json
+GET /{索引库名称}/_doc/{id}
+```
+
+例如：
+
+```json
+GET /example/_doc/1
+```
+
+```json
+{
+  "_index": "example",
+  "_id": "1",
+  "_version": 1,
+  "_seq_no": 0,
+  "_primary_term": 1,
+  "found": true,
+  "_source": {
+    "info": "江西老表",
+    "email": "jx@jx.com",
+    "name": {
+      "firstName": "三",
+      "lastName": "张"
+    }
+  }
+}
+```
+
+这里的 _source 表示存储在 Elasticsearch 中的原始文档内容。
+
+****
+### 3.3 删除文档
+
+```json
+DELETE /{索引库名}/_doc/id值
+```
+
+****
+### 3.4 修改文档
+
+#### 1. 全量修改
+
+全量修改是覆盖原来的文档，其本质是两步操作：
+
+- 根据指定的 id 删除文档
+- 新增一个相同 id 的文档
+
+需要注意的是：如果根据 id 删除时 id 不存在，第二步的新增也会执行，也就是从修改变成了新增操作了。
+
+```json
+PUT /{索引库名}/_doc/文档 id
+{
+    "字段1": "值1",
+    "字段2": "值2",
+    // ... 
+}
+```
+
+例如：
+
+```json
+PUT /example/_doc/1
+{
+    "info": "江西大佬表",
+    "email": "jx@jx.com",
+    "name": {
+        "firstName": "三",
+        "lastName": "张"
+    }
+}
+```
+
+```json
+{
+  ...
+  "result": "updated",
+  ...
+}
+```
+
+****
+#### 2. 
+
+局部修改则是只修改指定 id 匹配的文档中的部分字段：
+
+```json
+POST /{索引库名}/_update/文档 id
+{
+    "doc": {
+         "字段名": "新的值",
+    }
+}
+```
+
+例如：
+
+```json
+POST /example/_update/1
+{
+  "doc": {
+    "email": "zhangsan@jx.com"
+  }
+}
+```
+
+****
+### 3.5 批处理
+
+批处理采用 POST 请求：
+
+```json
+POST _bulk
+{ "index" : { "_index" : "test", "_id" : "1" } }
+{ "field1" : "value1" }
+{ "delete" : { "_index" : "test", "_id" : "2" } }
+{ "create" : { "_index" : "test", "_id" : "3" } }
+{ "field1" : "value3" }
+{ "update" : {"_id" : "1", "_index" : "test"} }
+{ "doc" : {"field2" : "value2"} }
+```
+
+- index 代表新增操作
+  - _index：指定索引库名
+  - _id 指定要操作的文档 id
+  - { "field1" : "value1" }：则是要新增的文档内容
+- delete 代表删除操作
+  - _index：指定索引库名
+  - _id 指定要操作的文档 id
+- update 代表更新操作
+  - _index：指定索引库名
+  - _id 指定要操作的文档 id
+  - { "doc" : {"field2" : "value2"} }：要更新的文档字段
+
+例如批量新增：
+
+```json
+POST /_bulk
+{"index": {"_index":"example", "_id": "2"}}
+{"info": "南昌老表", "email": "nanchang@nanchang.com", "name":{"firstName": "四", "lastName":"李"}}
+{"index": {"_index":"example", "_id": "3"}}
+{"info": "九江老表", "email": "jiujiang@jiujiang.com", "name":{"firstName": "五", "lastName":"王"}}
+```
+
+批量删除：
+
+```json
+POST /_bulk
+{"delete":{"_index":"example", "_id": "2"}}
+{"delete":{"_index":"example", "_id": "3"}}
+```
+
+****
+## 4. ElasticsearchClient 客户端
+
+### 4.1 初始化 ElasticsearchClient
+
+1、在 item-service 模块中引入 es 的 RestHighLevelClient 依赖，需要与 es 本版本保持一致
+
+```xml
+<dependency>
+  <groupId>co.elastic.clients</groupId>
+  <artifactId>elasticsearch-java</artifactId>
+  <version>8.14.3</version>
+</dependency>
+```
+
+2、初始化 
+
+```java
+public class ElasticsearchClientTest {
+    private static RestClient restClient;
+    private static ElasticsearchClient esClient;
+
+    @BeforeAll
+    public static void setup() {
+        // 设置认证信息
+        final BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(AuthScope.ANY,
+                new UsernamePasswordCredentials("elastic", "ixLEd4xRavGVcE=PLVrA"));
+        // 创建带认证信息的 RestClient
+        restClient = RestClient.builder(
+                        new HttpHost("localhost", 9200, "http"))
+                .setHttpClientConfigCallback(httpClientBuilder ->
+                        httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
+                )
+                .build();
+        // 使用 Jackson JSON 映射器基于 RestClient 创建 Transport
+        ElasticsearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
+        // 初始化 ElasticsearchClient
+        esClient = new ElasticsearchClient(transport);
+    }
+
+    @AfterAll
+    public static void tearDown() throws IOException {
+        restClient.close();
+    }
+
+    @Test
+    public void testConnection() throws IOException {
+        InfoResponse info = esClient.info();
+        assertNotNull(info);
+        System.out.println("esClient: " + esClient);
+        System.out.println("restClient: " + restClient);
+        System.out.println("info: " + info);
+        System.out.println("连接成功，版本号: " + info.version().number());
+    }
+}
+```
+
+因为从 Elasticsearch 8.x 开始，官方默认启用了安全机制，所以在初始化时需要提供账号与密码，而客户端的初始化需要用到 RestClient 和 ElasticsearchClient 这两个核心组件。
+
+- RestClient：底层 HTTP 通信客户端，它负责与 Elasticsearch 集群进行底层 HTTP 通信，处理网络连接、请求发送、响应接收等基础网络操作
+- ElasticsearchClient：高层 API 客户端，它负责提供面向开发者的类型安全的高层 API，封装了 Elasticsearch 的各种操作（如索引、查询、更新等）
+
+****
+### 4.2 创建索引库
+
+实现搜索功能需要的字段包括三大部分：
+
+- 搜索过滤字段
+  - 分类
+  - 品牌
+  - 价格
+- 排序字段
+  - 默认：按照更新时间降序排序
+  - 销量
+  - 价格
+- 展示字段
+  - 商品id：用于点击后跳转
+  - 图片地址
+  - 是否是广告推广商品
+  - 名称
+  - 价格
+  - 评价数量
+  - 销量
+
+| 字段名       | 字段类型  | 类型说明        | 是否参与搜索 | 是否参与分词 | 分词器 |
+| ------------ | --------- |-------------| ------------ | ------------ | ------ |
+| id           | long      | 长整数         | ✔️           | ❌           | —      |
+| name         | text      | 字符串，参与分词搜索  | ✔️           | ✔️           | IK     |
+| price        | integer   | 以分为单位，所以是整数 | ✔️           | ❌           | —      |
+| stock        | integer   | 整数类型，但是不分词  | ✔️           | ❌           | —      |
+| image        | keyword   | 字符串，但是不分词   | ❌           | ❌           | —      |
+| category     | keyword   | 字符串，但是不分词   | ✔️           | ❌           | —      |
+| brand        | keyword   | 字符串，但是不分词   | ✔️           | ❌           | —      |
+| sold         | integer   | 销量，整数       | ✔️           | ❌           | —      |
+| commentCount | integer   | 评价，整数       | ❌           | ❌           | —      |
+| isAD         | boolean   | 布尔类型        | ✔️           | ❌           | —      |
+| updateTime   | Date      | 更新时间        | ✔️           | ❌           | —      |
+
+索引库文档结构：
+
+```json
+PUT /items
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "name":{
+        "type": "text",
+        "analyzer": "ik_max_word"
+      },
+      "price":{
+        "type": "integer"
+      },
+      "stock":{
+        "type": "integer"
+      },
+      "image":{
+        "type": "keyword",
+        "index": false
+      },
+      "category":{
+        "type": "keyword"
+      },
+      "brand":{
+        "type": "keyword"
+      },
+      "sold":{
+        "type": "integer"
+      },
+      "commentCount":{
+        "type": "integer",
+        "index": false
+      },
+      "isAD":{
+        "type": "boolean"
+      },
+      "updateTime":{
+        "type": "date"
+      }
+    }
+  }
+}
+```
+
+使用 ElasticsearchClient 客户端创建索引库：
+
+```java
+@Test
+public void testCreateItemsIndex() throws IOException {
+    String indexName = "items";
+    CreateIndexResponse response = esClient.indices().create(c -> c
+            .index(indexName)
+            .mappings(m -> m
+                    .properties("id", p -> p.keyword(k -> k))
+                    .properties("name", p -> p
+                            .text(t -> t.analyzer("ik_max_word"))
+                    )
+                    .properties("price", p -> p.integer(i -> i))
+                    .properties("stock", p -> p.integer(i -> i))
+                    .properties("image", p -> p
+                            .keyword(k -> k.index(false))
+                    )
+                    .properties("category", p -> p.keyword(k -> k))
+                    .properties("brand", p -> p.keyword(k -> k))
+                    .properties("sold", p -> p.integer(i -> i))
+                    .properties("commentCount", p -> p
+                            .integer(i -> i.index(false))
+                    )
+                    .properties("isAD", p -> p.boolean_(b -> b))
+                    .properties("updateTime", p -> p.date(d -> d))
+            )
+    );
+    // junit 5 的断言方法，内部为 true 时则正常，为 false 时报错
+    assertTrue(response.acknowledged());
+    System.out.println("索引创建成功：" + indexName);
+}
+```
+
+索引创建过程为 3 步：
+
+1、获取索引客户端
+
+```java
+ElasticsearchIndicesClient indices = esClient.indices();
+```
+
+通过 ElasticsearchClient 的 indices() 方法获取 ElasticsearchIndicesClient，用于执行与索引有关的操作，如创建、删除、存在性检查等。
+
+2、定义索引名 + 索引结构
+
+```java
+CreateIndexResponse response = indices.create(c -> c
+    .index(indexName)  // 指定索引名
+    .mappings(m -> m   // 定义映射（mapping），即字段类型等信息
+        .properties("id", p -> p.keyword(k -> k))
+        .properties("name", p -> p.text(t -> t.analyzer("ik_max_word")))
+        ...
+    )
+);
+```
+
+因为要发起一个创建索引库的请求，所以肯定会涉及一个 Request 请求，而在 create() 方法内部就通过 Lambda 构建了一个 CreateIndexRequest 对象，
+在 Elasticsearch 在接收到请求后，返回响应用 CreateIndexResponse 接收。
+
+- index(name)：设置索引名称
+- mappings(...)：指定索引字段的映射信息
+- properties(...)：每个字段都用 .properties(name, definition) 来定义字段类型、是否可索引、分词器等属性
+
+| JSON 字段                     | Java client 代码                 | 说明      |
+| --------------------------- | ------------------------------ | ------- |
+| `"type": "keyword"`         | `p.keyword(k -> k)`            | 关键字字段   |
+| `"type": "text"` + analyzer | `p.text(t -> t.analyzer(...))` | 指定分词器   |
+| `"index": false`            | `.index(false)`                | 设置不参与索引 |
+| `"type": "boolean"`         | `p.boolean_(b -> b)`           | 布尔类型字段  |
+| `"type": "date"`            | `p.date(d -> d)`               | 日期类型字段  |
+
+3、发送请求，创建索引
+
+调用 `.create()` 方法后会向 Elasticsearch 发送一个 PUT /items 请求，带有字段映射配置，从而创建索引。响应结果是一个 CreateIndexResponse 对象，包含是否创建成功的状态：
+
+```java
+response.acknowledged(); // true 表示 Elasticsearch 确认创建成功
+```
+
+****
+### 4.3 删除索引库
+
+删除索引的操作和创建索引几乎一样，只不过使用的是 delete() 方法，它底层对应的对象是：
+
+- 请求对象： DeleteIndexRequest 
+- 响应对象： DeleteIndexResponse
+
+```java
+@Test
+void testDeleteIndex() throws IOException {
+    // 1. 获取索引客户端
+    ElasticsearchIndicesClient indicesClient = esClient.indices();
+    // 2. 指定要删除的索引名称并发送删除请求
+    DeleteIndexResponse response = indicesClient.delete(d -> d.index("items"));
+    assertTrue(response.acknowledged());
+    System.out.println("索引删除成功！");
+}
+```
+
+****
+### 4.4 判断索引库是否存在
+
+判断索引库是否存在的本质就是查询，发送一个 GET 请求：
+
+```java
+@Test
+void testExistsIndex() throws IOException {
+    BooleanResponse response = esClient.indices().exists(e -> e.index("items"));
+    if (response.value()) {
+        System.out.println("索引存在");
+    } else {
+        System.out.println("索引不存在");
+    }
+}
+```
+
+****
+## 5. 操作文档
+
+### 5.1 新增文档
+
+索引库结构与数据库结构还存在一些差异，所以需要定义一个索引库结构对应的实体 [ItemDoc](./src/main/java/com/hmall/item/domain/dto/ItemDoc.java)，然后从数据库中获取对应的商品信息，
+将这些信息封装进 ItemDoc，然后通过 esClient 发送请求给 Elasticsearch：
+
+```java
+@Test
+void testAddDocument() throws IOException {
+    // 根据 id 查询商品数据
+    Item item = itemService.getById(2627841L);
+    ItemDoc itemDoc = BeanUtil.copyProperties(item, ItemDoc.class);
+    IndexResponse response = esClient.index(i -> i
+            .index("items")
+            .id(itemDoc.getId()) // 指定文档 ID
+            .document(itemDoc)  // 要保存的对象
+    );
+    System.out.println("索引结果：" + response.result());
+}
+```
+
+需要注意的是：该客户端默认用的是 Jackson 作为 JSON 序列化的框架，而 Jackson 默认不支持 Java8 的时间类型（LocalDateTime），
+所以需要在初始化客户端时需要自定义一个带有 JavaTimeModule 的 JacksonJsonpMapper：
+
+```java
+// 使用 Jackson JSON 映射器创建 Transport
+ElasticsearchTransport transport = new RestClientTransport(restClient, new CustomJacksonJsonpMapper());
+// 初始化 ElasticsearchClient
+esClient = new ElasticsearchClient(transport);
+```
+
+```java
+public class CustomJacksonJsonpMapper extends JacksonJsonpMapper {
+    private static final ObjectMapper OBJECT_MAPPER;
+    static {
+        OBJECT_MAPPER = new ObjectMapper();
+        // 注册 Java8 时间模块
+        OBJECT_MAPPER.registerModule(new JavaTimeModule());
+    }
+    public CustomJacksonJsonpMapper() {
+        super(OBJECT_MAPPER);
+    }
+}
+```
+
+****
+### 5.2 查询文档
+
+```java
+@Test
+void testGetDocumentById() throws IOException {
+    String indexName = "items";
+    String docId = "2627839";
+    // 执行 GET 请求
+    GetResponse<ItemDoc> response = esClient.get(g -> g
+                    .index(indexName)
+                    .id(docId),
+            ItemDoc.class // 返回的实体类型，自动反序列化
+    );
+    if (response.found()) {
+        ItemDoc itemDoc = response.source();
+        System.out.println("查询到文档：" + itemDoc);
+    } else {
+        System.out.println("未找到文档，ID: " + docId);
+    }
+}
+```
+
+```text
+查询到文档：ItemDoc(id=2627839, ... ,updateTime=2019-05-01T00:00)
+```
+
+****
+### 5.3 删除文档
+
+```java
+@Test
+void testDeleteDocument() throws IOException {
+    String indexName = "items";
+    String docId = "2627839"; // 要删除的文档ID
+    DeleteResponse response = esClient.delete(d -> d
+            .index(indexName)
+            .id(docId)
+    );
+    if (response.result().name().equals("Deleted")) {
+        System.out.println("文档删除成功，ID：" + docId);
+    } else if (response.result().name().equals("NotFound")) {
+        System.out.println("文档不存在，无法删除，ID：" + docId);
+    } else {
+        System.out.println("删除操作结果：" + response.result().name());
+    }
+}
+```
+
+****
+### 5.4 修改文档
+
+1、全量修改
+
+这里使用的是 IndexResponse，与新增文档一样，返回结果中 result() 为 updated 或 created
+
+```java
+@Test
+void testFullUpdateDocument() throws IOException {
+    // 根据 id 查询商品数据
+    Item item = itemService.getById(2627839L);
+    ItemDoc itemDoc = BeanUtil.copyProperties(item, ItemDoc.class);
+    itemDoc.setName("test");
+    IndexResponse response = esClient.index(i -> i
+            .index("items")
+            .id("1")
+            .document(itemDoc) // 传入完整文档对象
+    );
+    System.out.println("返回结果: " + response.result());
+}
+```
+
+2、局部修改
+
+用 update() 方法，只修改部分字段，不用传完整文档，返回结果也是 created 或 updated：
+
+```java
+@Test
+void testPartialUpdateDocument() throws IOException {
+    // 使用 Map 集合的方式，如果直接传入一个 ItemDoc 对象则会把整个文档更新
+    Map<String, Object> updateFields = new HashMap<>();
+    updateFields.put("price", 2999);
+    updateFields.put("sold", 100);
+    UpdateResponse<ItemDoc> response = esClient.update(u -> u
+                    .index("items")
+                    .id("1")
+                    .doc(updateFields),
+            ItemDoc.class
+    );
+    System.out.println("返回结果: " + response.result());
+}
+```
+
+****
+### 5.5 批量操作文档
+
+把多条操作（新增、更新、删除等）放到一个批量请求里，每条操作对应一个请求对象，比如 IndexOperation、UpdateOperation、DeleteOperation
+
+```java
+@Test
+void testBulk() throws IOException {
+    List<ItemDoc> items = new ArrayList<>();
+    List<BulkOperation> operations = new ArrayList<>();
+    // 根据 id 查询商品数据
+    Item item1 = itemService.getById(2627839L);
+    ItemDoc itemDoc1 = BeanUtil.copyProperties(item1, ItemDoc.class);
+    Item item2 = itemService.getById(2627072L);
+    ItemDoc itemDoc2 = BeanUtil.copyProperties(item2, ItemDoc.class);
+    items.add(itemDoc1);
+    items.add(itemDoc2);
+    for (ItemDoc item : items) {
+        BulkOperation op = new BulkOperation.Builder()
+                .index(idx -> idx
+                        .index("items")
+                        .id(item.getId())
+                        .document(item)
+                )
+                .build();
+        operations.add(op);
+    }
+    BulkRequest bulkRequest = new BulkRequest.Builder()
+            .operations(operations)
+            .build();
+    BulkResponse response = esClient.bulk(bulkRequest);
+    if (response.errors()) {
+        System.out.println("部分文档导入失败，失败项如下：");
+        response.items().forEach(item -> {
+            if (item.error() != null) {
+                System.out.println(item.error().reason());
+            }
+        });
+    } else {
+        System.out.println("所有文档导入成功！");
+    }
+}
+```
+
+- BulkOperation：表示批量中的单个操作，可以是 index（新增/覆盖）、update、delete 等
+- BulkRequest：批量请求，将所有操作传入
+- BulkResponse：响应，包含每条操作的结果，可以通过 errors() 判断是否有失败
+
+批量更新则是使用：
+
+```java
+Map<String, Object> items = new HashMap<>();
+...
+for (ItemDoc item : items) {
+    BulkOperation op = new BulkOperation.Builder()
+        .update(UpdateOperation.of(u -> u
+            .index("items")
+            .id(item.getId())
+            .doc(item)
+        ))
+        .build();
+    operations.add(op);
+}
+```
+
+批量删除：
+
+```java
+for (String id : ids) {
+    BulkOperation op = new BulkOperation.Builder()
+        .delete(DeleteOperation.of(d -> d
+            .index("items")
+            .id(id)
+        ))
+        .build();
+    operations.add(op);
+}
+```
+
+****
+
+
+
+
 
 

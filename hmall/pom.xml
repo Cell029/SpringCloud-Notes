@@ -38,11 +38,17 @@
         <mybatis-plus.version>3.5.9</mybatis-plus.version>
         <hutool.version>5.8.11</hutool.version>
         <mysql.version>8.0.33</mysql.version>
+        <elasticsearch.version>8.14.3</elasticsearch.version>
     </properties>
 
     <!-- 对依赖包进行管理 -->
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>co.elastic.clients</groupId>
+                <artifactId>elasticsearch-java</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
             <dependency>
                 <groupId>jakarta.servlet</groupId>
                 <artifactId>jakarta.servlet-api</artifactId>
