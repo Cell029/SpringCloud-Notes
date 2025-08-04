@@ -2,8 +2,17 @@ package com.hmall.item.es;
 
 import cn.hutool.core.bean.BeanUtil;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.aggregations.LongTermsBucket;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
+import co.elastic.clients.elasticsearch._types.aggregations.TermsAggregation;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch.core.*;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonData;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.hmall.item.domain.dto.ItemDoc;
@@ -16,9 +25,9 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.client.RestClient;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -64,7 +73,7 @@ public class DocumentTest {
     @Test
     void testAddDocument() throws IOException {
         // 根据 id 查询商品数据
-        Item item = itemService.getById(2627839L);
+        Item item = itemService.getById(1861099L);
         ItemDoc itemDoc = BeanUtil.copyProperties(item, ItemDoc.class);
         IndexResponse response = esClient.index(i -> i
                 .index("items")
@@ -95,7 +104,7 @@ public class DocumentTest {
     @Test
     void testDeleteDocument() throws IOException {
         String indexName = "items";
-        String docId = "2627839"; // 要删除的文档ID
+        String docId = "1861100"; // 要删除的文档ID
         DeleteResponse response = esClient.delete(d -> d
                 .index(indexName)
                 .id(docId)
@@ -143,9 +152,9 @@ public class DocumentTest {
         List<BulkOperation> operations = new ArrayList<>();
 
         // 根据 id 查询商品数据
-        Item item1 = itemService.getById(2627839L);
+        Item item1 = itemService.getById(1861100L);
         ItemDoc itemDoc1 = BeanUtil.copyProperties(item1, ItemDoc.class);
-        Item item2 = itemService.getById(2627072L);
+        Item item2 = itemService.getById(1861101L);
         ItemDoc itemDoc2 = BeanUtil.copyProperties(item2, ItemDoc.class);
         items.add(itemDoc1);
         items.add(itemDoc2);
@@ -175,5 +184,255 @@ public class DocumentTest {
             System.out.println("所有文档导入成功！");
         }
     }
+
+    @Test
+    void testMatchAll() throws IOException {
+        SearchResponse<ItemDoc> response = esClient.search(s -> s
+                        .index("items")
+                        .query(q -> q // 定义查询条件
+                                .match(m -> m // 使用 match 查询
+                                        .field("name") // 要查询的字段
+                                        .query("男女") // 查询关键词
+                                )
+                        ),
+                ItemDoc.class // 结果映射的实体类
+        );
+        for (Hit<ItemDoc> hit : response.hits().hits()) {
+            System.out.println(hit.source());
+        }
+    }
+
+    @Test
+    void testMatchAll2() throws IOException {
+        SearchResponse<ItemDoc> response = esClient.search(s -> s
+                        .index("items")
+                        .query(q -> q
+                                .matchAll(m -> m) // 重点：matchAll 查询
+                        ),
+                ItemDoc.class
+        );
+        for (Hit<ItemDoc> hit : response.hits().hits()) {
+            System.out.println(hit.source());
+        }
+    }
+
+    @Test
+    void testMatch() throws IOException {
+        SearchResponse<ItemDoc> response = esClient.search(s -> s
+                        .index("items")
+                        .query(q -> q
+                                .match(m -> m
+                                        .field("name")
+                                        .query("男女")
+                                )
+                        ),
+                ItemDoc.class
+        );
+        for (Hit<ItemDoc> hit : response.hits().hits()) {
+            System.out.println(hit.source());
+        }
+    }
+
+    @Test
+    void testRange() throws IOException {
+        SearchResponse<ItemDoc> response = esClient.search(s -> s
+                        .index("items")
+                        .query(q -> q
+                                .range(r -> r
+                                        .field("price")
+                                        .gte(JsonData.of(1000))
+                                        .lte(JsonData.of(30000))
+                                )
+                        ),
+                ItemDoc.class
+        );
+        for (Hit<ItemDoc> hit : response.hits().hits()) {
+            System.out.println(hit.source());
+        }
+    }
+
+    @Test
+    void testMultiMatch() throws IOException {
+        SearchResponse<ItemDoc> response = esClient.search(s -> s
+                        .index("items")
+                        .query(q -> q
+                                .multiMatch(m -> m
+                                        .query("拉杆")
+                                        .fields("name", "brand", "category")
+                                )
+                        ),
+                ItemDoc.class
+        );
+        for (Hit<ItemDoc> hit : response.hits().hits()) {
+            System.out.println(hit.source());
+        }
+    }
+
+    @Test
+    void testTermQuery() throws IOException {
+        SearchResponse<ItemDoc> response = esClient.search(s -> s
+                        .index("items")
+                        .query(q -> q
+                                .term(t -> t
+                                        .field("brand")
+                                        .value("博兿")
+                                )
+                        ),
+                ItemDoc.class
+        );
+        for (Hit<ItemDoc> hit : response.hits().hits()) {
+            System.out.println(hit.source());
+        }
+    }
+
+    @Test
+    void testBool() throws IOException {
+        SearchResponse<ItemDoc> response = esClient.search(s -> s
+                        .index("items")
+                        .query(q -> q
+                                .bool(b -> b
+                                        .must(must -> must
+                                                .match(mt -> mt.field("name").query("手机"))
+                                        )
+                                        .must(must -> must
+                                                .match(mt -> mt.field("category").query("手机"))
+                                        )
+                                        .filter(f -> f
+                                                .range(r -> r
+                                                        .field("price")
+                                                        .gte(JsonData.of(10000))
+                                                        .lte(JsonData.of(70000))
+                                                )
+                                        )
+                                        .should(sh -> sh
+                                                .term(t -> t.field("brand").value("Apple"))
+                                        )
+                                        .should(sh -> sh
+                                                .term(t -> t.field("brand").value("华为"))
+                                        )
+                                        .mustNot(mn -> mn
+                                                .term(t -> t.field("brand").value("博兿"))
+                                        )
+                                        .minimumShouldMatch("1") // 至少满足一个 should 条件
+                                )
+                        ),
+                ItemDoc.class
+        );
+        for (Hit<ItemDoc> hit : response.hits().hits()) {
+            System.out.println(hit.source());
+        }
+    }
+
+    @Test
+    void testPageAndSort() throws IOException {
+        int pageNum = 1;
+        int pageSize = 10;
+        int from = (pageNum - 1) * pageSize; // 起始文档偏移量
+
+        SearchResponse<ItemDoc> response = esClient.search(s -> s
+                        .index("items")
+                        .from(from) // 分页起始位置
+                        .size(pageSize) // 每页条数
+                        .query(q -> q
+                                .bool(b -> b
+                                        .must(m -> m.match(mt -> mt.field("name").query("手机")))
+                                        .filter(f -> f.range(r -> r.field("price").gte(JsonData.of(10000)).lte(JsonData.of(70000))))
+                                )
+                        )
+                        .sort(List.of(
+                                SortOptions.of(s1 -> s1.field(f -> f.field("price").order(SortOrder.Asc))), // 价格升序
+                                SortOptions.of(s2 -> s2.field(f -> f.field("updateTime").order(SortOrder.Desc).missing("_last"))) // 更新时间降序，缺失排后面
+                        )),
+                ItemDoc.class
+        );
+        for (Hit<ItemDoc> hit : response.hits().hits()) {
+            System.out.println(hit.source());
+        }
+
+    }
+
+    @Test
+    void testHighLight() throws IOException {
+        SearchResponse<ItemDoc> response = esClient.search(s -> s
+                        .index("items")
+                        .query(q -> q
+                                .match(m -> m
+                                        .field("name")
+                                        .query("手机")
+                                )
+                        )
+                        .highlight(h -> h
+                                .fields("name", f -> f
+                                        .preTags("<em>")
+                                        .postTags("</em>")
+                                )
+                        ),
+                ItemDoc.class
+        );
+        for (Hit<ItemDoc> hit : response.hits().hits()) {
+            ItemDoc source = hit.source();
+            // 获取高亮字段的结果，是一个 Map<String, List<String>>，key 是字段名（如 "name"），value 是高亮后的若干个片段（可能是多个）
+            Map<String, List<String>> highlight = hit.highlight();
+            Assertions.assertNotNull(source);
+            System.out.println("原始 name：" + source.getName());
+            if (highlight != null && highlight.containsKey("name")) {
+                List<String> fragments = highlight.get("name");
+                System.out.println("高亮片段：" + String.join("...", fragments));
+            }
+        }
+    }
+
+    @Test
+    void testAgg() throws IOException {
+        SearchResponse<ItemDoc> response = esClient.search(b -> b
+                        .index("items")
+                        .size(0)
+                        .query(q -> q.term(t -> t.field("category").value("手机")))
+                        .aggregations("brand_agg", a -> a
+                                .terms(h -> h.field("brand"))
+                        ),
+                ItemDoc.class
+        );
+
+        List<StringTermsBucket> buckets = response.aggregations()
+                .get("brand_agg")
+                .sterms()
+                .buckets()
+                .array();
+        for (StringTermsBucket bucket : buckets) {
+            // 获取桶内 key
+            System.out.println("Brand: " + bucket.key().stringValue() + ", Count: " + bucket.docCount());
+        }
+    }
+
+    @Test
+    void testMetricAgg() throws IOException {
+        SearchResponse<ItemDoc> response = esClient.search(b -> b
+                        .index("items")
+                        .size(0) // 不返回文档，只返回聚合结果
+                        .query(q -> q.term(t -> t.field("category").value("手机")))
+                        .aggregations("max_price", a -> a.max(m -> m.field("price")))
+                        .aggregations("min_price", a -> a.min(m -> m.field("price")))
+                        .aggregations("avg_price", a -> a.avg(m -> m.field("price"))),
+                ItemDoc.class
+        );
+        // 取出聚合结果
+        double maxPrice = response.aggregations()
+                .get("max_price")
+                .max()
+                .value();
+        double minPrice = response.aggregations()
+                .get("min_price")
+                .min()
+                .value();
+        double avgPrice = response.aggregations()
+                .get("avg_price")
+                .avg()
+                .value();
+        System.out.println("Max price: " + maxPrice);
+        System.out.println("Min price: " + minPrice);
+        System.out.println("Avg price: " + avgPrice);
+    }
+
 
 }

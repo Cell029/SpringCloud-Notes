@@ -7545,15 +7545,18 @@ esClient = new ElasticsearchClient(transport);
 
 ```java
 public class CustomJacksonJsonpMapper extends JacksonJsonpMapper {
-    private static final ObjectMapper OBJECT_MAPPER;
-    static {
-        OBJECT_MAPPER = new ObjectMapper();
-        // 注册 Java8 时间模块
-        OBJECT_MAPPER.registerModule(new JavaTimeModule());
-    }
-    public CustomJacksonJsonpMapper() {
-        super(OBJECT_MAPPER);
-    }
+  private static final ObjectMapper OBJECT_MAPPER;
+
+  static {
+    OBJECT_MAPPER = new ObjectMapper();
+    // 禁止把日期序列化成数组，而是序列化成字符串
+    OBJECT_MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    // 注册 Java8 时间模块
+    OBJECT_MAPPER.registerModule(new JavaTimeModule());
+  }
+  public CustomJacksonJsonpMapper() {
+    super(OBJECT_MAPPER);
+  }
 }
 ```
 
@@ -7730,9 +7733,1275 @@ for (String id : ids) {
 ```
 
 ****
+## 6. DSL 查询
 
+### 6.1 概述
 
+DSL（Domain Specific Language）查询是 Elasticsearch 提供的一种领域特定语言，用于构造结构化、复杂的搜索请求。DSL 查询基于 JSON 格式，支持全文搜索、过滤、聚合、
+分页、高亮等丰富的功能。
 
+Elasticsearch 的查询可以分为两大类：
+
+- 叶子查询（Leaf query clauses）：一般是在特定的字段里查询特定值，属于简单查询，很少单独使用
+- 复合查询（Compound query clauses）：以逻辑方式组合多个叶子查询或者更改叶子查询的行为方式
+
+DSL 查询由两个主要部分组成：
+
+```json
+GET /索引库名/_search // _search是固定路径，不能修改
+{
+  "query": {
+    "查询类型": {
+      // .. 查询条件
+    }
+  }
+}
+```
+
+除了 query 外，还有其他部分可选如：
+
+- from / size：分页控制 
+- sort：排序 
+- aggs：聚合
+- _source：控制返回哪些字段 
+- highlight：高亮 
+- script_fields：自定义脚本字段 
+- post_filter：聚合后的过滤
+
+以最简单的无条件查询为例，无条件查询的类型是 match_all，因此其查询语句如下：
+
+```json
+GET /items/_search
+{
+  "query": {
+    "match_all": {
+      
+    }
+  }
+}
+```
+
+```json
+{
+  "took": 10, // 花费时间，单位毫秒
+  "timed_out": false,
+  "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 4, // 查询总条数，最大只显示 10000 条记录
+      "relation": "eq"
+    },
+    "max_score": 1,
+    "hits": [ // 命中的文档的数组
+      {
+        "_index": "items", // 索引库
+        "_id": "1", // 文档 id
+        "_score": 1,
+        "_source": { // 原始文档
+          "id": "2627839",
+          "name": "test",
+          "price": 2999,
+          "image": "https://...",
+          "category": "拉杆箱",
+          "brand": "博兿",
+          "sold": 100,
+          "commentCount": 0,
+          "isAD": false,
+          "updateTime": [
+            2019,
+            5,
+            1,
+            0,
+            0
+          ],
+          "stock": 100
+        }
+      },
+      ...
+    ]
+  }
+}
+```
+
+****
+### 6.2 叶子查询
+
+叶子查询还可以进一步细分，常见的有：
+
+- 全文检索查询（Full Text Queries）：利用分词器对用户输入搜索条件先分词，得到词条，然后再利用倒排索引搜索词条。例如：
+  - match：
+  - multi_match
+- 精确查询（Term-level queries）：不对用户输入搜索条件分词，根据字段内容精确值匹配。但只能查找keyword、数值、日期、boolean类型的字段。例如：
+  - ids
+  - term
+  - range
+- 地理坐标查询：用于搜索地理位置，搜索方式很多，例如：
+  - geo_bounding_box：按矩形搜索
+  - geo_distance：按点和半径搜索
+
+#### 1. 全文检索查询
+
+以全文检索中的 match 为例，语法如下：
+
+```json
+GET /索引库名/_search
+{
+  "query": {
+    "match": {
+      "字段名": "搜索条件"
+    }
+  }
+}
+```
+
+例如：
+
+```json
+GET /items/_search
+{
+  "query": {
+    "match": {
+      "name": "男女"
+    }
+  }
+}
+```
+
+可以看到它实际上是一种模糊搜索，只要该字段包含关键字即可，本质就是对分词进行检索：
+
+```json
+{
+  "took": 4,
+  "timed_out": false,
+  "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 3,
+      "relation": "eq"
+    },
+    "max_score": 0.3176862,
+    "hits": [
+      {
+        "_index": "items",
+        "_id": "2627841",
+        "_score": 0.3176862, // 用于计算匹配度，匹配度越高越靠前
+        "_source": {
+          "id": "2627841",
+          "name": "博兿（BOYI）22英寸男女士ABS+PC旅行箱万向轮拉杆箱BY-16008 陨石黑",
+          "price": 23900,
+          "image": "https://...",
+          "category": "拉杆箱",
+          "brand": "博兿",
+          "sold": 0,
+          "commentCount": 0,
+          "isAD": false,
+          "updateTime": [
+            2019,
+            5,
+            1,
+            0,
+            0
+          ]
+        }
+      },
+      ...
+    ]
+  }
+}
+```
+
+与 match 类似的还有 multi_match，区别在于可以同时对多个字段搜索，而且多个字段都要满足：
+
+```json
+GET /索引库名/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "搜索条件",
+      "fields": ["字段1", "字段2"]
+    }
+  }
+}
+```
+
+例如：
+
+```json
+GET /items/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "男女",
+      "fields": ["name", "brand"] // 字段越多查询性能越差
+    }
+  }
+}
+```
+
+****
+#### 2. 精确查询
+
+精确查询，英文是 Term-level query，词条级别的查询，也就是说它不会对用户输入的搜索条件再分词，而是作为一个词条，与搜索的字段内容精确值匹配。
+因此推荐查找 keyword、数值、日期、boolean 类型的字段。例如 id、price、城市、地名、人名等。
+
+```json
+GET /索引库名/_search
+{
+  "query": {
+    "term": {
+      "字段名": {
+        "value": "搜索条件"
+      }
+    }
+  }
+}
+```
+
+例如：
+
+```json
+GET /items/_search
+{
+  "query": {
+    "term": {
+      "category": {
+        "value": "拉杆箱"
+      }
+    }
+  }
+}
+```
+
+因为它不是进行分词查询，所以如果只搜索拉杆什么的，就搜索不到。
+
+```json
+{
+  "took": 2,
+  "timed_out": false,
+  "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 4,
+      "relation": "eq"
+    },
+    "max_score": 0.10536051,
+    "hits": [
+      {
+        "_index": "items",
+        "_id": "1",
+        "_score": 0.10536051, // 因为是精确查询，所以匹配度为固定值，查到的所有文档都是这个分数
+        "_source": {
+          ...
+          "category": "拉杆箱",
+          ...
+        }
+      },
+      ...
+    ]
+  }
+}
+```
+
+range 查询：
+
+```json
+GET /{索引库名}/_search
+{
+  "query": {
+    "range": {
+      "字段名": {
+        "gte": {最小值},
+        "lte": {最大值}
+      }
+    }
+  }
+}
+```
+
+例如查询价格在 2000 到 3000：
+
+```json
+GET /items/_search
+{
+  "query": {
+    "range": {
+      "price": {
+        "gte": 2000,
+        "lte": 3000
+      }
+    }
+  }
+}
+```
+
+- gte：大于等于
+- gt：大于
+- lte：小于等于
+- lt：小于
+
+****
+### 6.3 复合查询
+
+复合查询大致可以分为两类：
+
+- 第一类：基于逻辑运算组合叶子查询，实现组合条件，例如
+  - bool
+- 第二类：基于某种算法修改查询时的文档相关性算分，从而改变文档排名。例如：
+  - function_score
+  - dis_max
+
+#### 1. bool 查询
+
+bool 查询，即布尔查询，就是利用逻辑运算来组合一个或多个查询子句的组合，bool 查询支持的逻辑运算有：
+
+- must：必须匹配每个子查询，类似“与”
+- should：选择性匹配子查询，类似“或”
+- must_not：必须不匹配，不参与算分，类似“非”
+- filter：必须匹配，不参与算分
+
+```json
+GET /items/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {"match": {"name": "手机"}}
+      ],
+      "should": [
+        {"term": {"brand": { "value": "vivo" }}},
+        {"term": {"brand": { "value": "小米" }}}
+      ],
+      "must_not": [
+        {"range": {"price": {"gte": 2500}}}
+      ],
+      "filter": [
+        {"range": {"price": {"lte": 1000}}}
+      ]
+    }
+  }
+}
+```
+
+出于性能考虑，与搜索关键字无关的查询尽量采用 must_not 或 filter 逻辑运算，避免参与相关性算分。例如商城的搜索页面，其中输入框的搜索条件肯定要参与相关性算分，可以采用 match，
+但是价格范围过滤、品牌过滤、分类过滤等尽量采用 filter，不要参与相关性算分。比如搜索手机，要求牌必须是华为，价格必须是 900~1599，那么可以这样写：
+
+```json
+GET /items/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "name": "手机"
+          }
+        }
+      ],
+      "filter": [
+        {
+          "term": {
+            "brand": { 
+              "value": "华为"
+            }
+          }
+        },
+        {
+          "range": {
+            "price": {
+              "gte": 900, "lt": 1599
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+****
+### 6.4 排序
+
+Elasticsearch 默认是根据相关度算分（_score）来排序，但是也支持自定义方式对搜索结果排序，不过分词字段无法排序，能参与排序字段类型有：keyword、数值类型、地理坐标类型、
+日期类型等。
+
+```json
+GET /索引库名/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "排序字段": {
+        "order": "排序方式 asc 和 desc"
+      }
+    }
+  ]
+}
+```
+
+例如按照商品价格排序：
+
+```json
+GET /items/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "price": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+```
+
+_score 字段变成了 null，并且多了个 sort 字段，它就是用来标记排序的：
+
+```json
+{
+  "took": 4,
+  "timed_out": false,
+  "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 4,
+      "relation": "eq"
+    },
+    "max_score": null,
+    "hits": [
+      {
+        "_score": null,
+        "_source": {
+          "price": 56600,
+        },
+        "sort": [
+          56600
+        ]
+      },
+      {
+        "_score": null,
+        "_source": {
+          "price": 34100,
+        },
+        "sort": [
+          34100
+        ]
+      },
+      {
+        "_score": null,
+        "_source": {
+          "price": 23900,
+        },
+        "sort": [
+          23900
+        ]
+      },
+      {
+        "_score": null,
+        "_source": {
+          "price": 2999,
+        },
+        "sort": [
+          2999
+        ]
+      }
+    ]
+  }
+}
+```
+
+****
+### 6.5 分页
+
+Elasticsearch 默认情况下只返回 top10 的数据，而如果要查询更多数据就需要修改分页参数了。因为在执行查询时它默认带了分页参数：
+
+```json
+"from": 0, 
+"size": 10
+```
+
+#### 1. 基础分页
+
+```json
+GET /items/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "from": 0, // 分页开始的位置，默认为 0
+  "size": 10, // 每页文档数量，默认 10
+  "sort": [
+    {
+      "price": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+```
+
+#### 2. 深度分页
+
+Elasticsearch 是一个分布式搜索引擎，它的数据一般会采用分片存储，也就是把每个索引中的数据分成多个分片，存储到不同节点上。这种存储方式比较有利于数据扩展，
+但给分页带来了一些麻烦，比如一个索引库中有 100000 条数据，分别存储到 4 个分片，每个分片 25000 条数据。如果现在每页查询 10 条，查询第 99 页，那么分页查询的条件如下：
+
+```json
+GET /items/_search
+{
+  "from": 990, // 从第 990 条开始查询
+  "size": 10, // 每页查询 10 条
+  "sort": [
+    {
+      "price": "asc"
+    }
+  ]
+}
+```
+
+从语句来分析是要查询第 990~1000 条的数据；但从实现思路来分析，肯定是将所有数据排序后找出前 1000 条，截取其中的 990~1000 的部分。但因为分片存储的缘故，每一片的数据都不一样，
+例如第 1 片上的第 900~1000 条数据另一个节点可能不一定是第 900~1000 条，所以只能在每一个分片上都找出排名前 1000 的数据，然后汇总到一起，重新排序，
+才能找出整个索引库中真正的前 1000 条，此时再截取 990~1000 的数据即可。
+
+但是，如果现在要查询的是第 999 页数据，就要找第 9990~10000 条数据，那就需要把每个分片中的前 10000 条数据都查询出来，汇总在一起然后在内存中排序。如果查询的分页深度更深的话，
+就需要一次检索更多的数据，而当查询分页深度较大时，汇总数据过多，对内存和 CPU 会产生非常大的压力，所以 Elasticsearch 禁止 from+ size 超过 10000 的请求。
+
+针对深度分页，Elasticsearch 提供了两种解决方案：
+
+- search after：分页时需要排序，原理是从上一次的排序值开始，查询下一页数据，这是官方推荐使用的方式
+- scroll：原理将排序后的文档 id 形成快照，保存下来，基于快照做分页，官方已经不推荐使用
+
+例如第一次查询第一页：
+
+```json
+{
+  "size": 2,
+  "sort": [
+    { "price": "desc" },
+    { "sold": "asc" }
+  ]
+}
+```
+
+响应中每条文档会包含：
+
+```json
+"sort": [
+  2999, // 价格
+  100 // 销量
+]
+```
+
+获取第二页：
+
+```json
+GET /items/_search
+{
+  "size": 2,
+  "search_after": [34100, 0], // 从 price = 34100, sold = 0 开始
+  "sort": [
+    { "price": "desc" },
+    { "sold": "asc" }
+  ]
+}
+```
+
+search_after 要和 sort 一一对应，第一页不需要写 search_after。因为它是基于上一页的排序值继续向后查询，而不是跳过大量文档，所以这个方法几乎不需要跳过数据，性能非常高。
+它可以保证取出的数据就是排好序的，不需要重新排序。
+
+****
+### 6.6 高亮
+
+实现高亮的思路：
+
+- 用户输入搜索关键字搜索数据
+- 服务端根据搜索关键字到 Elasticsearch 搜索，并给搜索结果中的关键字词条添加 html 标签
+- 前端提前给约定好的 html 标签添加 CSS 样式
+
+Elasticsearch 已经提供了给搜索关键字加标签的语法:
+
+```json
+GET /index/_search
+{
+  "query": {
+    "match": {
+      "搜索字段": "搜索关键字"
+    }
+  },
+  "highlight": {
+    "fields": {
+      "搜索字段": {
+        "pre_tags": "<em>", // 也可以不写
+        "post_tags": "</em>"
+      }
+    }
+  }
+}
+```
+
+例如：
+
+```json
+GET /items/_search
+{
+  "query": {
+    "match": {
+      "name": "男女"
+    }
+  },
+  "highlight": {
+    "fields": {
+      "name": {}
+    }
+  }
+}
+```
+
+在返回的数据的 hits 中并不会添加 `<em>` 标签，但是它会在下面生成一个 highlight，就是用来标记高亮的内容：
+
+```json
+"highlight": {
+  "name": [
+    "博兿（BOYI）22英寸<em>男女</em>士ABS+PC旅行箱万向轮拉杆箱BY-16008 陨石黑"
+  ]
+}
+```
+
+高亮功能不是任何查询和字段都能用，使用时要满足以下前提：
+
+- 必须有查询条件：必须是全文检索类型的查询，比如 match、multi_match 等，不能用 term、range、exists 这类精确查询
+- 字段类型必须是 text 类型：keyword 类型字段不支持高亮，因为它不做分词处理
+- 默认高亮字段必须与搜索字段一致：如果不一致则需要额外配置："require_field_match": false
+
+常用参数：
+
+| 参数名                    | 说明                  |
+|------------------------|---------------------|
+| `fields`               | 指定要高亮的字段（必须明确）      |
+| `pre_tags`             | 高亮标签前缀（默认 `<em>`）   |
+| `post_tags`            | 高亮标签后缀（默认 `</em>`）  |
+| `fragment_size`        | 每个片段的字符长度（默认 100）   |
+| `number_of_fragments`  | 片段数量，默认 5           |
+| `require_field_match`  | 是否只高亮命中的字段（默认 true） |
+| `type`                 | 高亮器类型               |
+
+Elasticsearch 支持 3 种高亮器：
+
+| 类型                                | 说明                                                        |
+|-----------------------------------|-----------------------------------------------------------|
+| `unified`（默认）                     | Lucene 官方推荐，速度快，支持精确分词，适用于大部分场景                           |
+| `plain`                           | 最简单的，依赖字段的 `term_vectors`，适合短文本                           |
+| `fvh`（Fast Vector Highlighter）    | 依赖字段设置了 `term_vector: with_positions_offsets`，速度最快，但前提要求高 |
+
+```json
+"highlight": {
+  "type": "fvh",
+  "fields": {
+    "content": {
+      "type": "fvh"
+    }
+  }
+}
+```
+
+****
+## 7. 客户端查询
+
+### 7.1 使用步骤
+
+以 match_all 查询为例：
+
+```json
+GET /items/_search
+{
+  "query": {
+    "match_all":{}
+  }
+}
+```
+
+1、构造搜索请求参数
+
+通过 s -> s.index(...).query(...) 构建一个 SearchRequest 对象，s 是 SearchRequest.Builder 的实例，用 .query(...) 定义查询条件
+
+2、构造查询条件
+
+q 是 Query.Builder，代表查询的 JSON 对象，使用 q -> q.matchAll(...) 构造一个 mach_all 查询，同理可以构造 match 查询
+
+3、设置 match 查询内容
+
+m 是 MatchQuery.Builder，因为使用的是 match_all 查询，所以不需要构造搜索条件
+
+4、指定响应映射类 ItemDoc.class
+
+这个参数告诉客户端把返回的每条文档的 _source JSON 反序列化成 ItemDoc 对象
+
+5、处理结果
+
+response.hits().hits() 用于获取所有命中的文档集合，hits() 方法返回的是一个 Hits 对象，其中包含了匹配的文档列表（再次调用 hits() 得到列表），Hit<ItemDoc> 则是单个命中的文档对象，
+包含两部分信息：
+
+- 元数据：如文档的 _id、_index、匹配得分（_score）等
+- 源数据：通过 hit.source() 获取，即文档的实际内容，将自动转换为 ItemDoc 实体类对象
+
+```java
+@Test
+void testMatchAll2() throws IOException {
+  SearchResponse<ItemDoc> response = esClient.search(s -> s
+                  .index("items")
+                  .query(q -> q // 定义查询类型
+                          .matchAll(m -> m) // 使用 matchAll 查询
+                  ),
+          ItemDoc.class // 结果映射的实体类
+  );
+  for (Hit<ItemDoc> hit : response.hits().hits()) {
+    System.out.println(hit.source());
+  }
+}
+```
+
+同样的，这种搜索的结果只能搜到第一页，也就是默认的十条数据。
+
+****
+### 7.2 叶子查询
+
+所有的查询条件都是由 QueryBuilders 来构建的，叶子查询也不例外，所以整套代码中变化的部分仅仅是 query 条件构造的方式，其它不动。例如 match 查询：
+
+```java
+@Test
+void testMatch() throws IOException {
+    SearchResponse<ItemDoc> response = esClient.search(s -> s
+            .index("items")
+            .query(q -> q
+                    .match(m -> m
+                            .field("name")
+                            .query("男女")
+                    )
+            ),
+            ItemDoc.class
+    );
+    for (Hit<ItemDoc> hit : response.hits().hits()) {
+        System.out.println(hit.source());
+    }
+}
+```
+
+multi_match 查询：
+
+需要注意的是：query() 中的查询内容是根据分词来的，例如这里传的是 "拉杆"，它可以被检索为 "拉杆" 分词，从而检索到内容，但是如果传的是 "拉"，就无法被检索到。
+
+```java
+@Test
+void testMultiMatch() throws IOException {
+    SearchResponse<ItemDoc> response = esClient.search(s -> s
+                    .index("items")
+                    .query(q -> q
+                            .multiMatch(m -> m
+                                    .query("拉杆")
+                                    .fields("name","brand","category")
+                            )
+                    ),
+            ItemDoc.class
+    );
+    for (Hit<ItemDoc> hit : response.hits().hits()) {
+        System.out.println(hit.source());
+    }
+}
+```
+
+range 查询：
+
+JsonData.of(...) 是 Java Elasticsearch 客户端中的一种通用包装类型，用来表示任意类型的 JSON 值，由于 Java 客户端的类型系统限制，必须显式把查询值转成 JSON 格式，
+方便 Elasticsearch 正确接收参数。不止这两个方法需要使用，当 term 查询单个值时也要用到。
+
+```java
+@Test
+void testRange() throws IOException {
+    SearchResponse<ItemDoc> response = esClient.search(s -> s
+                    .index("items")
+                    .query(q -> q
+                            .range(r -> r
+                                    .field("price")
+                                    .gte(JsonData.of(1000))
+                                    .lte(JsonData.of(30000))
+                            )
+                    ),
+            ItemDoc.class
+    );
+    for (Hit<ItemDoc> hit : response.hits().hits()) {
+        System.out.println(hit.source());
+    }
+}
+```
+
+term 查询：
+
+```java
+@Test
+void testTermQuery() throws IOException {
+    SearchResponse<ItemDoc> response = esClient.search(s -> s
+                    .index("items")
+                    .query(q -> q
+                            .term(t -> t
+                                    .field("brand")
+                                    .value("博兿")
+                            )
+                    ),
+            ItemDoc.class
+    );
+    for (Hit<ItemDoc> hit : response.hits().hits()) {
+        System.out.println(hit.source());
+    }
+}
+```
+
+****
+### 7.3 复合查询
+
+例如查询名字和类别必须为 "手机"，且价格在 10000 到 70000 之间，并且品牌必须为 Apple 或 "小米"，但不能是 "博兿" 的文档：
+
+```java
+@Test
+void testBool() throws IOException {
+    SearchResponse<ItemDoc> response = esClient.search(s -> s
+                    .index("items")
+                    .query(q -> q
+                            .bool(b -> b
+                                    .must(must -> must
+                                            .match(mt -> mt.field("name").query("手机"))
+                                    )
+                                    .must(must -> must
+                                            .match(mt -> mt.field("category").query("手机"))
+                                    )
+                                    .filter(f -> f
+                                            .range(r -> r
+                                                    .field("price")
+                                                    .gte(JsonData.of(10000))
+                                                    .lte(JsonData.of(70000))
+                                            )
+                                    )
+                                    .should(sh -> sh
+                                            .term(t -> t.field("brand").value("Apple"))
+                                    )
+                                    .should(sh -> sh
+                                            .term(t -> t.field("brand").value("华为"))
+                                    )
+                                    .mustNot(mn -> mn
+                                            .term(t -> t.field("brand").value("博兿"))
+                                    )
+                                    .minimumShouldMatch("1") // 至少满足一个 should 条件
+                            )
+                    ),
+            ItemDoc.class
+    );
+    for (Hit<ItemDoc> hit : response.hits().hits()) {
+        System.out.println(hit.source());
+    }
+}
+```
+
+****
+### 7.4 排序和分页
+
+如果使用排序的时候指定了多个排序规则，就需要把这些规则封装进集合中：
+
+```java
+@Test
+void testPageAndSort() throws IOException {
+    int pageNum = 1;
+    int pageSize = 10;
+    int from = (pageNum - 1) * pageSize; // 起始文档偏移量
+    SearchResponse<ItemDoc> response = esClient.search(s -> s
+                    .index("items")
+                    .from(from) // 分页起始位置
+                    .size(pageSize) // 每页条数
+                    .query(q -> q
+                            .bool(b -> b
+                                    .must(m -> m.match(mt -> mt.field("name").query("手机")))
+                                    .filter(f -> f.range(r -> r.field("price").gte(JsonData.of(10000)).lte(JsonData.of(70000))))
+                            )
+                    )
+                    .sort(List.of(
+                            SortOptions.of(s1 -> s1.field(f -> f.field("price").order(SortOrder.Asc))), // 价格升序（先按这个排序）
+                            SortOptions.of(s2 -> s2.field(f -> f.field("updateTime").order(SortOrder.Desc).missing("_last"))) // 更新时间降序，缺失排后面
+                    )),
+            ItemDoc.class
+    );
+    for (Hit<ItemDoc> hit : response.hits().hits()) {
+        System.out.println(hit.source());
+    }
+}
+```
+
+****
+### 7.5 高亮
+
+```java
+@Test
+void testHighLight() throws IOException {
+    SearchResponse<ItemDoc> response = esClient.search(s -> s
+                    .index("items")
+                    .query(q -> q
+                            .match(m -> m
+                                    .field("name")
+                                    .query("手机")
+                            )
+                    )
+                    .highlight(h -> h
+                            .fields("name", f -> f
+                                    .preTags("<em>")
+                                    .postTags("</em>")
+                            )
+                    ),
+            ItemDoc.class
+    );
+    for (Hit<ItemDoc> hit : response.hits().hits()) {
+        ItemDoc source = hit.source();
+        // 获取高亮字段的结果，是一个 Map<String, List<String>>，key 是字段名（如 "name"），value 是高亮后的若干个片段（可能是多个）
+        Map<String, List<String>> highlight = hit.highlight();
+        Assertions.assertNotNull(source);
+        System.out.println("原始 name：" + source.getName());
+        if (highlight != null && highlight.containsKey("name")) {
+            List<String> fragments = highlight.get("name");
+            System.out.println("高亮片段：" + String.join("...", fragments));
+        }
+    }
+}
+```
+
+```text
+原始 name：小米 800 pro 128G 玫瑰金色 移动联通电信4G手机
+高亮片段：小米 800 pro 128G 玫瑰金色 移动联通电信4G<em>手机</em>
+原始 name：Apple iPhone 6s Plus (A1699) 128G 玫瑰金色 移动联通电信4G手机
+高亮片段：Apple iPhone 6s Plus (A1699) 128G 玫瑰金色 移动联通电信4G<em>手机</em>
+原始 name：Apple iPhone 6s Plus (A1699) 128G 金色色 移动联通电信4G手机
+高亮片段：Apple iPhone 6s Plus (A1699) 128G 金色色 移动联通电信4G<em>手机</em>
+```
+
+****
+## 8. 数据聚合
+
+### 8.1 DSL 实现聚合
+
+#### 1. Bucket 聚合
+
+例如统计所有商品中共有哪些商品分类，其实就是以分类（category）字段对数据分组，category 值一样的放在同一组，属于 Bucket 聚合中的 Term 聚合：
+
+```json
+GET /items/_search
+{
+  "size": 0, 
+  "aggs": {
+    "category_agg": {
+      "terms": {
+        "field": "category",
+        "size": 20
+      }
+    }
+  }
+}
+```
+
+- size：设置 size 为 0，就是每页查 0 条，则结果中就不包含文档，只包含聚合
+- aggs：定义聚合
+  - category_agg：聚合名称，自定义，但不能重复
+    - terms：聚合的类型，按分类聚合，所以用 term
+      - field：参与聚合的字段名称
+      - size：希望返回的聚合结果的最大数量
+
+```json
+{
+  ...
+  "hits": {
+    "total": {
+      "value": 5,
+      "relation": "eq"
+    },
+    "max_score": null,
+    "hits": [] // 并没有返回文档
+  },
+  "aggregations": {
+    "category_agg": { // 对分类的聚合
+      "doc_count_error_upper_bound": 0,
+      "sum_other_doc_count": 0,
+      "buckets": [ // 聚合结果的数组
+        {
+          "key": "手机",
+          "doc_count": 3
+        },
+        {
+          "key": "拉拉裤",
+          "doc_count": 1
+        },
+        {
+          "key": "拉杆箱",
+          "doc_count": 1
+        }
+      ]
+    }
+  }
+}
+```
+
+****
+#### 2. 带条件的聚合
+
+默认情况下，Bucket 聚合是对索引库的所有文档做聚合，例如统计商品中所有的品牌，结果如下：
+
+```json
+GET /items/_search
+{
+  "size": 0, 
+  "aggs": {
+    "category_agg": {
+      "terms": {
+        "field": "brand",
+        "size": 20
+      }
+    }
+  }
+}
+```
+
+现在需要从需求中分析出搜索查询的条件和聚合的目标：
+- 搜索查询条件：
+  - 价格高于 30000
+  - 必须是手机
+- 聚合目标：统计的是品牌，肯定是对 brand 字段做 term 聚合
+
+```json
+GET /items/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "term": {
+            "category": "手机"
+          }
+        },
+        {
+          "range": {
+            "price": {
+              "gte": 30000
+            }
+          }
+        }
+      ]
+    }
+  }, 
+  "size": 0, 
+  "aggs": {
+    "brand_agg": {
+      "terms": {
+        "field": "brand",
+        "size": 20
+      }
+    }
+  }
+}
+```
+
+以上其实就是对 bool 查询查出的文档进行聚合：
+
+```json
+{
+  "aggregations": {
+    "brand_agg": {
+      "doc_count_error_upper_bound": 0,
+      "sum_other_doc_count": 0,
+      "buckets": [
+        {
+          "key": "Apple",
+          "doc_count": 2
+        }
+      ]
+    }
+  }
+}
+```
+
+****
+#### 3. Metric 聚合
+
+现在需要对桶内的商品做运算，获取每个品牌价格的最小值、最大值、平均值，这就要用到 Metric 聚合了，例如 stat 聚合，就可以同时获取 min、max、avg 等结果。
+
+```json
+GET /items/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "term": {
+            "category": "手机"
+          }
+        },
+        {
+          "range": {
+            "price": {
+              "gte": 30000
+            }
+          }
+        }
+      ]
+    }
+  }, 
+  "size": 0, 
+  "aggs": {
+    "brand_agg": {
+      "terms": {
+        "field": "brand",
+        "size": 20
+      },
+      "aggs": { 
+        "stats_meric": {
+          "stats": {
+            "field": "price"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+- stats_meric：聚合名称（自定义的）
+  - stats：聚合类型，stats 是 metric 聚合的一种
+    - field：聚合字段，这里选择 price，统计价格
+
+```json
+{
+  "aggregations": {
+    "brand_agg": {
+      "doc_count_error_upper_bound": 0,
+      "sum_other_doc_count": 0,
+      "buckets": [
+        {
+          "key": "Apple",
+          "doc_count": 2,
+          "stats_meric": {
+            "count": 2,
+            "min": 30400,
+            "max": 68700,
+            "avg": 49550,
+            "sum": 99100
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+另外，还可以让聚合按照每个品牌的价格平均值排序，在查询条件内部添加 "order"：
+
+```json
+"aggs": {
+  "brand_agg": {
+    "terms": {
+      "field": "brand",
+      "size": 20,
+        "order": {
+        "stats_meric.avg": "desc"
+        }
+    },
+    "aggs": { 
+      "stats_meric": {
+        "stats": {
+          "field": "price"
+        }
+      }
+    }
+  }
+}
+```
+
+****
+### 8.2 客户端实现聚合
+
+条件聚合：
+
+```java
+@Test
+void testAgg() throws IOException {
+    SearchResponse<ItemDoc> response = esClient.search(b -> b
+                    .index("items")
+                    .size(0)
+                    .query(q -> q.term(t -> t.field("category").value("手机")))
+                    .aggregations("brand_agg", a -> a
+                            .terms(h -> h.field("brand"))
+                    ),
+            ItemDoc.class
+    );
+    List<StringTermsBucket> buckets = response.aggregations()
+            .get("brand_agg")
+            .sterms()
+            .buckets()
+            .array();
+    for (StringTermsBucket bucket : buckets) {
+        // 获取桶内 key
+        System.out.println("Brand: " + bucket.key().stringValue() + ", Count: " + bucket.docCount());
+    }
+}
+```
+
+Metric 聚合：
+
+```java
+@Test
+void testMetricAgg() throws IOException {
+    SearchResponse<ItemDoc> response = esClient.search(b -> b
+                    .index("items")
+                    .size(0) // 不返回文档，只返回聚合结果
+                    .query(q -> q.term(t -> t.field("category").value("手机")))
+                    .aggregations("max_price", a -> a.max(m -> m.field("price")))
+                    .aggregations("min_price", a -> a.min(m -> m.field("price")))
+                    .aggregations("avg_price", a -> a.avg(m -> m.field("price"))),
+            ItemDoc.class
+    );
+    // 取出聚合结果
+    double maxPrice = response.aggregations()
+            .get("max_price")
+            .max()
+            .value();
+    double minPrice = response.aggregations()
+            .get("min_price")
+            .min()
+            .value();
+    double avgPrice = response.aggregations()
+            .get("avg_price")
+            .avg()
+            .value();
+    System.out.println("Max price: " + maxPrice);
+    System.out.println("Min price: " + minPrice);
+    System.out.println("Avg price: " + avgPrice);
+}
+```
+
+****
 
 
 
