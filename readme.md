@@ -9002,6 +9002,734 @@ void testMetricAgg() throws IOException {
 ```
 
 ****
+# 十二、微服务概念补充
+
+## 1. 分布式服务
+
+### 1.1 CAP 定理
+
+#### 1.1.1 概述
+
+2000 年，加州大学的计算机科学家 Eric Brewer 提出，分布式系统有三个指标：
+
+- Consistency（一致性）
+- Availability（可用性）
+- Partition tolerance（分区容错性）
+
+但在一个分布式系统中，不可能同时完全满足 Consistency（一致性）、Availability（可用性）、Partition Tolerance（分区容忍性）这三个基本需求，最多只能同时满足其中两个。
+
+1、Consistency（一致性）：用户访问分布式系统中的任意节点，得到的数据必须一致。比如现在包含两个节点，其中的初始数据是一致的，当修改其中一个节点的数据时，它们的数据产生了差异，
+如果想保住一致性，就必须实现节点 1 到节点 2 的数据同步。
+
+2、Availability（可用性）：用户访问分布式系统时，读或写操作总能成功，用户不会因为单个节点宕机就完全失去服务访问。如果是只能读不能写，或者只能写不能读，或者两者都不能执行，
+就说明系统弱可用或不可用。
+
+3、Partition Tolerance（分区容错性）：系统在网络分区（某些节点之间通信失败）时仍能继续工作，但在微服务架构中，网络延迟、宕机、消息丢失都是常态，因此分区容错性必须强制考虑。
+
+由于 CAP 三者无法同时满足，因此在架构设计时必须做出选择：
+
+- CA（强一致性 + 高可用）：不允许网络分区，适用于单机系统。这种做法仅在非分布式环境可能成立，现实中几乎不存在。
+- CP（强一致性 + 分区容忍）：当发生网络分区时，牺牲可用性，以此保证一致性。常用于金融系统，如银行转账必须准确。
+- AP（高可用 + 分区容忍）：允许数据暂时不一致，但服务始终响应。常用于互联网系统，如微博、商品浏览等。
+
+****
+#### 1.1.2 CAP 在微服务架构中的体现
+
+1、一致性（Consistency）在微服务中的体现
+
+在微服务中，一致性的核心场景是 "跨服务数据协同"（如订单、支付、库存等服务的联动）。
+
+- 分布式事务场景：例如 "下单 - 扣库存" 流程中，订单服务创建订单后，库存服务必须同步扣减库存，且两个服务的数据必须一致（不能出现 "订单创建成功但库存未扣减" 或 "库存扣减但订单未创建" 的情况）。
+- 共享数据场景：若多个微服务依赖同一份核心数据（如用户信息），当用户服务更新用户信息（例如手机号）后，订单服务、支付服务等需要读取到手机号的操作也必须读取到必须是最新值。
+
+2、可用性（Availability）在微服务中的体现
+
+在微服务中，可用性的核心是 "服务不中断"，尤其在高并发场景（如电商秒杀）中十分重要。所以在某些特殊情况下会使用：
+
+- 服务降级与熔断：当某个服务（如推荐服务）因负载过高或网络故障不可用时，依赖它的商品服务可返回缓存的历史推荐数据或空值（而非直接报错），以此保证用户仍能浏览商品（牺牲一致性，保证可用性）。
+- 服务注册中心：例如 Eureka（AP 设计）在网络分区时，允许节点 "自我保护"，即使部分节点失联，仍对外提供服务（可能返回过时的服务列表，但保证注册中心可用）。
+
+3、分区容错性（Partition Tolerance）在微服务中的体现
+
+分区容错性是微服务的最低要求，虽然网络故障不可避免，但微服务必须能在网络分区时继续运行。
+
+- 网络分区时的服务隔离：例如，订单服务与支付服务之间出现网络分区（无法通信），订单服务可暂时将支付请求存入本地消息队列，待网络恢复后再同步给支付服务（优先保证各自服务可用）。
+- 多区域部署：微服务通常跨机房或跨地域部署，当某一区域网络中断时，其他区域的服务仍能独立运行。
+
+****
+### 1.2 BASE 理论
+
+BASE 理论是对 CAP 定理中 AP 模型（可用性 + 分区容忍性）的一种实践性补充，它用于描述大规模分布式系统中的一致性处理策略：
+
+- Basically Available （基本可用）：分布式系统在出现故障时，允许损失部分可用性，即保证核心可用。
+- Soft State（软状态）：在一定时间内，允许出现中间状态，比如临时的不一致状态。
+- Eventually Consistent（最终一致性）：虽然无法保证强一致性，但是在软状态结束后，最终达到数据一致。
+
+简单来说，BASE 理论就是一种取舍的方案，不再追求完美，而是最终达成目标。而解决分布式事务的思想也是这样，分为两个方向：
+
+- AP 思想：各个子事务分别执行和提交，无需锁定数据。允许出现结果不一致，然后采用弥补措施恢复，实现最终一致即可。例如 AT 模式。
+- CP 思想：各个子事务执行后不要提交，而是等待彼此结果，然后同时提交或回滚。在这个过程中锁定资源，不允许其它人访问，数据处于不可用状态，但能保证一致性。例如 XA 模式。
+
+****
+### 1.3 AT 模式的脏写问题
+
+#### 1.3.1 概述
+
+AT 模式的流程：
+
+第一阶段：
+
+- 记录数据快照，执行并提交事务
+
+第二阶段根据阶段一的结果来判断：
+
+- 如果每一个分支事务都成功，则事务已经结束（因为阶段一已经提交），因此删除阶段一的快照即可
+- 如果有任意分支事务失败，则需要根据快照恢复到更新前数据，然后删除快照
+
+这种模式在大多数情况下并不会有什么问题，不过在极端情况下，特别是多线程并发访问 AT 模式的分布式事务时，有可能出现脏写问题。脏写是指：两个事务几乎在同一时间修改了同一条数据，
+但第二个事务在第一个事务还未提交之前就修改了数据，最终的结果可能导致数据错误、覆盖或者丢失。例如执行更新操作： update account set money = money - 10 where id = ?
+
+事务一：
+
+1.1 获取 DB 锁，保存快照：{"id": 1, "money": 100}
+
+1.2 执行 sql，set money = 90
+
+1.3 提交事务释放 DB 锁（此时 money = 90）
+
+此时需要回滚事务：
+
+2.1 获取 DB 锁，根据快照恢复数据，但此时数据库 money = 80，直接恢复的话会变成 100，这就导致丢失了一次更新，出现了脏写
+
+事务二：
+
+1.1 获取 DB　锁，保存快照：{"id": 1, "money":　90}
+
+1.2 执行 sql，set money = 80
+
+1.3 提交事务释放 DB 锁（此时 money = 80）
+
+解决思路就是引入全局锁的概念，在释放 DB 锁之前，先拿到全局锁，避免同一时刻有另外一个事务来操作当前数据。
+
+****
+#### 1.3.2 AT 模式中的全局锁机制
+
+行级锁是数据库中一种粒度最细的锁机制，它的作用范围是单条数据行。在并发事务中，行级锁能有效地控制多个事务对同一行数据的并发读写，防止出现脏写、丢失更新等并发异常问题。
+
+```sql
+UPDATE account SET balance = balance - 100 WHERE id = 1;
+```
+
+需要注意的是：Seata 的全局锁本身无法阻止本地数据库并发修改行为，也就是说它只能控制谁能拿到资源的权限，但没法阻止其他事务去访问数据库本身的数据行，所以需要与行级锁搭配使用。
+
+在 AT 模式下，全局锁并不是数据库原生的行锁，而是 Seata 在其自己的 "全局锁表" 中记录的一种逻辑锁，用于协调多个事务对同一行数据的访问顺序。当一个全局事务中的某个分支事务在执行写操作时，
+Seata 会做两件事：
+
+1. 在快照表中记录数据的前镜像 
+2. 在全局锁表（如 global_table）中会根据主键信息，生成一条锁记录
+
+当另一个事务也要修改相同数据时，Seata 会检测锁冲突：如果数据已被其他全局事务锁定，那么当前事务会等待或失败，这样就能确保不会有两个事务同时写入同一条数据，从而避免脏写。
+需要注意的是：Seata 只能对带有 FOR UPDATE 的 SELECT 或 DML 语句（update/delete）进行全局锁控制。
+
+事务一：
+
+1.1 获取 DB 锁，保存快照：{"id": 1, "money": 100}
+
+1.2 获取全局锁并执行 sql，set money = 90
+
+1.3 提交事务释放 DB 锁（此时 money = 90），此时全局锁被事务一持有
+
+此时要进行事务回滚：
+
+2.1 等待 DB 锁
+
+2.2 获取 DB 锁，根据快照恢复数据，因为事务二没有成功，回滚就不会导致丢失一次更新
+
+事务二：
+
+1.1 获取 DB　锁，保存快照：{"id": 1, "money":　90}
+
+1.2 执行 sql，set money = 80 并尝试获取全局锁
+
+1.3 获取不到，尝试重新获取，默认 30 次，每次间隔 10ms
+
+1.4 获取全局锁失败，事务回滚并释放 DB 锁
+
+全局锁是 AT 模式下防止脏写的机制，但它不是默认自动生效的，而是依靠条件触发的，必须正确写 SQL，它才能锁住那行数据，从而安全地串行执行多个事务。
+
+****
+#### 1.3.3 XA 模式和 AT 模式对比分析（含全局锁部分）
+
+| 维度         | XA 模式                              | Seata AT 模式                                          |
+| ---------- |------------------------------------| ---------------------------------------------------- |
+| **事务模型**   | 标准的两阶段提交（Two-Phase Commit）         | 自定义的两阶段提交（Undo Log + 全局锁）                            |
+| **资源管理**   | 依赖数据库驱动支持 XA 协议（JDBC XADataSource） | 不依赖数据库驱动，仅需普通数据源                                     |
+| **锁的范围**   | 数据库本地锁 + 资源管理器协调锁                  | 本地行锁 + Seata 实现的全局锁（存储在`branch_table`和`lock_table`中） |
+| **一致性策略**  | 强一致性（所有分支必须提交或回滚）                  | 最终一致性（业务可容忍短暂不一致）                                    |
+| **性能表现**   | 较差，受限于数据库 XA 协议性能                  | 高吞吐、低侵入、性能优于 XA                                      |
+| **故障恢复**   | 依赖数据库本身的恢复机制                       | Seata Server（TC）可自动重试回滚、提交                           |
+| **分布式锁机制** | 没有中心化的全局锁系统                        | 自定义锁表实现的全局锁，控制行的修改权限                                 |
+
+Seata 的 AT 模式虽然加入了全局锁，但本质上依旧是一个最终一致性、非强一致性的事务模型，这个全局锁是 Seata 自定义实现的，并不依赖数据库的原生命令，
+也不会像 XA 那样牺牲性能和扩展性。
+
+****
+### 1.4 TCC 模式
+
+#### 1.4.1 概述
+
+TCC 模式（Try-Confirm-Cancel）是 Seata 分布式事务中的一种事务模型，适用于需要精细控制资源锁定和释放的业务场景。TCC 模式本质上是将一个分布式事务拆解为三个阶段来手动控制资源：
+
+- Try：尝试执行业务，检查并预留资源，不做真正的业务提价
+- Confirm：确认执行业务，是真正的提交，但要求 try 成功 confirm 也一定要能成功
+- Cancel：取消执行业务，释放资源，可以理解为 try 的反向操作
+
+1、Try 阶段（预处理阶段）
+
+特点：
+
+- 检查业务数据是否合法，例如库存是否足够、余额是否充足。 
+- 预留资源：通过写入标记、冻结库存等方式预留资源。 
+- 保证幂等：如果多次执行 Try，不应该影响最终结果（例如通过唯一标识来避免重复预处理）。 
+- 资源已锁定，可以防止其他事务并发操作。
+
+2、Confirm 阶段（提交阶段）
+
+特点：
+
+- 只执行已经成功 Try 的业务。 
+- Confirm 必须幂等，即重复执行不会造成重复提交。 
+- 不需要再次检查资源状态，因为资源在 Try 中已锁定。
+
+3、Cancel 阶段（回滚阶段）
+
+特点：
+
+- 仅在 Try 成功但 Confirm 未执行或执行失败时触发。 
+- 释放资源，例如解冻冻结库存。 
+- Cancel 同样必须幂等，避免重复释放资源。
+
+例如，一个扣减用户余额的业务。假设账户 A 原来余额是 100，需要余额扣减 30 元：
+
+- 阶段一（Try）：检查余额是否充足，如果充足则冻结金额增加 30 元，可用余额扣除 30，此时，总金额 = 冻结金额 + 可用金额，数量依然是 100 不变，事务直接提交无需等待其它事务。
+- 阶段二（Confirm）：假如要提交，之前可用金额已经扣减，并转移到冻结金额。因此可用金额不变，直接冻结金额扣减 30 即可。此时，总金额 = 冻结金额 + 可用金额 = 0 + 70  = 70 元
+- 阶段二（Canncel）：如果要回滚，则释放之前冻结的金额，也就是冻结金额扣减 30，可用余额增加 30
+
+优点：
+
+- 一阶段完成直接提交事务，释放数据库资源，性能好
+- 相比AT模型，无需生成快照，无需使用全局锁，性能最强
+- 不依赖数据库事务，而是依赖补偿操作，可以用于非事务型数据库
+
+缺点：
+
+- 有代码侵入，需要手动编写 try、Confirm 和 Cancel 接口，太麻烦
+- 软状态，允许数据临时不一致，但事务是最终一致
+- 需要考虑 Confirm 和 Cancel 的失败情况，做好幂等处理、事务悬挂和空回滚处理
+
+****
+#### 1.4.2 事务悬挂和空回滚
+
+1、事务悬挂
+
+事务悬挂是指：Confirm 或 Cancel 在 Try 执行之前就被执行了。例如，A 用户扣款（账户服务 A），B 用户加款（账户服务 B）：
+
+正常流程：
+
+1. Try(A)：冻结 A 的 100 元。 
+2. Try(B)：准备接收 B 的 100 元。 
+3. Confirm(A)：扣除 A 的 100 元。 
+4. Confirm(B)：加款 B 的 100 元。
+
+事务悬挂的异常流程：
+
+1. Confirm(A) 被意外执行了（比如由于重试、网络抖动）。
+2. 然后才执行 Try(A)，造成逻辑混乱：A 已经扣款，但并未冻结资源或准备完毕。
+
+解决方案：
+
+在 Try 阶段加唯一幂等记录（如事务 ID）：
+
+- 在 Try 执行时，记录事务状态为 "已执行 Try" 
+- 在 Confirm 或 Cancel 执行前检查该记录，如果没有执行过 Try，则拒绝执行 Confirm/Cancel，防止悬挂
+
+2、空回滚
+
+空回滚是指：Cancel 执行时，发现 Try 根本没有执行过。例如，假设系统崩溃或网络抖动：
+
+1. Try 由于异常未执行成功或者还未执行
+2. TC 调用 Cancel
+3. 账户服务收到 Cancel，却发现根本没有冻结过这笔钱
+
+如果 Cancel 操作不处理这种情况，可能误删数据、误释放资源。更严重的是，如果在 Cancel 中做了非幂等操作就有可能破坏原始数据。解决方案：
+
+- 判断当前事务的状态是否有 Try 记录，如果没有，说明是空回滚，那么就可以直接返回成功，什么都不做。 
+- Cancel 操作也要幂等设计（比如插入 Cancel 成功记录）。
+
+****
+## 2. 注册中心
+
+### 2.1 环境隔离
+
+企业实际开发中，往往会搭建多个运行环境，例如：
+
+- 开发环境
+- 测试环境
+- 预发布环境
+- 生产环境
+
+这些不同环境之间的服务和数据之间需要隔离，还有的企业中，会开发多个项目，共享 nacos 集群。此时，这些项目之间也需要把服务和数据隔离。因此 Nacos 提供了基于 namespace 的环境隔离功能。
+
+- Nacos 中可以配置多个 namespace，相互之间完全隔离，默认的 namespace 为 public
+- namespace 下还可以继续分组，也就是 group ，相互隔离。默认的 group 是 DEFAULT_GROUP
+- group 之下就是服务和配置了
+
+在 Nacos 控制台页面，进入命名空间，点击新建命名空间并填写表格，表格有三个内容，命名空间 ID、命名空间名、描述，后两个是必须填写的，第一个可以自动生成：
+
+```text
+命名空间名称:dev
+命名空间ID:0cb8773a-c886-48d1-9f44-35ebb2e47da7
+配置数:0 / 200
+描述:开发环境
+```
+
+然后在配置列表页面就可以切换 public 或 dev 了，但是之前创建的所有配置都在 public 下，如果需要将配置添加到 dev 中就需要对微服务的 application.yaml 文件进行修改，
+因为目前的微服务都是使用的 Nacos 的共享文件，所以关于 Nacos 的配置都写在了 bootstrap.yaml 中：
+
+```yaml
+spring:
+  application:
+    name: item-service # 服务名称
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1 # nacos地址
+      discovery: # 服务发现配置
+        namespace: 0cb8773a-c886-48d1-9f44-35ebb2e47da7 # 设置namespace，必须用id
+      ...
+```
+
+启动微服务后进入 Nacos 控制页面，发现 dev 中多了个服务，如果此时测试项目功能，发现关于这部分的功能报错，无法使用。所以不同 namespace 之间是相互隔离的，不可访问。
+
+****
+### 2.2 分级模型
+
+在一些大型应用中，同一个服务可以部署很多实例。而这些实例可能分布在全国各地的不同机房，由于存在地域差异，网络传输的速度会有很大不同，因此在做服务治理时需要区分不同机房的实例。
+
+例如 item-service，可以部署 3 个实例：
+
+- 127.0.0.1:8081
+- 127.0.0.1:8082
+- 127.0.0.1:8083
+
+假如这些实例分布在不同机房，例如：
+
+- 127.0.0.1:8081，在上海机房
+- 127.0.0.1:8082，在上海机房
+- 127.0.0.1:8083，在杭州机房
+
+Nacos 中提供了集群（cluster）的概念，来对应不同机房。也就是说，一个服务下可以有很多集群，而一个集群中下又可以包含很多实例。而在分布式系统中，服务与服务之间高度依赖，
+当某个服务出现故障时，可能会导致系统崩溃。为了提高系统的容错性，可以通过对服务进行分级，制定不同的服务治理策略：
+
+- 核心服务要保障高可用 
+- 次要服务在必要时可以降级或熔断 
+- 限流优先保护关键业务流程
+
+任何一个微服务的实例在注册到 Nacos 时，都会生成以下几个信息，用来确认当前实例的身份，从外到内依次是：
+
+- namespace：命名空间
+- group：分组
+- service：服务名
+- cluster：集群
+- instance：实例，包含 ip 和端口
+
+查看 Nacos 控制台，会发现默认情况下所有服务的集群都是 default，如果要修改服务所在集群，只需要修改 bootstrap.yaml 即可：
+
+```yaml
+spring:
+  cloud:
+    nacos:
+      discovery:
+        group: ITEM_GROUP # 分组
+        cluster-name: BJ # 集群名称，自定义
+```
+
+****
+### 2.3 Eureka
+
+#### 2.3.1 概述
+
+Eureka 是 Netflix 公司开源的一个服务注册中心组件，早期版本的 SpringCloud 都是使用 Eureka 作为注册中心。
+由于 Eureka 和 Nacos 的 starter 中提供的功能都是基于SpringCloudCommon 规范，因此两者使用起来差别不大。Eureka 采用客户端 - 服务器（Client-Server）架构，
+包含两个核心角色：
+
+1、Eureka Server（服务端）
+   
+- 即注册中心服务器，负责维护服务注册表，接收客户端的注册、续约和查询请求。
+- 支持集群部署：多个 Eureka Server 之间通过复制机制同步注册表，形成高可用集群（无主从之分，任意节点均可接收请求）。
+
+2、Eureka Client（客户端）
+
+- 所有微服务都要集成 Eureka Client，作为服务提供者或服务消费者：
+  - 服务提供者：启动时向 Eureka Server 注册自己的信息，并定期发送心跳续约（30s，nacos 为 5s）
+  - 服务消费者：从 Eureka Server 拉取服务注册表，并基于注册表中的地址调用目标服务
+
+Eureka 与 Spring Cloud 的集成：
+
+1、搭建 Eureka Server（Eureka 服务端要手动创建项目来构建注册中心）
+
+- 引入依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+</dependency>
+```
+
+- 启动类添加注解 @EnableEurekaServer：
+
+```java
+@EnableEurekaServer
+@SpringBootApplication
+public class EurekaApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(EurekaApplication.class, args);
+    }
+}
+```
+
+- 配置文件：
+
+```yaml
+server:
+  port: 10086
+spring:
+  application:
+    name: eurekaserver
+eureka:
+  client:
+    service-url:
+      defaultZone: http://127.0.0.1:10086/eureka
+```
+
+2、服务集成 Eureka Client
+
+- 引入依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+</dependency>
+```
+
+- 启动类添加注解 @EnableEurekaClient：
+
+```java
+@EnableFeignClients
+@MapperScan("cn.itcast.order.mapper")
+@SpringBootApplication
+public class OrderApplication {
+  public static void main(String[] args) {
+    SpringApplication.run(OrderApplication.class, args);
+  }
+}
+```
+
+- 配置文件：
+
+```yaml
+server:
+  port: 8088
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/cloud_order?useSSL=false
+    username: root
+    password: 123
+    driver-class-name: com.mysql.jdbc.Driver
+  application:
+    name: orderservice # 服务名称
+  mvc:
+    servlet:
+      load-on-startup: 1 # 项目启动时就加载 servlet
+mybatis:
+  type-aliases-package: cn.itcast.user.pojo
+  configuration:
+    map-underscore-to-camel-case: true
+logging:
+  level:
+    cn.itcast: debug
+  pattern:
+    dateformat: HH:mm:ss:SSS
+eureka:
+  client:
+    service-url:
+      defaultZone: http://127.0.0.1:10086/eureka # 注册中心地址
+  instance:
+    prefer-ip-address: true  # 注册时使用 IP 地址而非主机名
+```
+
+****
+### 2.4 Eureka 和 Nacos 对比
+
+Eureka 和 Nacos 都能起到注册中心的作用，用法基本类似。但还是有一些区别的，例如：Nacos 支持配置管理，而 Eureka 则不支持。而 Nacos 与 Eureka 的检测机制也不同，
+在 Eureka 中，健康检测的原理如下：
+
+- 微服务启动时注册信息到 Eureka，这点与 Nacos 一致。
+- 微服务每隔 30 秒向 Eureka 发送心跳请求，报告自己的健康状态。而 Nacos 中默认是 5 秒一次。
+- Eureka 如果 90 秒未收到心跳，则认为服务疑似故障，可能被剔除。Nacos 中则是 15 秒超时，30 秒剔除。
+- Eureka 如果发现超过 85% 的服务都心跳异常，会认为是自己的网络异常，暂停剔除服务的功能。
+- Eureka 每隔 60 秒执行一次服务检测和清理任务；Nacos 是每隔 5 秒执行一次。
+
+所以 Eureka 是尽量不剔除服务，避免误杀，这就导致当服务真的出现故障时，不会被剔除，给服务的调用者带来困扰。不仅如此，当 Eureka 发现服务宕机并从服务列表中剔除以后，
+并不会将服务列表的变更消息推送给所有微服务，而是等待微服务自己来拉取时发现服务列表的变化。而微服务每隔 30 秒才会去 Eureka 更新一次服务列表，
+这就进一步推迟了服务宕机时被发现的时间。而 Nacos 中微服务除了自己定时去 Nacos 中拉取服务列表以外，Nacos 还会在服务列表变更时主动推送最新的服务列表给所有的订阅者。
+
+****
+## 3. 远程调用
+
+### 3.1 负载均衡原理
+
+对查询购物车商品 service 的相关方法进行断点调试。因为当前的 ItemClient 只是一个接口，并没有手动写一个实现类，所以在底层一定有一个代理对象帮助实现这个接口。
+通过调试可以发现 ItemClient 确实是一个代理对象，而代理的处理器则是 ReflectiveFeign 的内部类 FeignInvocationHandler，而在 service 层进行远程调用时，
+只写了个 item-service 作为服务名称，所以路径的解析会由处理器进行操作。
+
+进入 FeignInvocationHandler#invoke() 方法，可以看到：
+
+```java
+return ((InvocationHandlerFactory.MethodHandler)this.dispatch.get(method)).invoke(args);
+```
+
+它通过反射机制获取当前调用的接口的方法并找到对应的 MethodHandler 实例，再进入 invoke(args) 方法，它会进入 SynchronousMethodHandler 实现类，它会会循环尝试调用 executeAndDecode() 方法：
+
+```java
+return this.executeAndDecode(template, options);
+```
+
+进入 executeAndDecode() 方法，它会基于 FeignBlockingLoadBalancerClient 发起远程调用：
+
+```java
+response = this.client.execute(request, options);
+```
+
+进入 execute() 方法，它会先获取一个原始路径 originalUri 和 serviceId
+
+```java
+URI originalUri = URI.create(request.url());
+String serviceId = originalUri.getHost();
+```
+
+然后利用 loadBalancerClient 的 choose() 方法根据 serviceId 进行负载均衡，选出一个服务实例：
+
+```java
+ServiceInstance instance = this.loadBalancerClient.choose(serviceId, lbRequest);
+```
+
+选择好服务实例后，它会利用负载均衡选出的服务的 IP 和 端口对 originalUri 进行重构，然后获取真实请求 request：http://192.168.88.1:8087/items?ids=...
+
+```java
+String reconstructedUrl = this.loadBalancerClient.reconstructURI(instance, originalUri).toString();
+Request newRequest = this.buildRequest(request, reconstructedUrl, instance);
+```
+
+整段代码中核心的有 4 步：
+
+- 从请求的 URI 中找出 serviceId
+- 利用 loadBalancerClient，根据 serviceId 做负载均衡，选出一个实例 ServiceInstance
+- 用选中的 ServiceInstance 的 ip 和 port 替代 serviceId，重构 URI
+- 向真正的 URI 发送请求
+
+所以负载均衡的关键就是这里的 loadBalancerClient，类型是 org.springframework.cloud.client.loadbalancer.LoadBalancerClient，
+这是 Spring-Cloud-Common 模块中定义的接口，只有一个实现类 BlockingLoadBalancerClient。
+
+继续跟入 BlockingLoadBalancerClient#choose() 方法：
+
+```java
+ReactiveLoadBalancer<ServiceInstance> loadBalancer = this.loadBalancerClientFactory.getInstance(serviceId);
+```
+
+它会先从 loadBalancerClientFactory 中根据 serviceId 获取一个实例，即这个服务采用的负载均衡器（ReactiveLoadBalancer），也就是说可以给每个服务配不同的负载均衡算法。
+然后利用负载均衡器（ReactiveLoadBalancer）中的负载均衡算法，选出一个服务实例。ReactiveLoadBalancer 是 Spring-Cloud-Common 组件中定义的负载均衡器接口规范，
+而 Spring-Cloud-Loadbalancer 组件给出了两个实现：
+
+- RandomLoadBalancer
+- RoundRobinLoadBalancer
+
+而默认的实现是 RoundRobinLoadBalancer，即轮询负载均衡器。所以这里获取到的就是 RoundRobinLoadBalancer，它里面有个 choose() 方法：
+
+```java
+public Mono<Response<ServiceInstance>> choose(Request request) {
+    ServiceInstanceListSupplier supplier = (ServiceInstanceListSupplier)this.serviceInstanceListSupplierProvider.getIfAvailable(NoopServiceInstanceListSupplier::new);
+    return supplier.get(request).next().map((serviceInstances) -> this.processInstanceResponse(supplier, serviceInstances));
+}
+```
+
+它会通过调用本类的 processInstanceResponse() 方法，它的底层会依赖 DiscoveryClientServiceInstanceListSupplier 取拉取服务列表，它会拉取到 NacosServiceInstance 实例，
+也就是具体的微服务列表，然后就可以获取到这两个微服务的 IP 和端口了。然后会调用本类的 getInstanceResponse() 方法，在这个方法中有：
+
+```java
+int pos = this.position.incrementAndGet() & Integer.MAX_VALUE;
+ServiceInstance instance = (ServiceInstance)instances.get(pos % instances.size());
+```
+
+这个其实就是轮询算法，根据 serviceId 获取到的服务列表进行轮询，利用下标对集合长度取余来决定这次使用哪个，而每次都会调用 incrementAndGet() 原子性自增方法。
+
+****
+### 3.2 NacosRule
+
+#### 3.2.1 修改负载均衡策略
+
+查看源码会发现，Spring-Cloud-Loadbalancer 模块中有一个自动配置类：
+
+```java
+@Bean
+@ConditionalOnMissingBean
+public ReactorLoadBalancer<ServiceInstance> reactorServiceInstanceLoadBalancer(
+        Environment environment, 
+        LoadBalancerClientFactory loadBalancerClientFactory
+) {
+    String name = environment.getProperty("loadbalancer.client.name");
+    return new RoundRobinLoadBalancer(loadBalancerClientFactory.getLazyProvider(name, ServiceInstanceListSupplier.class), name);
+}
+```
+
+这个 Bean 上添加了 @ConditionalOnMissingBean 注解，也就是说如果自定义了这个类型的 bean，则负载均衡的策略就会被改变：
+
+```java
+public class LoadBalancerConfiguration {
+    @Bean
+    public ReactorLoadBalancer<ServiceInstance> reactorServiceInstanceLoadBalancer(
+            Environment environment,
+            NacosDiscoveryProperties properties,
+            LoadBalancerClientFactory loadBalancerClientFactory
+    ) {
+        String name = environment.getProperty(LoadBalancerClientFactory.PROPERTY_NAME);
+        return new NacosLoadBalancer(
+                loadBalancerClientFactory.getLazyProvider(name, ServiceInstanceListSupplier.class),
+                name,
+                properties
+        );
+    }
+}
+```
+
+- Environment environment: 用于读取当前环境变量，比如配置文件中的 service name。 
+- NacosDiscoveryProperties properties: 包含从配置中心读取的 nacos 注册信息（比如权重、metadata 等）。 
+- LoadBalancerClientFactory loadBalancerClientFactory: 用于创建负载均衡器所需的 ServiceInstanceListSupplier（即服务实例列表）。
+- String name = environment.getProperty(LoadBalancerClientFactory.PROPERTY_NAME)：这会从上下文中获取当前负载均衡的目标服务名，比如：order-service、cart-service
+
+```java
+return new NacosLoadBalancer(
+        loadBalancerClientFactory.getLazyProvider(name, ServiceInstanceListSupplier.class),
+        name,
+        properties
+);
+```
+
+这个代码是核心，是用来替换负载均衡器的实现，构造并返回一个自定义的 NacosLoadBalancer，其内部逻辑一般基于权重选择实例。
+
+需要注意的是：这个配置类不要加 @Configuration 注解，也不要被 SpringBootApplication 扫描到。这个类实际上应该被 Spring Cloud LoadBalancer 内部的机制延迟加载，
+因为 Spring Cloud 在使用负载均衡器时，不会一开始就把所有的负载均衡器都加载进来，它会使用懒加载的机制，当要使用该均衡器时，
+Spring Cloud 会通过 LoadBalancerClients 注解读取每个服务提供的配置类，按服务名懒加载这些配置类，然后把再自定义负载均衡器 Bean 注入进去。
+如果加了 @Configuration 或被主类扫描到，它就会变成全局 Bean（立即被加载），这就会导致 Spring Cloud 提前注入这个负载均衡器，
+从而失去 LoadBalancerClientFactory 的管理和懒加载控制，多个服务可能冲突地共用了这一个负载均衡器（可能就无法按服务名隔离了）。
+
+所以需要在启动类中用 @LoadBalancerClients 注解来引入它，有两种做法：
+
+- 全局配置：对所有服务生效，即本服务（cart-service）调用所有其他微服务时，默认都使用 LoadBalancerConfiguration 配置的负载均衡器
+
+```java
+@LoadBalancerClients(defaultConfiguration = LoadBalancerConfiguration.class)
+public class CartApplication {
+}
+```
+
+- 局部配置：只对某个服务生效，即本服务调用其它的微服务时，指定某些微服务使用 LoadBalancerConfiguration 配置的负载均衡器
+
+```java
+@LoadBalancerClients({
+        @LoadBalancerClient(value = "item-service", configuration = LoadBalancerConfiguration.class)
+})
+public class CartApplication {
+}
+```
+
+****
+#### 3.2.2 集群优先
+
+通过断点调试进入到：
+
+```java
+ReactiveLoadBalancer<ServiceInstance> loadBalancer = this.loadBalancerClientFactory.getInstance(serviceId);
+```
+
+可以发现现在的 loadBalancer 为 NacosLoadBalancer，表示负载均衡器更新成功，随后它会进入:
+
+```java
+private Response<ServiceInstance> getInstanceResponse(List<ServiceInstance> serviceInstances) {
+        if (serviceInstances.isEmpty()) {
+            log.warn("No servers available for service: " + this.serviceId);
+            return new EmptyResponse();
+        } else {
+            try {
+                String clusterName = this.nacosDiscoveryProperties.getClusterName();
+                List<ServiceInstance> instancesToChoose = serviceInstances;
+                if (StringUtils.isNotBlank(clusterName)) {
+                    List<ServiceInstance> sameClusterInstances = (List)serviceInstances.stream().filter((serviceInstance) -> {
+                        String cluster = (String)serviceInstance.getMetadata().get("nacos.cluster");
+                        return StringUtils.equals(cluster, clusterName);
+                    }).collect(Collectors.toList());
+                    if (!CollectionUtils.isEmpty(sameClusterInstances)) {
+                        instancesToChoose = sameClusterInstances;
+                    }
+                } else {
+                    log.warn("A cross-cluster call occurs，name = {}, clusterName = {}, instance = {}", new Object[]{this.serviceId, clusterName, serviceInstances});
+                }
+
+                instancesToChoose = this.filterInstanceByIpType(instancesToChoose);
+                ServiceInstance instance = NacosBalancer.getHostByRandomWeight3(instancesToChoose);
+                return new DefaultResponse(instance);
+            } catch (Exception e) {
+                log.warn("NacosLoadBalancer error", e);
+                return null;
+            }
+        }
+    }
+}
+```
+
+该方法就是 NacosLoadBalancer 的负载均衡算法，通过：
+
+```java
+String clusterName = this.nacosDiscoveryProperties.getClusterName();
+```
+
+获取 NacosProperties 中配置的服务的集群名称，因为这里没有配，所以是使用默认的 default_group，然后让跟据 serviceId 获取到的服务列表与这个默认集群比较，
+如果是属于 default_group 的就使用它，也就是说默认要使用属于本集群的，如果不是那就不适用并报错：
+
+```java
+List<ServiceInstance> sameClusterInstances = (List)serviceInstances.stream().filter((serviceInstance) -> {
+                        String cluster = (String)serviceInstance.getMetadata().get("nacos.cluster");
+                        return StringUtils.equals(cluster, clusterName);
+                    }).collect(Collectors.toList());
+```
+
+简单来说就是服务调用者与服务提供者要在一个集群，避免出现调用别的地方法的相同名字的服务。最后按照权重随机挑选使用服务：
+
+```java
+ServiceInstance instance = NacosBalancer.getHostByRandomWeight3(instancesToChoose);
+```
+
+****
+#### 3.2.3 权重配置
+
+在 Nacos 的控制台可以对每个服务进行权重的分配，这个权重是根据比例来的，例如 8081 端口的设置成 1（默认），8087 端口设置成 9，也就是 1:9，那么 8087 使用的概率也就是 9/10，
+启动项目后测试 10 次，可以发现 9 次都使用了 8087 端口。
+
+****
+
 
 
 

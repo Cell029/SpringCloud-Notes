@@ -1,8 +1,8 @@
 server:
   port: 8081
-feign:
-  sentinel:
-    enabled: true # 开启Feign对Sentinel的整合
+#feign:
+#  sentinel:
+#    enabled: true # 开启Feign对Sentinel的整合
 hm:
   swagger:
     title: 交易服务接口文档

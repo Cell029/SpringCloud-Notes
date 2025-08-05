@@ -6,6 +6,10 @@ spring:
   cloud:
     nacos:
       server-addr: 127.0.0.1 # nacos地址
+#      discovery: # 服务发现配置
+#        group: ITEM_GROUP # 分组
+#        cluster-name: BJ # 集群名称，自定义
+#        namespace: 0cb8773a-c886-48d1-9f44-35ebb2e47da7 # 设置namespace，必须用id
       config:
         file-extension: yaml # 文件后缀名
         shared-configs: # 共享配置

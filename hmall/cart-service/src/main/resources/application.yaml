@@ -19,6 +19,6 @@ spring:
         dashboard: localhost:8091
       http-method-specify: true # 开启请求方式前缀
 
-feign:
-  sentinel:
-    enabled: true # 开启feign对sentinel的支持
+#feign:
+#  sentinel:
+#    enabled: true # 开启feign对sentinel的支持
