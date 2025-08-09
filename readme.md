@@ -9873,6 +9873,136 @@ currentTime = 1300ms
 因此，在使用令牌桶算法时，尽量不要将令牌上限设定到服务能承受的 QPS 上限，而是预留一定的波动空间，这样才能应对突发流量。
 
 ****
+# 十三、
+
+WSL 的网络转发依然坏着，只是从 “VirtioProxy” 回到了 NAT 模式而已。
+
+```text
+wsl: 无法配置网络 (networkingMode Nat)，回退到 networkingMode VirtioProxy。
+wsl: 检测到 localhost 代理配置，但未镜像到 WSL。NAT 模式下的 WSL 不支持 localhost 代理。
+```
+
+NAT 模式（默认）：WSL2 作为独立子网（如 172.xx.xx.0/24），通过 Windows 虚拟网卡（vEthernet (WSL)）与主机通信，网络性能更好，支持端口转发等功能。
+VirtioProxy 模式（ fallback ）：当 NAT 模式配置失败时启用，本质是通过 virtio 虚拟设备转发网络请求，功能简化，可能存在网络延迟或连接不稳定问题。
+
+```shell
+wsl --update  # 升级 WSL 核心组件
+wsl --shutdown  # 重启生效
+```
+
+WSL2 网络是基于 Hyper-V 虚拟交换机（vEthernet (WSL)）
+
+- 专业版和企业版有完整的 Hyper-V 管理功能 
+- 家庭版虽然没有 Hyper-V Manager 图形界面，但 WSL2 自带的“轻量级 Hyper-V”功能依然可用
+- 删除网卡 / 重启 hns、wslservice、LxssManager 这些命令在家庭版也能用
+
+```text
+PS C:\Users\123> Get-NetAdapter | Where-Object {$_.Name -like "vEthernet*"}
+
+Name                      InterfaceDescription                    ifIndex Status       MacAddress             LinkSpeed
+----                      --------------------                    ------- ------       ----------             ---------
+vEthernet (WSL (Hyper-... Hyper-V Virtual Ethernet Adapter        13 Not Present       00-15-5D-28-3D-FD         0 bps
+```
+
+这里你可以看到 vEthernet (WSL (Hyper-V Virtual Ethernet Adapter) 这个网卡的状态是 Not Present，
+这说明这个虚拟网卡已经“挂掉”了，或者说 Windows 虚拟交换机（Hyper-V 虚拟交换机）出了问题。
+
+尝试在 windows11 家庭版中使用 Hyper-v，通过文件下载好后虽然可以打开 Hyper-v ，但是不能创建 wsl，也不能打开网络 vEthernet，依然是禁用状态
+
+一、NAT 模式下 WSL 与 Windows 的网络隔离性
+WSL 2 默认使用 NAT（网络地址转换）模式 实现网络连接，其本质是：
+
+WSL 作为一个 “虚拟子网” 存在，拥有独立的 IP 地址（如 172.xx.xx.xx 网段），与 Windows 主机（192.168.xx.xx 或 10.xx.xx.xx 等）处于不同的网络段。
+Windows 的 localhost（127.0.0.1）是本地回环地址，仅在 Windows 自身的网络栈中生效，无法被 WSL 所在的虚拟子网直接访问。
+
+因此，当 Windows 配置了 localhost:端口 形式的代理（如 127.0.0.1:7890），WSL 无法通过 localhost 找到这个代理服务器。对 wsl 来说，
+localhost 指向的是 WSL 自身的回环地址，而非 Windows 的代理。
+
+****
+
+1. WSL2 虚拟机自身 IP
+   
+- WSL2 虚拟机内部的 Linux 系统拥有自己的虚拟网卡，一般是 eth0。 
+- 这个 eth0 会从虚拟交换机所在的虚拟网络中获取一个动态 IP 地址，通常是一个私有网段，比如 172.25.x.x 或类似地址（实际网段依你的 Windows 配置而定）。 
+- 这个 IP 地址是 WSL2 虚拟机在虚拟 NAT 网络内的地址，不在你物理网络的子网范围内。 
+- 可以在 WSL2 终端执行 ip addr 或 ifconfig 查看： 
+
+```text
+root@LAPTOP-SVEUFK1D:~# ifconfig
+br-3e59daf99430: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 172.18.0.1  netmask 255.255.0.0  broadcast 172.18.255.255
+        ether 16:42:19:da:20:ae  txqueuelen 0  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+br-a07f7164f7a5: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 172.19.0.1  netmask 255.255.0.0  broadcast 172.19.255.255
+        ether e6:65:b7:ec:f3:a1  txqueuelen 0  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+        ether de:e0:96:2f:7f:ce  txqueuelen 0  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enP38777p0s0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.0.110  netmask 255.255.255.0  broadcast 192.168.0.255
+        inet6 fe80::f29e:4aff:fe84:1809  prefixlen 64  scopeid 0x20<link>
+        ether f0:9e:4a:84:18:09  txqueuelen 1000  (Ethernet)
+        RX packets 1810  bytes 2279653 (2.2 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 972  bytes 71925 (71.9 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 6  bytes 504 (504.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 6  bytes 504 (504.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+loopback0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 169.254.73.153  netmask 255.255.255.252  broadcast 169.254.73.155
+        inet6 fe80::211:22ff:fe33:4455  prefixlen 64  scopeid 0x20<link>
+        ether 00:11:22:33:44:55  txqueuelen 1000  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 19  bytes 1506 (1.5 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+```
+
+通过以上命令一般会打印很多 ip 出来，但可以根据特征进行判断，关键判断依据：
+
+- 接口状态：主接口通常处于 UP,BROADCAST,RUNNING,MULTICAST 状态（即正常工作中）
+- IP 网段：WSL2 主 IP 通常在 172.16.0.0/12（如 172.17.x.x、172.18.x.x 等）或 192.168.x.x 网段（取决于网络模式）
+- 排除特殊接口：
+  - lo 是本地回环（127.0.0.1），不是实际网络接口
+  - 名称含 br- 或 docker0 的是 Docker 虚拟网桥（仅用于容器网络，不是 WSL 主接口）
+  - loopback0 是 WSL 内部的回环辅助接口（169.254.x.x 网段，通常不用）
+
+所以根据以上可以判断出此时 wsl2 的 ip 为：192.168.0.110，而 wsl2 采用的是 Hyper-V 轻量虚拟机技术，其网络并非直接绑定到物理网卡，
+而是通过 Windows 虚拟出一个专用子网（类似 NAT 网络），正常情况应该不是 192 开头，应该是 172 开头，而且这个和 windows 的 ip 一样，说明没有使用到 nat 网络模式
+
+所以：
+
+- 每次 WSL2 启动时，Windows 会为这个虚拟子网分配一个网段（例如 172.x.x.x 或 192.168.x.x），并给 WSL2 虚拟机分配一个该网段内的 IP
+- 这个网段和 IP 是 动态生成 的，Windows 可能根据当前网络环境（如物理网络变化、其他虚拟网络冲突等）调整，导致每次启动时 IP 不同
+
+****
+Windows 主机 IP
+
+
+
 
 
 
